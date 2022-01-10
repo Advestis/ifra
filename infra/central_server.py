@@ -17,12 +17,21 @@ class CentralServer:
     """Central server. Can create nodes, pass learning_configs to them, launch their learning and gather their results.
     """
 
+    # If True, calling 'fit' of each node is done in parallel.
+    PARALLEL_NODES = False
+
     def __init__(
         self,
         learning_configs_path: Union[str, Path, TransparentPath] = None,
         nodes: Union[List[Node], None] = None,
         nnodes: Union[None, int] = None,
     ):
+        """Must specify one of learning_configs_path and nodes.
+
+        If learning_configs_path, will create nnodes using the given learning configurations
+        Else, if nodes is passed, assumes that they are compatible and will get the learning configuration of the first
+        node.
+        """
         if nodes is not None:
             if not isinstance(nodes, list):
                 raise TypeError(f"Node argument must be a list, got {type(nodes)}")
@@ -77,15 +86,34 @@ class CentralServer:
         self.ruleset = RuleSet()
         logger.info("... fit results aggregated")
 
-    def fit(self, niterations: int):
+    def fit(self, niterations: int, make_images: bool = True, save_trees: bool = True, save_rulesets: bool = True):
+        logger.info("Started fit...")
+        if len(self.nodes) == 0:
+            logger.warning("Zero nodes. Fitting canceled.")
+            return
+
+        features_names = self.nodes[0].learning_configs.features_names
         for iteration in range(niterations):
-            with ProcessPoolExecutor(max_workers=cpu_count(), mp_context=get_context("spawn")) as executor:
-                results = list(
-                    executor.map(Node.fit, self.nodes)
-                )
-            for tree, ruleset in results:
+            if CentralServer.PARALLEL_NODES:
+                with ProcessPoolExecutor(max_workers=cpu_count(), mp_context=get_context("spawn")) as executor:
+                    results = list(
+                        executor.map(Node.fit, self.nodes)
+                    )
+            else:
+                results = []
+                for node in self.nodes:
+                    results.append(node.fit())
+            for i, tree_ruleset in enumerate(results):
+                tree, ruleset = tree_ruleset
                 self.trees.append(tree)
                 self.rulesets.append(ruleset)
+                if make_images:
+                    Node.tree_to_graph(f"tests/outputs/node_{i}/tree.dot", None, tree, features_names)
+                if save_trees:
+                    Node.tree_to_joblib(f"tests/outputs/node_{i}/tree.joblib", None, tree)
+                if save_rulesets:
+                    Node.rule_to_file(f"tests/outputs/node_{i}/ruleset.csv", None, ruleset)
             self.aggregate()
             for node in self.nodes:
                 node.update_from_central(self.ruleset)
+        logger.info("...fit finished")
