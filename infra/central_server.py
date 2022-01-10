@@ -14,7 +14,8 @@ logger = logging.getLogger(__name__)
 
 class CentralServer:
 
-    """Central server. Can create nodes, pass learning_configs to them, launch their learning and gather their results."""
+    """Central server. Can create nodes, pass learning_configs to them,
+    launch their learning and gather their results."""
 
     # If True, calling 'fit' of each node is done in parallel.
     PARALLEL_NODES = False
