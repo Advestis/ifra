@@ -1,54 +1,132 @@
 import os
 from pathlib import Path
-from typing import Union, List
+from typing import Union, List, Optional, Tuple
 import joblib
+from ruleskit import RuleSet
 from sklearn import tree
 import numpy as np
 from ruleskit.utils.rule_utils import extract_rules_from_tree
+from json import load
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+class Config:
+
+    """Class to load a node configuration on its local computer. Basically just a wrapper around a json file."""
+
+    EXPECTED_CONFIGS = []
+
+    # noinspection PyUnresolvedReferences
+    def __init__(self, path: Union[str, Path, "TransparentPath"]):
+
+        if type(path) == str:
+            path = Path(path)
+
+        if not path.suffix == "json":
+            raise ValueError("Config path must be a json")
+
+        if hasattr(path, "read"):
+            self.configs = path.read()
+        else:
+            with open(path) as opath:
+                self.configs = load(opath)
+
+        for key in self.EXPECTED_CONFIGS:
+            if key not in self.configs:
+                raise IndexError(f"Missing required config {key}")
+        for key in self.configs:
+            if key not in self.EXPECTED_CONFIGS:
+                raise IndexError(f"Unexpected config {key}")
+
+    def __getattr__(self, item):
+        if item not in self.configs:
+            raise ValueError(f"No configuration named '{item}' was found")
+        return self.configs[item]
+
+
+class Paths(Config):
+    EXPECTED_CONFIGS = ["x", "y", "x_read_kwargs", "y_read_kwargs"]
+
+
+class LearningConfig(Config):
+    EXPECTED_CONFIGS = ["features_names", "x_mins", "x_maxs", "get_leaf" "max_depth"]
 
 
 class Node:
-    def __init__(
-        self,
-        id_number: int,
-        x_mins: Union[np.ndarray, None] = None,
-        x_maxs: Union[np.ndarray, None] = None,
-        features_names: List[str] = None,
-        get_leaf: bool = False,
-    ):
-        self.id = id_number
+
+    """Interface through which the central server can create nodes, update them, and get their fit results"""
+
+    instances = []
+
+    # noinspection PyUnresolvedReferences
+    def __init__(self, learning_configs_path: Union[Path, "TransparentPath"]):
+        self.id = len(Node.instances)
         self.tree = None
         self.ruleset = None
+        self.learning_configs_path = learning_configs_path
+        self.__path_configs_path = Path("path_configs.json")
 
-        if features_names is not None:
-            if not isinstance(features_names, list):
-                raise TypeError(f"features_names must be a list, you gave a {type(features_names)}")
-            for name in features_names:
-                if not isinstance(name, str):
-                    raise TypeError(f"Names in features_names should be strings, but {name} is a {type(name)}")
-        self.features_names = features_names
+        self.paths = None
+        self.learning_configs = None
 
-        if x_mins is not None:
-            if not isinstance(x_mins, np.ndarray):
-                raise TypeError(f"x_mins must be a np.ndarray, you gave a {type(x_mins)}")
-            if not isinstance(x_mins.dtype, (float, int)):
-                raise TypeError(f"x_mins must contain floating point numbers or integers, you gave {x_mins.dtype}")
-        self.x_mins = x_mins
+        self.load_paths()
+        self.load_learning_configs()
+        self.__fitter = Fitter(self.learning_configs_path, self.__path_configs_path)
+        Node.instances.append(self)
 
-        if x_maxs is not None:
-            if not isinstance(x_maxs, np.ndarray):
-                raise TypeError(f"x_maxs must be a np.ndarray, you gave a {type(x_maxs)}")
-            if not isinstance(x_maxs.dtype, (float, int)):
-                raise TypeError(f"x_maxs must contain floating point numbers or integers, you gave {x_maxs.dtype}")
-        self.x_maxs = x_maxs
+    def fit(self):
+        logger.info(f"Fitting node {self.id}...")
+        self.tree, self.ruleset = self.__fitter.fit()
+        logger.info(f"... node {self.id} fitted.")
 
-        if not isinstance(get_leaf, bool):
-            raise TypeError(f"get_leaf should be a boolean, but you gave a {type(get_leaf)}")
-        self.get_leaf = get_leaf
+    def update_from_central(self, ruleset: RuleSet):
+        """TO CODE"""
+        logger.info(f"Updating node {self.id}...")
+        pass
+        logger.info(f"... node {self.id} updated.")
+
+
+class Fitter:
+
+    """Fitter class. Fits a DecisionTreeClassifier on some data."""
+
+    # noinspection PyUnresolvedReferences
+    def __init__(
+        self,
+        learning_configs_path: Union[str, Path, "TransparentPath"],
+        path_configs_path: Union[str, Path, "TransparentPath"],
+    ):
+        self.learning_config = LearningConfig(learning_configs_path)
+        self.paths = Paths(path_configs_path)
+
+    def fit(self):
+        return self._fit(
+            self.paths.x.read(**self.paths.x_read_kwargs),
+            self.paths.y.read(**self.paths.y_read_kwargs),
+            self.learning_config.max_depth,
+            self.learning_config.x_mins,
+            self.learning_config.x_maxs,
+            self.learning_config.features_names,
+            self.learning_config.get_leaf,
+        )
 
     # noinspection PyArgumentList
-    def fit(self, x: np.array, y: np.array, max_depth: int):
-        """ Fits x and y using a decision tree cassifier, setting self.tree and self.ruleset
+    @staticmethod
+    def _fit(
+        x: np.array,
+        y: np.array,
+        max_depth: int,
+        x_mins: Optional[np.ndarray],
+        x_maxs: Optional[np.ndarray],
+        features_names: Optional[List[str]],
+        get_leaf: bool = False,
+    ) -> Tuple[tree.DecisionTreeClassifier, RuleSet]:
+        """Fits x and y using a decision tree cassifier, setting self.tree and self.ruleset
+
+        x array must contain one column for each feature that can exist across all nodes. Some features can contain
+        only NaNs.
 
         Parameters
         ----------
@@ -56,21 +134,28 @@ class Node:
             Must be of shape (# observations, # features)
         y: np.ndarray
             Must be of shape (# observations,)
-        max_depth
-
+        max_depth: int
+            Maximum tree depth
+        x_mins: Optional[np.ndarray]
+            Lower limits of features
+        x_maxs: Optional[np.ndarray]
+            Upper limits of features
+        features_names: Optional[List[str]]
+            Names of features
+        get_leaf: bool
+            default value = False
         """
-        # Do not set self.x_mins and self.x_maxs here : it is against the spirit of federated learning, where data
-        # should not leave the node
-        x_mins = self.x_mins
+
         if x_mins is None:
             x_mins = x.min(axis=0)
-        x_maxs = self.x_maxs
         if x_maxs is None:
             x_maxs = x.max(axis=0)
-        self.tree = tree.DecisionTreeClassifier(max_depth=max_depth).fit(x, y)
-        self.ruleset = extract_rules_from_tree(
-            self.tree, xmins=x_mins, xmaxs=x_maxs, features_names=self.features_names, get_leaf=self.get_leaf
+
+        thetree = tree.DecisionTreeClassifier(max_depth=max_depth).fit(x, y)
+        ruleset = extract_rules_from_tree(
+            thetree, xmins=x_mins, xmaxs=x_maxs, features_names=features_names, get_leaf=get_leaf
         )
+        return thetree, ruleset
 
     # noinspection PyUnresolvedReferences
     def tree_to_graph(self, path: Union[str, Path, "TransparentPath"]):
