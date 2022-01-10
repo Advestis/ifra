@@ -4,6 +4,7 @@ from ruleskit import RuleSet
 
 from .node import Node
 from pathlib import Path
+from transparentpath import TransparentPath
 import logging
 from multiprocessing import get_context, cpu_count
 from concurrent.futures import ProcessPoolExecutor
@@ -16,10 +17,9 @@ class CentralServer:
     """Central server. Can create nodes, pass learning_configs to them, launch their learning and gather their results.
     """
 
-    # noinspection PyUnresolvedReferences
     def __init__(
         self,
-        learning_configs_path: Union[str, Path, "TransparentPath"] = None,
+        learning_configs_path: Union[str, Path, TransparentPath] = None,
         nodes: Union[List[Node], None] = None,
         nnodes: Union[None, int] = None,
     ):

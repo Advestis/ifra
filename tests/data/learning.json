@@ -1,0 +1,9 @@
+{
+  "features_names": ["sepal length in cm", "sepal width in cm", "petal length in cm", "petal width in cm"],
+  "x_mins": [0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+  "x_maxs": [2.0, 2.0, 2.0, 2.0, 2.0, 10.0, 10.0, 10.0, 10.0, 10.0],
+  "get_leaf": false,
+  "max_depth": 3,
+  "remember_activation": true,
+  "stack_activation": false
+}

@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from transparentpath import TransparentPath
 from typing import Union, List, Optional, Tuple
 import joblib
 from ruleskit import RuleSet
@@ -19,7 +20,7 @@ class Config:
     EXPECTED_CONFIGS = []
 
     # noinspection PyUnresolvedReferences
-    def __init__(self, path: Union[str, Path, "TransparentPath"]):
+    def __init__(self, path: Union[str, Path, TransparentPath]):
 
         if type(path) == str:
             path = Path(path)
@@ -49,9 +50,23 @@ class Config:
 class Paths(Config):
     EXPECTED_CONFIGS = ["x", "y", "x_read_kwargs", "y_read_kwargs"]
 
+    def __init__(self, path: Union[str, Path, TransparentPath]):
+        super().__init__(path)
+        for item in self.configs:
+            if isinstance(self.configs[item], str):
+                self.configs[item] = TransparentPath(self.configs[item])
+
 
 class LearningConfig(Config):
-    EXPECTED_CONFIGS = ["features_names", "x_mins", "x_maxs", "get_leaf" "max_depth"]
+    EXPECTED_CONFIGS = [
+        "features_names",
+        "x_mins",
+        "x_maxs",
+        "get_leaf",
+        "max_depth",
+        "remember_activation",
+        "stack_activation",
+    ]
 
 
 class Node:
@@ -61,7 +76,7 @@ class Node:
     instances = []
 
     # noinspection PyUnresolvedReferences
-    def __init__(self, learning_configs_path: Union[Path, "TransparentPath"]):
+    def __init__(self, learning_configs_path: Union[Path, TransparentPath]):
         self.id = len(Node.instances)
         self.tree = None
         self.ruleset = None
@@ -95,16 +110,16 @@ class Fitter:
     # noinspection PyUnresolvedReferences
     def __init__(
         self,
-        learning_configs_path: Union[str, Path, "TransparentPath"],
-        path_configs_path: Union[str, Path, "TransparentPath"],
+        learning_configs_path: Union[str, Path, TransparentPath],
+        path_configs_path: Union[str, Path, TransparentPath],
     ):
         self.learning_config = LearningConfig(learning_configs_path)
         self.paths = Paths(path_configs_path)
 
     def fit(self):
         return self._fit(
-            self.paths.x.read(**self.paths.x_read_kwargs),
-            self.paths.y.read(**self.paths.y_read_kwargs),
+            self.paths.x.read(**self.paths.x_read_kwargs).values,
+            self.paths.y.read(**self.paths.y_read_kwargs).values,
             self.learning_config.max_depth,
             self.learning_config.x_mins,
             self.learning_config.x_maxs,
@@ -118,10 +133,12 @@ class Fitter:
         x: np.array,
         y: np.array,
         max_depth: int,
-        x_mins: Optional[np.ndarray],
-        x_maxs: Optional[np.ndarray],
+        x_mins: Optional[List[float]],
+        x_maxs: Optional[List[float]],
         features_names: Optional[List[str]],
         get_leaf: bool = False,
+        remember_activation: bool = True,
+        stack_activation: bool = False,
     ) -> Tuple[tree.DecisionTreeClassifier, RuleSet]:
         """Fits x and y using a decision tree cassifier, setting self.tree and self.ruleset
 
@@ -136,34 +153,48 @@ class Fitter:
             Must be of shape (# observations,)
         max_depth: int
             Maximum tree depth
-        x_mins: Optional[np.ndarray]
+        x_mins: Optional[List[float]]
             Lower limits of features
-        x_maxs: Optional[np.ndarray]
+        x_maxs: Optional[List[float]]
             Upper limits of features
         features_names: Optional[List[str]]
             Names of features
         get_leaf: bool
             default value = False
+        remember_activation: bool
+            See extract_rules_from_tree, default = True
+        stack_activation: bool
+            See extract_rules_from_tree, default = False
         """
 
         if x_mins is None:
             x_mins = x.min(axis=0)
+        elif not isinstance(x_mins, np.ndarray):
+            x_mins = np.array(x_mins)
         if x_maxs is None:
             x_maxs = x.max(axis=0)
+        elif not isinstance(x_maxs, np.ndarray):
+            x_maxs = np.array(x_maxs)
 
         thetree = tree.DecisionTreeClassifier(max_depth=max_depth).fit(x, y)
         ruleset = extract_rules_from_tree(
-            thetree, xmins=x_mins, xmaxs=x_maxs, features_names=features_names, get_leaf=get_leaf
+            thetree,
+            xmins=x_mins,
+            xmaxs=x_maxs,
+            features_names=features_names,
+            get_leaf=get_leaf,
+            remember_activation=remember_activation,
+            stack_activation=stack_activation,
         )
         return thetree, ruleset
 
     # noinspection PyUnresolvedReferences
-    def tree_to_graph(self, path: Union[str, Path, "TransparentPath"]):
+    def tree_to_graph(self, path: Union[str, Path, TransparentPath]):
         """Saves self.tree to a .dot file and a .svg file. Does not do anything if self.tree is None
 
         Parameters
         ----------
-        path: Union[str, Path, "TransparentPath"]
+        path: Union[str, Path, TransparentPath]
         """
         if self.tree is None:
             return
@@ -186,12 +217,12 @@ class Fitter:
         os.system(f'dot -Tsvg "{path}" -o "{path.with_suffix(".svg")}"')
 
     # noinspection PyUnresolvedReferences
-    def tree_to_joblib(self, path: Union[str, Path, "TransparentPath"]):
+    def tree_to_joblib(self, path: Union[str, Path, TransparentPath]):
         """Saves self.tree to a .joblib file. Does not do anything if self.tree is None
 
         Parameters
         ----------
-        path: Union[str, Path, "TransparentPath"]
+        path: Union[str, Path, TransparentPath]
         """
         if self.tree is None:
             return
@@ -208,7 +239,7 @@ class Fitter:
 
         Parameters
         ----------
-        path: Union[str, Path, "TransparentPath"]
+        path: Union[str, Path, TransparentPath]
         """
         if self.ruleset is None:
             return

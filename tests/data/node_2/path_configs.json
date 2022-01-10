@@ -1,0 +1,6 @@
+{
+  "x": "tests/data/node_2/x.csv",
+  "y": "tests/data/node_2/y.csv",
+  "x_read_kwargs": {},
+  "y_read_kwargs": {}
+}
