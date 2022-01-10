@@ -1,4 +1,4 @@
-from typing import Union, List
+from typing import Union, List, Callable
 
 from ruleskit import RuleSet
 
@@ -25,12 +25,16 @@ class CentralServer:
         learning_configs_path: Union[str, Path, TransparentPath] = None,
         nodes: Union[List[Node], None] = None,
         nnodes: Union[None, int] = None,
+        dataprep_method: Callable = None
     ):
         """Must specify one of learning_configs_path and nodes.
 
         If learning_configs_path, will create nnodes using the given learning configurations
         Else, if nodes is passed, assumes that they are compatible and will get the learning configuration of the first
         node.
+
+        Can specify dataprep_method, that each node will execute on its intput data before fit. Must accept x and y has
+        arguments and return datapreped x and y.
         """
         if nodes is not None:
             if not isinstance(nodes, list):
@@ -48,6 +52,8 @@ class CentralServer:
             if not isinstance(nnodes, int):
                 raise TypeError(f"nnodes should be a integer, got a {type(nnodes)}")
 
+        self.dataprep_method = dataprep_method
+
         self.nodes = nodes
         if learning_configs_path is not None:
             if type(learning_configs_path) == str:
@@ -57,6 +63,7 @@ class CentralServer:
             if self.nodes is not None:
                 for node in self.nodes:
                     node.learning_configs_path = learning_configs_path
+                    node.dataprep_method = dataprep_method
             else:
                 for i in range(nnodes):
                     self.add_node()
@@ -64,8 +71,10 @@ class CentralServer:
             if len(self.nodes) == 0:
                 raise ValueError("If learning_configs_path is not specified, nodes must not be empty")
             self.learning_configs_path = nodes[0].learning_configs_path
+            self.dataprep_method = nodes[0].dataprep_method
             for node in self.nodes[1:]:
                 node.learning_configs_path = self.learning_configs_path
+                node.dataprep_method = self.dataprep_method
 
         self.trees, self.rulesets = [], []
         self.ruleset = None
@@ -77,7 +86,7 @@ class CentralServer:
                 raise TypeError(f"Node is not of class Node, but {type(node)}")
             node.learning_configs_path = self.learning_configs_path
         else:
-            node = Node(learning_configs_path=self.learning_configs_path)
+            node = Node(learning_configs_path=self.learning_configs_path, dataprep_method=self.dataprep_method)
         self.nodes.append(node)
 
     def aggregate(self):

@@ -1,0 +1,5 @@
+,features_names,features_indexes,bmins,bmaxs,prediction,criterion
+R_0(1),['petal width in cm'],[3],[0],[1.5],Iris-setosa,None
+R_1(2),"['petal length in cm', 'petal width in cm']","[2, 3]","[0, 1.5]","[3.5, 3.5]",Iris-versicolor,None
+R_2(2),"['petal length in cm', 'petal width in cm']","[2, 3]","[0, 3.5]","[3.5, 4]",Iris-virginica,None
+R_3(2),"['petal length in cm', 'petal width in cm']","[2, 3]","[3.5, 1.5]","[4, 4]",Iris-virginica,None

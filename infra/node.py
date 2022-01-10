@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 from transparentpath import TransparentPath
-from typing import Union, List, Optional, Tuple
+from typing import Union, List, Optional, Tuple, Callable
 import joblib
 from ruleskit import RuleSet
 from sklearn import tree
@@ -40,6 +40,10 @@ class Config:
         for key in self.configs:
             if key not in self.EXPECTED_CONFIGS:
                 raise IndexError(f"Unexpected config {key}")
+
+        for key in self.configs:
+            if self.configs[key] == "":
+                self.configs[key] = None
 
     def __getattr__(self, item):
         if item not in self.configs:
@@ -80,6 +84,7 @@ class Node:
         self,
         learning_configs_path: Union[str, Path, TransparentPath],
         path_configs_path: Optional[Union[str, Path, TransparentPath]] = None,
+        dataprep_method: Callable = None
     ):
         self.id = len(Node.instances)
         self.tree = None
@@ -90,11 +95,27 @@ class Node:
         self.__path_configs_path = path_configs_path
 
         self.learning_configs = LearningConfig(learning_configs_path)
+        self.dataprep_method = dataprep_method
         self.__paths = Paths(self.__path_configs_path)
         self.__fitter = Fitter(self.learning_configs, self.__paths)
         Node.instances.append(self)
 
     def fit(self):
+        if self.dataprep_method is not None:
+            logger.info(f"Datapreping data of node {self.id}...")
+            x, y = self.dataprep_method(
+                self.__paths.x.read(**self.__paths.x_read_kwargs),
+                self.__paths.y.read(**self.__paths.y_read_kwargs)
+            )
+            x_suffix = self.__paths.x.suffix
+            y_suffix = self.__paths.y.suffix
+            x_datapreped_path = self.__paths.x.with_suffix("").append("_datapreped").with_suffix(x_suffix)
+            y_datapreped_path = self.__paths.y.with_suffix("").append("_datapreped").with_suffix(y_suffix)
+            x_datapreped_path.write(x, index=False)
+            y_datapreped_path.write(y, index=False)
+            self.__fitter.paths.x = x_datapreped_path
+            self.__fitter.paths.y = y_datapreped_path
+            logger.info(f"...datapreping done for node {self.id}")
         logger.info(f"Fitting node {self.id}...")
         self.tree, self.ruleset = self.__fitter.fit()
         logger.info(f"... node {self.id} fitted.")
