@@ -35,4 +35,12 @@ def test_iris_one_iteration():
         Node("tests/data/learning.json", f"tests/data/node_{i}/path_configs.json", dataprep_method) for i in range(4)
     ]
     cs = CentralServer(nodes=nodes)
-    cs.fit(1)
+    cs.fit(1, save_path="tests/outputs")
+
+
+def test_iris_one_iteration_one_node():
+    nodes = [
+        Node("tests/data/learning.json", "tests/data/node_alone/path_configs.json", dataprep_method)
+    ]
+    cs = CentralServer(nodes=nodes)
+    cs.fit(1, save_path="tests/outputs/alone")

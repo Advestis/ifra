@@ -1,4 +1,4 @@
-from typing import Union, List, Callable
+from typing import Union, List, Callable, Optional
 
 from ruleskit import RuleSet
 
@@ -14,8 +14,7 @@ logger = logging.getLogger(__name__)
 
 class CentralServer:
 
-    """Central server. Can create nodes, pass learning_configs to them, launch their learning and gather their results.
-    """
+    """Central server. Can create nodes, pass learning_configs to them, launch their learning and gather their results."""
 
     # If True, calling 'fit' of each node is done in parallel.
     PARALLEL_NODES = False
@@ -25,7 +24,7 @@ class CentralServer:
         learning_configs_path: Union[str, Path, TransparentPath] = None,
         nodes: Union[List[Node], None] = None,
         nnodes: Union[None, int] = None,
-        dataprep_method: Callable = None
+        dataprep_method: Callable = None,
     ):
         """Must specify one of learning_configs_path and nodes.
 
@@ -95,7 +94,14 @@ class CentralServer:
         self.ruleset = RuleSet()
         logger.info("... fit results aggregated")
 
-    def fit(self, niterations: int, make_images: bool = True, save_trees: bool = True, save_rulesets: bool = True):
+    def fit(
+        self,
+        niterations: int,
+        make_images: bool = True,
+        save_trees: bool = True,
+        save_rulesets: bool = True,
+        save_path: Optional[Union[str, Path, TransparentPath]] = None,
+    ):
         logger.info("Started fit...")
         if len(self.nodes) == 0:
             logger.warning("Zero nodes. Fitting canceled.")
@@ -105,9 +111,7 @@ class CentralServer:
         for iteration in range(niterations):
             if CentralServer.PARALLEL_NODES:
                 with ProcessPoolExecutor(max_workers=cpu_count(), mp_context=get_context("spawn")) as executor:
-                    results = list(
-                        executor.map(Node.fit, self.nodes)
-                    )
+                    results = list(executor.map(Node.fit, self.nodes))
             else:
                 results = []
                 for node in self.nodes:
@@ -116,12 +120,19 @@ class CentralServer:
                 tree, ruleset = tree_ruleset
                 self.trees.append(tree)
                 self.rulesets.append(ruleset)
+                if save_path is not None:
+                    if type(save_path) == str:
+                        save_path = TransparentPath(save_path)
+                else:
+                    save_path = TransparentPath()
+
+                save_to = save_path / f"node_{i}"
                 if make_images:
-                    Node.tree_to_graph(f"tests/outputs/node_{i}/tree.dot", None, tree, features_names)
+                    Node.tree_to_graph(save_to / "tree.dot", None, tree, features_names)
                 if save_trees:
-                    Node.tree_to_joblib(f"tests/outputs/node_{i}/tree.joblib", None, tree)
+                    Node.tree_to_joblib(save_to / "tree.joblib", None, tree)
                 if save_rulesets:
-                    Node.rule_to_file(f"tests/outputs/node_{i}/ruleset.csv", None, ruleset)
+                    Node.rule_to_file(save_to / "ruleset.csv", None, ruleset)
             self.aggregate()
             for node in self.nodes:
                 node.update_from_central(self.ruleset)
