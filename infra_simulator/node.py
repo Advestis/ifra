@@ -1,5 +1,7 @@
 import os
 from pathlib import Path
+from matplotlib import pyplot as plt
+import matplotlib as mpl
 from transparentpath import TransparentPath
 from typing import Union, List, Optional, Tuple, Callable
 import joblib
@@ -11,6 +13,37 @@ from json import load
 import logging
 
 logger = logging.getLogger(__name__)
+
+mpl.rcParams["text.usetex"] = True
+mpl.rcParams["text.latex.preamble"] = r"\usepackage{amsmath}\boldmath"
+
+
+def format_x(s):
+    """For a given number, will put it in scientific notation if lower than 0.01, using LaTex synthax.
+
+    In addition, if the value is lower than alpha, will change set the color of the value to green.
+    """
+    if s > 0.01:
+        xstr = str(round(s, 2))
+    else:
+        xstr = "{:.4E}".format(s)
+        if "E-" in xstr:
+            lead, tail = xstr.split("E-")
+            middle = "-"
+        else:
+            if "E" not in xstr:
+                lead, tail = xstr, ""
+            else:
+                lead, tail = xstr.split("E")
+            middle = ""
+        while tail.startswith("0"):
+            tail = tail[1:]
+        while lead.endswith("0") and "." in lead:
+            lead = lead[:-1]
+            if lead.endswith("."):
+                lead = lead[:-1]
+        xstr = ("\\times 10^{" + middle).join([lead, tail]) + "}"
+    return xstr
 
 
 class Config:
@@ -70,6 +103,7 @@ class LearningConfig(Config):
         "max_depth",
         "remember_activation",
         "stack_activation",
+        "plot_data"
     ]
 
 
@@ -101,6 +135,8 @@ class Node:
         Node.instances.append(self)
 
     def fit(self):
+        if self.learning_configs.plot_data:
+            self.plot_data_histogram(self.__paths.x.parent / "plots")
         if self.dataprep_method is not None:
             logger.info(f"Datapreping data of node {self.id}...")
             x, y = self.dataprep_method(
@@ -115,6 +151,8 @@ class Node:
             y_datapreped_path.write(y, index=False)
             self.__fitter.paths.x = x_datapreped_path
             self.__fitter.paths.y = y_datapreped_path
+            if self.learning_configs.plot_data:
+                self.plot_data_histogram(self.__paths.x.parent / "plots_datapreped")
             logger.info(f"...datapreping done for node {self.id}")
         logger.info(f"Fitting node {self.id}...")
         self.tree, self.ruleset = self.__fitter.fit()
@@ -238,6 +276,108 @@ class Node:
 
         path = path.with_suffix(".csv")
         ruleset.save(path)
+
+    def plot_data_histogram(self, path):
+        x = self.__paths.x.read(**self.__paths.x_read_kwargs)
+        for col, name in zip(x.columns, self.learning_configs.features_names):
+            fig = plot_histogram(
+                data=x[col],
+                xlabel=name,
+                figsize=(10, 7)
+            )
+            fig.savefig(path / f"{name.replace(' ', '_')}.pdf")
+        y = self.__paths.y.read(**self.__paths.y_read_kwargs)
+        fig = plot_histogram(
+            data=y.squeeze(),
+            xlabel="Iris type",
+            figsize=(10, 7)
+        )
+        fig.savefig(path / "classes.pdf")
+
+
+def plot_histogram(**kwargs):
+    data = kwargs.get("data")
+    xlabel = kwargs.get("xlabel", "x")
+    xlabel = "".join(["\\textbf{", xlabel, "}"])
+    ylabel = kwargs.get("ylabel", "count")
+    ylabel = "".join(["\\textbf{", ylabel, "}"])
+    xlabelfontsize = kwargs.get("xlabelfontsize", 20)
+    ylabelfontsize = kwargs.get("ylabelfontsize", 20)
+    title = kwargs.get("title", None)
+    titlefontsize = kwargs.get("titlefontsize", 20)
+    xticks = kwargs.get("xticks", None)
+    yticks = kwargs.get("yticks", None)
+    xtickslabels = kwargs.get("xtickslabels", None)
+    xticksfontsize = kwargs.get("xticksfontsize", 15)
+    yticksfontsize = kwargs.get("yticksfontsize", 15)
+    force_xlim = kwargs.get("force_xlim", False)
+    xlim = kwargs.get("xlim", [])
+    ylim = kwargs.get("ylim", [])
+    figsize = kwargs.get("figsize", None)
+    legendfontsize = kwargs.get("legendfontsize", 12)
+    plt.close("all")
+    fig = plt.figure(0, figsize=figsize)
+    ax1 = fig.gca()
+
+    # If xlim is specified, set it. Otherwise, if force_xlim is specified,
+    # redefine the x limites to match the histo ranges.
+    if len(xlim) == 2:
+        ax1.set_xlim(left=xlim[0], right=xlim[1])
+    elif force_xlim:
+        ax1.set_xlim([0.99 * data.min(), 1.01 * data.max()])
+    if len(ylim) == 2:
+        ax1.set_ylim(ylim)
+
+    label = None
+
+    try:
+        mean = format_x(data.mean())
+        std = format_x(data.std())
+        count = format_x(len(data))
+        integral = format_x(sum(data))
+        label = (
+                f"\\flushleft$\\mu={mean}$ \\\\ $\\sigma={std}$ \\\\ "
+                + "\\textbf{Count}$="
+                + f"{count}$ \\\\ "
+                + "\\textbf{Integral}$="
+                + f"{integral}$"
+        )
+    except TypeError:
+        pass
+
+    data.hist(ax=ax1, bins=100, label=label)
+
+    if ylabel is not None:
+        ax1.set_ylabel(ylabel, fontsize=ylabelfontsize)
+    if xlabel is not None:
+        ax1.set_xlabel(xlabel, fontsize=xlabelfontsize)
+    if title is not None:
+        ax1.set_title(title, fontsize=titlefontsize)
+
+    if xticksfontsize is not None:
+        ax1.tick_params(axis="x", labelsize=xticksfontsize)
+    if yticksfontsize is not None:
+        ax1.tick_params(axis="y", labelsize=yticksfontsize)
+
+    if xticks is not None:
+        ax1.set_xticks(xticks)
+    if yticks is not None:
+        ax1.set_yticks(yticks)
+    if xtickslabels is not None:
+        ax1.set_xticklabels(xtickslabels)
+
+    if label:
+        ax1.legend(
+            # bbox_to_anchor=(0.9, 0, 0, 1),
+            loc="upper right",
+            facecolor="wheat",
+            fontsize=legendfontsize,
+            shadow=True,
+            title=None,
+        )
+    plt.gcf().tight_layout()
+
+    return fig
 
 
 class Fitter:

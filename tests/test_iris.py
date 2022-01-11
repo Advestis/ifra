@@ -1,4 +1,4 @@
-from infra import CentralServer, Node
+from infra_simulator import CentralServer, Node
 import numpy as np
 from bisect import bisect
 
