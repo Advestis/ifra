@@ -174,7 +174,7 @@ class CentralServer:
         logger.info("... fit results aggregated")
         return
 
-    def watch(self, timeout: int = 60):
+    def watch(self, timeout: int = 60, sleeptime: int = 5):
         t = time()
         while time() - t < timeout:
             updated_nodes = []
@@ -219,10 +219,11 @@ class CentralServer:
             self.rulesets = []
             for node in self.nodes:
                 node.push_central_model(deepcopy(self.ruleset))
-            sleep(5)
+            sleep(sleeptime)
 
+        logger.info(f"Timeout of {timeout} seconds reached, stopping learning.")
         if self.ruleset is None:
             logger.warning("No rules were found, no output generated.")
         else:
             self.ruleset.save(self.central_configs.output_path)
-        logger.info(f"...fit finished, results saved in {self.central_configs.output_path}")
+        logger.info(f"Results saved in {self.central_configs.output_path}")
