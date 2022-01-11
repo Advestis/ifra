@@ -1,4 +1,4 @@
-from infra_simulator import CentralServer, Node
+from ifra_simulator import CentralServer, Node
 import numpy as np
 from bisect import bisect
 
@@ -26,21 +26,31 @@ def dataprep_method(x, y):
         discrete_x = x_series.apply(lambda var: bisect(bins, var))
         discrete_x[mask] = np.nan
         return discrete_x
+
     x = x.apply(lambda xx: dicretize(xx), axis=0)
     return x, y
 
 
-def test_iris_one_iteration():
+def test_iris():
     nodes = [
-        Node("tests/data/learning.json", f"tests/data/node_{i}/path_configs.json", dataprep_method) for i in range(4)
+        Node(
+            learning_configs_path="tests/data/learning.json",
+            path_configs_path=f"tests/data/node_{i}/path_configs.json",
+            dataprep_method=dataprep_method,
+        )
+        for i in range(4)
     ]
     cs = CentralServer(nodes=nodes)
-    cs.fit(1, save_path="tests/outputs")
+    cs.fit(5, save_path="tests/outputs")
 
 
-def test_iris_one_iteration_one_node():
-    nodes = [
-        Node("tests/data/learning.json", "tests/data/node_alone/path_configs.json", dataprep_method)
-    ]
-    cs = CentralServer(nodes=nodes)
-    cs.fit(1, save_path="tests/outputs/alone")
+# def test_iris_one_iteration_one_node():
+#     nodes = [
+#         Node(
+#             learning_configs_path="tests/data/learning.json",
+#             path_configs_path="tests/data/node_alone/path_configs.json",
+#             dataprep_method=dataprep_method,
+#         )
+#     ]
+#     cs = CentralServer(nodes=nodes)
+#     cs.fit(1, save_path="tests/outputs/alone")

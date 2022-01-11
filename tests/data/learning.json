@@ -4,7 +4,10 @@
   "x_mins": "",
   "x_maxs": "",
   "max_depth": 3,
-  "remember_activation": true,
+  "remember_activation": false,
   "stack_activation": false,
-  "plot_data": true
+  "plot_data": false,
+  "get_leaf": false,
+  "max_coverage": 0.25,
+  "output_path": "tests/outputs/ruleset.csv"
 }
