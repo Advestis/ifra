@@ -15,7 +15,7 @@ from ruleskit import RuleSet
 from transparentpath import TransparentPath
 import logging
 
-from ifra.configs import NodeLearningConfig, Paths
+from ifra.configs import NodePublicConfig, Paths
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +62,7 @@ class Node:
         self.path_learning_configs = path_learning_configs
         if type(path_data) == str:
             path_data = TransparentPath(path_data)
-        self.learning_configs = NodeLearningConfig(path_learning_configs)
+        self.learning_configs = NodePublicConfig(path_learning_configs)
 
         if not len(list(self.learning_configs.local_model_path.parent.ls(""))) == 0:
             raise ValueError(
@@ -250,7 +250,7 @@ class Node:
         new_central_model = True  # start at true to trigger fit even if no central model is here at first iteration
         while time() - t < timeout:
             if self.learning_configs.id is None:
-                self.learning_configs = NodeLearningConfig(self.path_learning_configs)
+                self.learning_configs = NodePublicConfig(self.path_learning_configs)
             if self.learning_configs.id is None:
                 logger.warning(
                     "Node id is not set, meaning central server is not running. Waiting for central server to start."

@@ -53,7 +53,7 @@ class Config:
         self.path.write(to_save)
 
 
-class NodeLearningConfig(Config):
+class NodePublicConfig(Config):
     EXPECTED_CONFIGS = [
         "features_names",
         "classes_names",
@@ -71,9 +71,9 @@ class NodeLearningConfig(Config):
     ]
 
     def __eq__(self, other):
-        if not isinstance(other, NodeLearningConfig):
+        if not isinstance(other, NodePublicConfig):
             return False
-        for key in NodeLearningConfig.EXPECTED_CONFIGS:
+        for key in NodePublicConfig.EXPECTED_CONFIGS:
             if key == "local_model_path":  # This parameter can change without problem
                 continue
             if self[key] != other[key]:
@@ -81,7 +81,7 @@ class NodeLearningConfig(Config):
         return True
 
 
-class CentralLearningConfig(Config):
+class CentralConfig(Config):
     EXPECTED_CONFIGS = [
         "max_coverage",
         "output_path",
