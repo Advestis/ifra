@@ -1,16 +1,21 @@
-import os
+from datetime import datetime
 from pathlib import Path
-from matplotlib import pyplot as plt
-import matplotlib as mpl
-from transparentpath import TransparentPath
-from typing import Union, List, Optional, Tuple, Callable
-import joblib
-from ruleskit import RuleSet
+from time import time, sleep
+
 from sklearn import tree
 import numpy as np
 from ruleskit.utils.rule_utils import extract_rules_from_tree
-from json import load
+import os
+import joblib
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+from typing import List, Union, Optional, Tuple
+
+from ruleskit import RuleSet
+from transparentpath import TransparentPath
 import logging
+
+from ifra.configs import NodeLearningConfig, Paths
 
 logger = logging.getLogger(__name__)
 
@@ -46,198 +51,108 @@ def format_x(s):
     return xstr
 
 
-class Config:
-
-    """Class to load a node configuration on its local computer. Basically just a wrapper around a json file."""
-
-    EXPECTED_CONFIGS = []
-
-    # noinspection PyUnresolvedReferences
-    def __init__(self, path: Union[str, Path, TransparentPath]):
-
-        if type(path) == str:
-            path = TransparentPath(path)
-
-        if not path.suffix == ".json":
-            raise ValueError("Config path must be a json")
-
-        if hasattr(path, "read"):
-            self.configs = path.read()
-        else:
-            with open(path) as opath:
-                self.configs = load(opath)
-
-        for key in self.EXPECTED_CONFIGS:
-            if key not in self.configs:
-                raise IndexError(f"Missing required config {key}")
-        for key in self.configs:
-            if key not in self.EXPECTED_CONFIGS:
-                raise IndexError(f"Unexpected config {key}")
-
-        for key in self.configs:
-            if self.configs[key] == "":
-                self.configs[key] = None
-
-    def __getattr__(self, item):
-        if item not in self.configs:
-            raise ValueError(f"No configuration named '{item}' was found")
-        return self.configs[item]
-
-
-class Paths(Config):
-    EXPECTED_CONFIGS = ["x", "y", "x_read_kwargs", "y_read_kwargs"]
-
-    def __init__(self, path: Union[str, Path, TransparentPath]):
-        super().__init__(path)
-        for item in self.configs:
-            if isinstance(self.configs[item], str):
-                self.configs[item] = TransparentPath(self.configs[item])
-
-
-class LearningConfig(Config):
-    EXPECTED_CONFIGS = [
-        "features_names",
-        "classes_names",
-        "x_mins",
-        "x_maxs",
-        "max_depth",
-        "remember_activation",
-        "stack_activation",
-        "plot_data",
-        "get_leaf",
-        "max_coverage",
-        "output_path"
-    ]
-
-
 class Node:
-
-    """Interface through which the central server can create nodes, update them, and get their fit results"""
-
-    instances = []
-
-    # noinspection PyUnresolvedReferences
     def __init__(
         self,
-        learning_configs_path: Optional[Union[str, Path, TransparentPath]] = None,
-        learning_configs: Optional[LearningConfig] = None,
-        path_configs_path: Optional[Union[str, Path, TransparentPath]] = None,
-        dataprep_method: Callable = None
+        path_learning_configs: TransparentPath,
+        path_data: Union[str, Path, TransparentPath],
     ):
+        if type(path_learning_configs) == str:
+            path_learning_configs = TransparentPath(path_learning_configs)
+        self.path_learning_configs = path_learning_configs
+        if type(path_data) == str:
+            path_data = TransparentPath(path_data)
+        self.learning_configs = NodeLearningConfig(path_learning_configs)
 
-        if learning_configs_path is None and learning_configs is None:
-            raise ValueError("One of learning_configs_path and learning_configs must be not None")
-        if learning_configs_path is not None and learning_configs is not None:
-            raise ValueError("Only one of learning_configs_path and learning_configs must be not None")
+        if not len(list(self.learning_configs.local_model_path.parent.ls(""))) == 0:
+            raise ValueError(
+                "Path were Node model should be saved is not empty. Make sure you cleaned all previous learning output"
+            )
 
-        self.id = len(Node.instances)
-        self.tree = None
-        self.ruleset = None
-        if path_configs_path is None:
-            path_configs_path = TransparentPath("path_configs.json")
+        self.__data = Paths(path_data)
+        self.__fitter = Fitter(self.learning_configs, self.__data)
 
-        if learning_configs_path is not None:
-            self.learning_configs = LearningConfig(learning_configs_path)
-        else:
-            self.learning_configs = learning_configs
-        self.dataprep_method = dataprep_method
+        self.dataprep_method = None
         self.datapreped = False
         self.copied = False
-        self.__paths = Paths(path_configs_path)
-        self.__fitter = Fitter(self.learning_configs, self.__paths)
-        Node.instances.append(self)
+        self.tree = None
+        self.ruleset = None
+        self.last_fetch = None
+        if self.learning_configs.dataprep_method is not None:
+            function = self.learning_configs.dataprep_method.split(".")[-1]
+            module = self.learning_configs.dataprep_method.replace(f".{function}", "")
+            self.dataprep_method = __import__(module, globals(), locals(), [function], 0)
 
     def fit(self):
         if self.learning_configs.plot_data:
-            self.plot_data_histogram(self.__paths.x.parent / "plots")
+            self.plot_data_histogram(self.__data.x.parent / "plots")
         if self.dataprep_method is not None and not self.datapreped:
-            logger.info(f"Datapreping data of node {self.id}...")
+            logger.info(f"Datapreping data of node {self.learning_configs.id}...")
             x, y = self.dataprep_method(
-                self.__paths.x.read(**self.__paths.x_read_kwargs),
-                self.__paths.y.read(**self.__paths.y_read_kwargs)
+                self.__data.x.read(**self.__data.x_read_kwargs),
+                self.__data.y.read(**self.__data.y_read_kwargs)
             )
-            x_suffix = self.__paths.x.suffix
-            y_suffix = self.__paths.y.suffix
-            x_datapreped_path = self.__paths.x.with_suffix("").append("_datapreped").with_suffix(x_suffix)
-            y_datapreped_path = self.__paths.y.with_suffix("").append("_datapreped").with_suffix(y_suffix)
+            x_suffix = self.__data.x.suffix
+            y_suffix = self.__data.y.suffix
+            x_datapreped_path = self.__data.x.with_suffix("").append("_datapreped").with_suffix(x_suffix)
+            y_datapreped_path = self.__data.y.with_suffix("").append("_datapreped").with_suffix(y_suffix)
             x_datapreped_path.write(x, index=False)
             y_datapreped_path.write(y, index=False)
-            self.__fitter.paths.x = x_datapreped_path
-            self.__fitter.paths.y = y_datapreped_path
+            self.__fitter.data.x = x_datapreped_path
+            self.__fitter.data.y = y_datapreped_path
             if self.learning_configs.plot_data:
-                self.plot_data_histogram(self.__paths.x.parent / "plots_datapreped")
+                self.plot_data_histogram(self.__data.x.parent / "plots_datapreped")
             self.datapreped = True
-            logger.info(f"...datapreping done for node {self.id}")
+            logger.info(f"...datapreping done for node {self.learning_configs.id}")
 
         if not self.copied:
             # Copy x and y in a different file, for it will be changed after each iterations by the update from central
-            x_suffix = self.__paths.x.suffix
-            self.__paths.x.cp(self.__paths.x.with_suffix("").append("_copy_for_learning").with_suffix(x_suffix))
-            self.__paths.x = self.__paths.x.with_suffix("").append("_copy_for_learning").with_suffix(x_suffix)
-            y_suffix = self.__paths.y.suffix
-            self.__paths.y.cp(self.__paths.y.with_suffix("").append("_copy_for_learning").with_suffix(y_suffix))
-            self.__paths.y = self.__paths.y.with_suffix("").append("_copy_for_learning").with_suffix(y_suffix)
+            x_suffix = self.__data.x.suffix
+            self.__data.x.cp(self.__data.x.with_suffix("").append("_copy_for_learning").with_suffix(x_suffix))
+            self.__data.x = self.__data.x.with_suffix("").append("_copy_for_learning").with_suffix(x_suffix)
+            y_suffix = self.__data.y.suffix
+            self.__data.y.cp(self.__data.y.with_suffix("").append("_copy_for_learning").with_suffix(y_suffix))
+            self.__data.y = self.__data.y.with_suffix("").append("_copy_for_learning").with_suffix(y_suffix)
             self.copied = True
 
-        logger.info(f"Fitting node {self.id}...")
+        logger.info(f"Fitting node {self.learning_configs.id}...")
         self.tree, self.ruleset = self.__fitter.fit()
-        logger.info(f"... node {self.id} fitted.")
+        self.tree_to_graph()
+        self.tree_to_joblib()
+        self.ruleset_to_file()
+        logger.info(f"... node {self.learning_configs.id} fitted, results saved in"
+                    f" {self.learning_configs.local_model_path.parent}.")
         return self.tree, self.ruleset
 
-    def update_from_central(self, ruleset: RuleSet):
+    def update_from_central(self, ruleset):
         """Ignore points activated by the central server ruleset in order to find other relevant rules in the next
         iterations"""
-        logger.info(f"Updating node {self.id}...")
+        logger.info(f"Updating node {self.learning_configs.id}...")
         # Compute activation of the selected rules
-        x = self.__paths.x.read(**self.__paths.x_read_kwargs)
-        y = self.__paths.y.read(**self.__paths.y_read_kwargs)
+        x = self.__data.x.read(**self.__data.x_read_kwargs)
+        y = self.__data.y.read(**self.__data.y_read_kwargs)
         ruleset.remember_activation = True
         ruleset.calc_activation(x.values)
         x = x[ruleset.activation == 0]
         y = y[ruleset.activation == 0]
-        self.__paths.x.write(x, index=False)
-        self.__paths.y.write(y, index=False)
-        logger.info(f"... node {self.id} updated.")
+        self.__data.x.write(x, index=False)
+        self.__data.y.write(y, index=False)
+        logger.info(f"... node {self.learning_configs.id} updated.")
 
-    @classmethod
     def tree_to_graph(
-        cls,
-        path: Union[str, Path, TransparentPath],
-        node: Optional["Node"] = None,
-        thetree=None,
-        features_names: Optional[List[str]] = None,
+        self,
     ):
         """Saves self.tree to a .dot file and a .svg file. Does not do anything if self.tree is None
-
-        Parameters
-        ----------
-        path: Union[str, Path, TransparentPath]
-        node: Node
-        thetree:
-            Tree to save. If None (default) will use self.tree
-        features_names: Optional[List[str]]
         """
-        if node is None and thetree is None:
-            raise ValueError("One of node and thetree must be not None")
-
-        if node is not None and thetree is not None:
-            raise ValueError("Must specify only one of node and thetree")
-
-        if node is not None:
-            thetree = node.tree
-            features_names = node.learning_configs.features_names
-        if thetree is None:
-            return
-
-        if type(path) == str:
-            path = TransparentPath(path)
-
+        thetree = self.tree
+        features_names = self.learning_configs.features_names
         iteration = 0
-        name = path.stem
-        path = path.parent / f"{name}_{iteration}.dot"
+        name = self.learning_configs.local_model_path.stem
+        path = self.learning_configs.local_model_path.parent / f"{name}_{iteration}.dot"
+
         while path.isfile():
             iteration += 1
-            path = path.parent / f"{name}_{iteration}.dot"
+            path = self.learning_configs.local_model_path.parent / f"{name}_{iteration}.dot"
 
         with open(path, "w") as dotfile:
             tree.export_graphviz(
@@ -252,102 +167,61 @@ class Node:
         # joblib.dump(self.tree, self.__trees_path / (Y_name + ".joblib"))
         os.system(f'dot -Tsvg "{path}" -o "{path.with_suffix(".svg")}"')
 
-    @classmethod
     def tree_to_joblib(
-        cls,
-        path: Union[str, Path, TransparentPath],
-        node: Optional["Node"] = None,
-        thetree=None,
+        self,
     ):
         """Saves self.tree to a .joblib file. Does not do anything if self.tree is None
-
-        Parameters
-        ----------
-        path: Union[str, Path, TransparentPath]
-        node: Optional[Node]
-        thetree:
-            Tree to save. If None (default) will use self.tree
         """
 
-        if node is None and thetree is None:
-            raise ValueError("One of node and thetree must be not None")
-
-        if node is not None and thetree is not None:
-            raise ValueError("Must specify only one of node and thetree")
-
-        if node is not None:
-            thetree = node.tree
-        if thetree is None:
-            return
-
-        if type(path) == str:
-            path = TransparentPath(path)
-
+        thetree = self.tree
         iteration = 0
-        name = path.stem
-        path = path.parent / f"{name}_{iteration}.joblib"
+        name = self.learning_configs.local_model_path.stem
+        path = self.learning_configs.local_model_path.parent / f"{name}_{iteration}.joblib"
+
         while path.isfile():
             iteration += 1
-            path = path.parent / f"{name}_{iteration}.joblib"
+            path = self.learning_configs.local_model_path.parent / f"{name}_{iteration}.joblib"
 
+        path = path.with_suffix(".joblib")
         joblib.dump(thetree, path)
 
-    @classmethod
-    def rule_to_file(
-        cls, path: Union[str, Path, TransparentPath], node: Optional["Node"] = None, ruleset: Optional[RuleSet] = None
+    def ruleset_to_file(
+        self
     ):
-        """Saves self.ruleset to a .csv file. Does not do anything if self.ruleset is None
-
-        Parameters
-        ----------
-        path: Union[str, Path, TransparentPath]
-        node: Optional[Node]
-        ruleset:
-            Tree to save. If None (default) will use self.tree
+        """Saves self.ruleset to 2 .csv files. Does not do anything if self.ruleset is None
         """
 
-        if node is None and ruleset is None:
-            raise ValueError("One of node and thetree must be not None")
-
-        if node is not None and ruleset is not None:
-            raise ValueError("Must specify only one of node and thetree")
-
-        if node is not None:
-            ruleset = node.ruleset
-        if ruleset is None:
-            return
-
-        if type(path) == str:
-            path = TransparentPath(path)
-
-        ruleset.save(path.with_suffix(".csv"))
+        ruleset = self.ruleset
 
         iteration = 0
-        name = path.stem
-        path = path.parent / f"{name}_{iteration}.csv"
+        name = self.learning_configs.local_model_path.stem
+        path = self.learning_configs.local_model_path.parent / f"{name}_{iteration}.csv"
         while path.isfile():
             iteration += 1
-            path = path.parent / f"{name}_{iteration}.csv"
+            path = self.learning_configs.local_model_path.parent / f"{name}_{iteration}.csv"
 
+        path = path.with_suffix(".csv")
         ruleset.save(path)
+        ruleset.save(self.learning_configs.local_model_path)
 
     def plot_data_histogram(self, path):
-        x = self.__paths.x.read(**self.__paths.x_read_kwargs)
+        x = self.__data.x.read(**self.__data.x_read_kwargs)
         for col, name in zip(x.columns, self.learning_configs.features_names):
             fig = plot_histogram(
                 data=x[col],
                 xlabel=name,
                 figsize=(10, 7)
             )
+
             iteration = 0
             name = name.replace(' ', '_')
-            path_x = path.parent / f"{name}_{iteration}.dot"
+            path_x = path.parent / f"{name}_{iteration}.pdf"
             while path_x.isfile():
                 iteration += 1
-                path_x = path_x.parent / f"{name}_{iteration}.dot"
+                path_x = path_x.parent / f"{name}_{iteration}.pdf"
             fig.savefig(path_x)
 
-        y = self.__paths.y.read(**self.__paths.y_read_kwargs)
+        y = self.__data.y.read(**self.__data.y_read_kwargs)
         fig = plot_histogram(
             data=y.squeeze(),
             xlabel="Class",
@@ -355,11 +229,52 @@ class Node:
         )
 
         iteration = 0
-        path_y = path.parent / f"classes_{iteration}.dot"
+        path_y = path.parent / f"classes_{iteration}.pdf"
         while path_y.isfile():
             iteration += 1
-            path_y = path_y.parent / f"classes_{iteration}.dot"
+            path_y = path_y.parent / f"classes_{iteration}.pdf"
+
         fig.savefig(path_y)
+
+    def watch(self, timeout: int = 60, sleeptime: int = 5):
+
+        def get_ruleset():
+            central_ruleset = RuleSet()
+            central_ruleset.load(self.learning_configs.central_model_path)
+            self.last_fetch = datetime.now()
+            self.update_from_central(central_ruleset)
+            logger.info(f"Fetched new central ruleset in node {self.learning_configs.id} at {self.last_fetch}")
+            self.new_data = True
+
+        t = time()
+        new_central_model = True  # start at true to trigger fit even if no central model is here at first iteration
+        while time() - t < timeout:
+            if self.learning_configs.id is None:
+                self.learning_configs = NodeLearningConfig(self.path_learning_configs)
+            if self.learning_configs.id is None:
+                logger.warning(
+                    "Node id is not set, meaning central server is not running. Waiting for central server to start."
+                )
+                continue
+
+            if self.last_fetch is None:
+                if self.learning_configs.central_model_path.isfile():
+                    get_ruleset()
+                    new_central_model = True
+            else:
+                if (
+                    self.learning_configs.central_model_path.isfile()
+                    and self.learning_configs.central_model_path.info()["mtime"] > self.last_fetch.timestamp()
+                ):
+                    get_ruleset()
+                    new_central_model = True
+
+            if new_central_model:
+                self.fit()
+                new_central_model = False
+            sleep(sleeptime)
+
+        logger.info(f"Timeout of {timeout} seconds reached, stopping learning in node {self.learning_configs.id}.")
 
 
 def plot_histogram(**kwargs):
@@ -455,15 +370,15 @@ class Fitter:
     def __init__(
         self,
         learning_configs: LearningConfig,
-        paths: Paths,
+        data: Paths,
     ):
         self.learning_configs = learning_configs
-        self.paths = paths
+        self.data = data
 
     def fit(self):
         return self._fit(
-            self.paths.x.read(**self.paths.x_read_kwargs).values,
-            self.paths.y.read(**self.paths.y_read_kwargs).values,
+            self.data.x.read(**self.data.x_read_kwargs).values,
+            self.data.y.read(**self.data.y_read_kwargs).values,
             self.learning_configs.max_depth,
             self.learning_configs.get_leaf,
             self.learning_configs.x_mins,

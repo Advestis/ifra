@@ -1,3 +1,4 @@
 sklearn
 ruleskit
-transparentpath
+matplotlib
+transparentpath[pandas]

@@ -45,11 +45,10 @@ class CentralServer:
                 logger.warning("Nodes were given to central server, so number of nodes to create will be ignored")
 
         if learning_configs_path is None and nodes is None:
-            ValueError("At least one of learning_configs_path and nodes must be specified")
+            raise ValueError("At least one of learning_configs_path and nodes must be specified")
 
-        if nnodes is not None:
-            if not isinstance(nnodes, int):
-                raise TypeError(f"nnodes should be a integer, got a {type(nnodes)}")
+        if nnodes is not None and not isinstance(nnodes, int):
+            raise TypeError(f"nnodes should be a integer, got a {type(nnodes)}")
 
         self.dataprep_method = dataprep_method
 
@@ -104,6 +103,9 @@ class CentralServer:
             logger.info("... no more rules found, stopping learning")
             return False
         occurences = {r: all_rules.count(r) for r in set(all_rules) if r.coverage < self.learning_configs.max_coverage}
+        if len(occurences) == 0:
+            logger.warning("No rules matched coverage criterion, stopping learning")
+            return False
         max_occurences = max(list(occurences.values()))
         if self.ruleset is None:
             self.ruleset = RuleSet(
@@ -134,7 +136,7 @@ class CentralServer:
             return
 
         features_names = self.nodes[0].learning_configs.features_names
-        for iteration in range(niterations):
+        for _ in range(niterations):
             if CentralServer.PARALLEL_NODES:
                 with ProcessPoolExecutor(max_workers=cpu_count(), mp_context=get_context("spawn")) as executor:
                     results = list(executor.map(Node.fit, self.nodes))
@@ -164,8 +166,14 @@ class CentralServer:
             for node in self.nodes:
                 node.update_from_central(deepcopy(self.ruleset))
 
-        if self.ruleset is None:
-            logger.warning("No rules were found, no output generated.")
-        else:
-            self.ruleset.save(self.learning_configs.output_path)
+            if self.ruleset is not None:
+                iteration = 0
+                name = TransparentPath(self.learning_configs.output_path).stem
+                path = TransparentPath(self.learning_configs.output_path).parent / f"{name}_{iteration}.csv"
+                while path.isfile():
+                    iteration += 1
+                    path = path.parent / f"{name}_{iteration}.csv"
+                self.ruleset.save(self.learning_configs.output_path)
+                self.ruleset.save(path)
+
         logger.info("...fit finished")

@@ -8,119 +8,54 @@ from ruleskit import RuleSet
 from transparentpath import TransparentPath
 import logging
 
+from ifra.configs import NodeLearningConfig, CentralLearningConfig
+
 logger = logging.getLogger(__name__)
 
 
-class Config:
-
-    """Class to load a node configuration on its local computer. Basically just a wrapper around a json file."""
-
-    EXPECTED_CONFIGS = []
-
-    # noinspection PyUnresolvedReferences
-    def __init__(self, path: Union[str, Path, TransparentPath]):
-
-        if type(path) == str:
-            path = TransparentPath(path)
-
-        if not path.suffix == ".json":
-            raise ValueError("Config path must be a json")
-
-        if hasattr(path, "read"):
-            self.configs = path.read()
-        else:
-            with open(path) as opath:
-                self.configs = load(opath)
-
-        for key in self.EXPECTED_CONFIGS:
-            if key not in self.configs:
-                raise IndexError(f"Missing required config {key}")
-        for key in self.configs:
-            if key not in self.EXPECTED_CONFIGS:
-                raise IndexError(f"Unexpected config {key}")
-
-        for key in self.configs:
-            if self.configs[key] == "":
-                self.configs[key] = None
-
-    def __getattr__(self, item):
-        if item not in self.configs:
-            raise ValueError(f"No configuration named '{item}' was found")
-        return self.configs[item]
-
-
-class NodeLearningConfig(Config):
-    EXPECTED_CONFIGS = [
-        "features_names",
-        "classes_names",
-        "x_mins",
-        "x_maxs",
-        "max_depth",
-        "remember_activation",
-        "stack_activation",
-        "plot_data",
-        "get_leaf",
-        "local_model_path",
-        "central_model_path"
-    ]
-
-    def __eq__(self, other):
-        if not isinstance(other, NodeLearningConfig):
-            return False
-        for key in NodeLearningConfig.EXPECTED_CONFIGS:
-            if key == "local_model_path":  # This parameter can change without problem
-                continue
-            if self[key] != other[key]:
-                return False
-        return True
-
-
-class CentralLearningConfig(Config):
-    EXPECTED_CONFIGS = [
-        "max_coverage",
-        "output_path",
-    ]
-
-
-class Node:
+class NodeGate:
     node_config_paths = "configs.json"
     instances = 0
 
     def __init__(self, path):
-        self.id = Node.instances
+        self.id = NodeGate.instances
         self.path = path
-        self.config = None
+        self.learning_configs = None
         self.ruleset = None
         self.last_fetch = None
         self.new_data = False
-        Node.instances += 1
+        NodeGate.instances += 1
 
     def interact(self):
         def get_ruleset():
             self.ruleset = RuleSet()
-            self.ruleset.load(self.config.local_model_path)
+            self.ruleset.load(self.learning_configs.local_model_path)
             self.last_fetch = datetime.now()
             logger.info(f"Fetched new ruleset from node {self.id} at {self.last_fetch}")
             self.new_data = True
 
-        if self.config is None:
-            config_path = self.path / Node.node_config_paths
+        if self.learning_configs is None:
+            config_path = self.path / NodeGate.node_config_paths
             if not config_path.isfile():
                 return
-            self.config = NodeLearningConfig(config_path)
+            self.learning_configs = NodeLearningConfig(config_path)
+            if self.learning_configs.id is None:
+                self.learning_configs.id = self.id
+                self.learning_configs.save()
+
         if self.ruleset is None:
-            if self.config.output_path.isfile():
+            if self.learning_configs.local_model_path.isfile():
                 get_ruleset()
         else:
             if (
-                self.config.local_model_path.isfile()
-                and self.config.local_model_path.info()["mtime"] > self.last_fetch.timestamp()
+                self.learning_configs.local_model_path.isfile()
+                and self.learning_configs.local_model_path.info()["mtime"] > self.last_fetch.timestamp()
             ):
                 get_ruleset()
 
     def push_central_model(self, ruleset):
-        logger.info(f"Pushing central model to node {self.id} at {self.config.central_model_path}")
-        ruleset.save(self.config.central_model_path)
+        logger.info(f"Pushing central model to node {self.id} at {self.learning_configs.central_model_path}")
+        ruleset.save(self.learning_configs.central_model_path)
         self.new_data = False
 
 
@@ -132,13 +67,17 @@ class CentralServer:
     central model is updated and sent in another GCP directory. This directory should be monitored by each node.
     """
 
-    def __init__(self, nodes_paths: List[TransparentPath], central_configs_path: Union[str, Path, TransparentPath]):
+    def __init__(
+        self,
+        nodes_paths: List[TransparentPath],
+        central_configs_path: Union[str, Path, TransparentPath],
+    ):
         self.reference_node_config = None
         if type(central_configs_path) == str:
             central_configs_path = Path(central_configs_path)
         self.central_configs = CentralLearningConfig(central_configs_path)
         self.nodes_configs = {}
-        self.nodes = [Node(path) for path in nodes_paths]
+        self.nodes = [NodeGate(path) for path in nodes_paths]
         self.rulesets = []
         self.ruleset = None
 
@@ -158,6 +97,9 @@ class CentralServer:
             logger.info("... no rules found")
             return
         occurences = {r: all_rules.count(r) for r in set(all_rules) if r.coverage < self.central_configs.max_coverage}
+        if len(occurences) == 0:
+            logger.warning("No rules matched coverage criterion")
+            return
         max_occurences = max(list(occurences.values()))
         if self.ruleset is None:
             self.ruleset = RuleSet(
@@ -172,58 +114,72 @@ class CentralServer:
                 stack_activation=False,
             )
         logger.info("... fit results aggregated")
-        return
 
     def watch(self, timeout: int = 60, sleeptime: int = 5):
         t = time()
         while time() - t < timeout:
+            new_data = False
             updated_nodes = []
 
             for node in self.nodes:
                 node.interact()  # Node fetches its latest data from GCP
 
                 if node not in self.nodes_configs:
-                    if node.config is not None:
+                    if node.learning_configs is not None:
                         if self.reference_node_config is None:
-                            self.reference_node_config = deepcopy(node.config)
+                            self.reference_node_config = deepcopy(node.learning_configs)
                         # Nodes with configurations different from central's are ignored
-                        elif node.config != self.reference_node_config:
-                            logger.warning(f"Node {node.id}'s configuration is not compatible with previous"
-                                           " configuration. Ignoring.")
+                        elif node.learning_configs != self.reference_node_config:
+                            logger.warning(
+                                f"Node {node.id}'s configuration is not compatible with previous"
+                                " configuration. Ignoring."
+                            )
                             continue
-                        self.nodes_configs[node] = node.config
+                        self.nodes_configs[node] = node.learning_configs
                     # Nodes with no available configurations are ignored
                     else:
                         logger.warning(f"Node {node.id}'s has no configurations. Ignoring.")
                         continue
                 else:
                     # Nodes with no available configurations are ignored
-                    if node.config is None:
+                    if node.learning_configs is None:
                         logger.warning(f"Node {node.id} lost its configuration file. Ignoring.")
                         continue
                     # Nodes with configurations that changed are ignored
-                    if node.config != self.nodes_configs[node]:
+                    if node.learning_configs != self.nodes_configs[node]:
                         logger.warning(f"Node {node.id} changed its configurations. Ignoring.")
                         continue
                     # Nodes with configurations different from central's are ignored
-                    if node.config != self.reference_node_config:
-                        logger.warning(f"Node {node.id}'s configuration is not compatible with previous"
-                                       " configuration. Ignoring.")
+                    if node.learning_configs != self.reference_node_config:
+                        logger.warning(
+                            f"Node {node.id}'s configuration is not compatible with previous"
+                            " configuration. Ignoring."
+                        )
                         continue
 
                 if node.new_data:
+                    new_data = True
                     updated_nodes.append(node)
                     self.rulesets.append(node.ruleset)
 
-            self.aggregate()
-            self.rulesets = []
-            for node in self.nodes:
-                node.push_central_model(deepcopy(self.ruleset))
+            if new_data:
+                logger.info("Found new nodes nodels.")
+                self.aggregate()
+                self.rulesets = []
+                for node in self.nodes:
+                    node.push_central_model(deepcopy(self.ruleset))
+                if self.ruleset is None:
+                    logger.warning("No rules were found, no output generated.")
+                else:
+                    iteration = 0
+                    name = self.central_configs.output_path.stem
+                    path = self.central_configs.output_path.parent / f"{name}_{iteration}.csv"
+                    while path.isfile():
+                        iteration += 1
+                        path = path.parent / f"{name}_{iteration}.csv"
+                    self.ruleset.save(self.central_configs.output_path)
+                    self.ruleset.save(path)
             sleep(sleeptime)
 
         logger.info(f"Timeout of {timeout} seconds reached, stopping learning.")
-        if self.ruleset is None:
-            logger.warning("No rules were found, no output generated.")
-        else:
-            self.ruleset.save(self.central_configs.output_path)
         logger.info(f"Results saved in {self.central_configs.output_path}")

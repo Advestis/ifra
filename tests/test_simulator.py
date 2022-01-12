@@ -31,7 +31,7 @@ def dataprep_method(x, y):
     return x, y
 
 
-def test_iris():
+def test_iris(clean):
     nodes = [
         Node(
             learning_configs_path="tests/data/learning.json",
