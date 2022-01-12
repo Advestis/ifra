@@ -115,7 +115,7 @@ class CentralServer:
             )
         else:
             self.ruleset += RuleSet(
-                [r for r in occurences if occurences[r] == max_occurences],
+                [r for r in occurences if occurences[r] == max_occurences and r not in self.ruleset],
                 remember_activation=False,
                 stack_activation=False,
             )

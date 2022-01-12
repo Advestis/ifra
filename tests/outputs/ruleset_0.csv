@@ -1,0 +1,2 @@
+,features_names,features_indexes,bmins,bmaxs,prediction,criterion
+R_0(1),['petal width in cm'],[3],[3.5],[4],Iris-versicolor,None

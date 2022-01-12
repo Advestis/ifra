@@ -85,6 +85,7 @@ class CentralLearningConfig(Config):
     EXPECTED_CONFIGS = [
         "max_coverage",
         "output_path",
+        "min_number_of_new_models"
     ]
 
 

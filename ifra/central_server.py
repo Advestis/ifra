@@ -108,8 +108,12 @@ class CentralServer:
                 stack_activation=False,
             )
         else:
+            new_rules = [r for r in occurences if occurences[r] == max_occurences and r not in self.ruleset]
+            if len(new_rules) == 0:
+                logger.warning("No new rules found")
+                return
             self.ruleset += RuleSet(
-                [r for r in occurences if occurences[r] == max_occurences],
+                new_rules,
                 remember_activation=False,
                 stack_activation=False,
             )
@@ -117,11 +121,13 @@ class CentralServer:
 
     def watch(self, timeout: int = 60, sleeptime: int = 5):
         t = time()
+        updated_nodes = []
         while time() - t < timeout:
-            new_data = False
-            updated_nodes = []
+            new_models = False
 
             for node in self.nodes:
+                if node in updated_nodes:
+                    continue
                 node.interact()  # Node fetches its latest data from GCP
 
                 if node not in self.nodes_configs:
@@ -158,14 +164,16 @@ class CentralServer:
                         continue
 
                 if node.new_data:
-                    new_data = True
                     updated_nodes.append(node)
                     self.rulesets.append(node.ruleset)
+                    if len(updated_nodes) >= self.central_configs.min_number_of_new_models:
+                        new_models = True
 
-            if new_data:
-                logger.info("Found new nodes nodels.")
+            if new_models:
+                logger.info("Found enough new nodes nodels.")
                 self.aggregate()
                 self.rulesets = []
+                updated_nodes = []
                 for node in self.nodes:
                     node.push_central_model(deepcopy(self.ruleset))
                 if self.ruleset is None:
