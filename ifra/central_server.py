@@ -2,7 +2,7 @@ from copy import deepcopy
 from datetime import datetime
 from pathlib import Path
 from time import time, sleep
-from typing import List, Union, Tuple
+from typing import List, Union, Tuple, Optional
 
 from ruleskit import RuleSet
 from transparentpath import TransparentPath
@@ -237,9 +237,19 @@ class CentralServer:
             rulesets, len(self.nodes), self.ruleset, self.central_configs.max_coverage
         )
 
-    def watch(self, timeout: int = 60, sleeptime: int = 5):
+    def watch(self, timeout: Optional[int], sleeptime: int = 5):
         """Monitors new changes in the nodes, every ''sleeptime'' seconds for ''timeout'' seconds, triggering
         aggregation and pushing central model to nodes when enough new node models are available.
+
+        Stops if all nodes gave a model but no new rules could be found from them. Tells the nodes to stop too.
+
+        Parameters
+        ----------
+        timeout: Optional[int]
+            How long should the watch last. If None, will last until all nodes gave a model but no new rules could be
+            found from them.
+        sleeptime: int
+            How long between each checks for new nodes models
         """
         t = time()
         updated_nodes = []
@@ -279,6 +289,9 @@ class CentralServer:
                 what_now = self._aggregate(rulesets)
                 if what_now == "stop":
                     learning_over = True
+                    for node in self.nodes:
+                        node.public_configs.stop = True
+                        node.public_configs.save()
                     break
                 elif what_now == "pass":
                     # New model did not provide additionnal information. Keep the current rulesets, but do not trigger
@@ -304,6 +317,9 @@ class CentralServer:
 
         if learning_over is False:
             logger.info(f"Timeout of {timeout} seconds reached, stopping learning.")
+            for node in self.nodes:
+                node.public_configs.stop = True
+                node.public_configs.save()
         if self.ruleset is None:
             logger.warning("Learning failed to produce a central model. No output generated.")
         logger.info(f"Results saved in {self.central_configs.output_path}")

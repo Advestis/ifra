@@ -2,7 +2,7 @@ from datetime import datetime
 from pathlib import Path
 from time import time, sleep
 
-from typing import Union
+from typing import Union, Optional
 
 from ruleskit import RuleSet
 from transparentpath import TransparentPath
@@ -44,7 +44,44 @@ class Node:
 
     Methods
     -------
-    fit() -> RuleSet
+    _fit() -> RuleSet
+        Plots the features and classes distribution in :attribute:~ifra.node.Node.__paths.x's and
+        :attribute:~ifra.node.Node.__paths.y's parent directories if :attribute:~ifra.configs.NodePublicConfig.plot_data
+        is True.
+
+        Triggers :attribute:~ifra.node.Node.dataprep_method on the features and classes if a dataprep method was
+        specified, and if :attribute:~ifra.node.Node.datapreped if False. Writes the output in
+        :attribute:~ifra.node.Node.__paths.x's and :attribute:~ifra.node.Node.__paths.y's parent directories by
+        appending ''_datapreped'' to the files names, sets :attribute:~ifra.node.Node.datapreped to True
+        Modifies :attribute:~ifra.node.Node.__paths.x and :attribute:~ifra.node.Node.__paths.y to point to those files.
+        Plots the distributions of the datapreped data.
+
+        If :attribute:~ifra.node.Node.copied is False, copies the files pointed by :attribute:~ifra.node.Node.__paths.x
+        and :attribute:~ifra.node.Node.__paths.y in new files in the same directories by appending
+        ''_copy_for_learning'' to their names. Sets :attribute:~ifra.node.Node.copied to True.
+
+        Calls the the fitter corresponding to :attribute:~ifra.node.Node.fitter on the node's features and targets and
+        save the resulting ruleset in :attribute:~ifra.node.Node.public_configs.local_model_path.
+
+    _update_from_central(ruleset: RuleSet) -> None
+        Ignores points activated by the central server ruleset in order to find other relevant rules in the next
+        iterations. Modifies the files pointed by :attribute:~ifra.node.Node.__paths.x and
+        :attribute:~ifra.node.Node.__paths.y.
+
+    _ruleset_to_file() -> None
+        Saves :attribute:~ifra.node.Node.ruleset to :attribute:~ifra.configs.NodePublicConfig.local_model_path,
+        overwritting any existing file here, and in another file in the same directory but with a unique name.
+        Does not do anything if :attribute:~ifra.node.Node.ruleset is None
+
+    _plot_data_histogram(path: TransparentPath) -> None
+        Plots the distribution of the data located in :attribute:~ifra.node.Node.__paths.x and
+        :attribute:~ifra.node.Node.__paths.y and save them in unique files
+
+    watch(timeout: int = 60, sleeptime: int = 5) -> None
+        Monitors new changes in the central server, every ''sleeptime'' seconds for ''timeout'' seconds, triggering node
+        fit when a new model is found, or if the function just started. Sets
+        :attribute:~ifra.configs.NodePublicConfig.id by re-reading the configuration file if it is None.
+        This is the only method the user should call.
     """
 
     possible_fitters = {
@@ -85,9 +122,31 @@ class Node:
             module = self.public_configs.dataprep_method.replace(f".{function}", "")
             self.dataprep_method = __import__(module, globals(), locals(), [function], 0)
 
-    def fit(self) -> RuleSet:
+    def _fit(self) -> RuleSet:
+        """Plots the features and classes distribution in :attribute:~ifra.node.Node.__paths.x's and
+        :attribute:~ifra.node.Node.__paths.y's parent directories if :attribute:~ifra.configs.NodePublicConfig.plot_data
+        is True.
+
+        Triggers :attribute:~ifra.node.Node.dataprep_method on the features and classes if a dataprep method was
+        specified, and if :attribute:~ifra.node.Node.datapreped if False. Writes the output in
+        :attribute:~ifra.node.Node.__paths.x's and :attribute:~ifra.node.Node.__paths.y's parent directories by
+        appending ''_datapreped'' to the files names, sets :attribute:~ifra.node.Node.datapreped to True
+        Modifies :attribute:~ifra.node.Node.__paths.x and :attribute:~ifra.node.Node.__paths.y to point to those files.
+
+        If :attribute:~ifra.node.Node.copied is False, copies the files pointed by :attribute:~ifra.node.Node.__paths.x
+        and :attribute:~ifra.node.Node.__paths.y in new files in the same directories by appending
+        ''_copy_for_learning'' to their names. Sets :attribute:~ifra.node.Node.copied to True.
+
+        Calls the the fitter corresponding to :attribute:~ifra.node.Node.fitter on the node's features and targets and
+        save the resulting ruleset in :attribute:~ifra.node.Node.public_configs.local_model_path.
+
+        Returns
+        -------
+        RuleSet
+            :attribute:~ifra.node.Node.ruleset
+        """
         if self.public_configs.plot_data:
-            self.plot_data_histogram(self.__data.x.parent / "plots")
+            self._plot_data_histogram(self.__data.x.parent / "plots")
         if self.dataprep_method is not None and not self.datapreped:
             logger.info(f"Datapreping data of node {self.public_configs.id}...")
             x, y = self.dataprep_method(
@@ -102,10 +161,10 @@ class Node:
             x_datapreped_path.write(x)
             y_datapreped_path.write(y)
 
-            self.__fitter.data.x = x_datapreped_path
-            self.__fitter.data.y = y_datapreped_path
+            self.__fitter.paths.x = x_datapreped_path
+            self.__fitter.paths.y = y_datapreped_path
             if self.public_configs.plot_data:
-                self.plot_data_histogram(self.__data.x.parent / "plots_datapreped")
+                self._plot_data_histogram(self.__data.x.parent / "plots_datapreped")
             self.datapreped = True
             logger.info(f"...datapreping done for node {self.public_configs.id}")
 
@@ -121,14 +180,21 @@ class Node:
 
         logger.info(f"Fitting node {self.public_configs.id} using {self.fitter}...")
         self.ruleset = self.__fitter.fit()
-        self.ruleset_to_file()
+        self._ruleset_to_file()
         logger.info(f"... node {self.public_configs.id} fitted, results saved in"
                     f" {self.public_configs.local_model_path.parent}.")
         return self.ruleset
 
-    def update_from_central(self, ruleset):
-        """Ignore points activated by the central server ruleset in order to find other relevant rules in the next
-        iterations"""
+    def _update_from_central(self, ruleset: RuleSet):
+        """Ignores points activated by the central server ruleset in order to find other relevant rules in the next
+        iterations. Modifies the files pointed by :attribute:~ifra.node.Node.__paths.x and
+        :attribute:~ifra.node.Node.__paths.y.
+
+        Parameters
+        ----------
+        ruleset: RuleSet
+            The central model's ruleset
+        """
         logger.info(f"Updating node {self.public_configs.id}...")
         # Compute activation of the selected rules
         x = self.__data.x.read(**self.__data.x_read_kwargs)
@@ -141,10 +207,10 @@ class Node:
         self.__data.y.write(y)
         logger.info(f"... node {self.public_configs.id} updated.")
 
-    def ruleset_to_file(
-        self
-    ):
-        """Saves self.ruleset to 2 .csv files. Does not do anything if self.ruleset is None
+    def _ruleset_to_file(self):
+        """Saves :attribute:~ifra.node.Node.ruleset to :attribute:~ifra.configs.NodePublicConfig.local_model_path,
+        overwritting any existing file here, and in another file in the same directory but with a unique name.
+        Does not do anything if :attribute:~ifra.node.Node.ruleset is None
         """
 
         ruleset = self.ruleset
@@ -160,7 +226,16 @@ class Node:
         ruleset.save(path)
         ruleset.save(self.public_configs.local_model_path)
 
-    def plot_data_histogram(self, path):
+    def _plot_data_histogram(self, path: TransparentPath):
+        """Plots the distribution of the data located in :attribute:~ifra.node.Node.__paths.x and
+        :attribute:~ifra.node.Node.__paths.y and save them in unique files
+
+        Parameters
+        ----------
+        path: TransparentPath
+            Path to save the data. Should be a file. Will not be overwritten, a new file name will be created if it
+            already exists.
+        """
         x = self.__data.x.read(**self.__data.x_read_kwargs)
         for col, name in zip(x.columns, self.public_configs.features_names):
             fig = plot_histogram(
@@ -192,21 +267,43 @@ class Node:
 
         fig.savefig(path_y)
 
-    def watch(self, timeout: int = 60, sleeptime: int = 5):
+    def watch(self, timeout: Optional[int] = None, sleeptime: int = 5):
+        """Monitors new changes in the central server, every ''sleeptime'' seconds for ''timeout'' seconds, triggering
+        node fit when a new model is found, or if the function just started. Sets
+        :attribute:~ifra.configs.NodePublicConfig.id by re-reading the configuration file if it is None.
+        Stops if :attribute:~ifra.configs.NodePublicConfig.stop is True (set by
+        :class:~ifra.central_server.CentralServer)
+        This is the only method the user should call.
+
+        Parameters
+        ----------
+        timeout: Optional[int]
+            How long should the watch last. If None, will last until the central server sets
+            :attribute:~ifra.configs.NodePublicConfig.stop to True
+        sleeptime: int
+            How long between each checks for new central model
+        """
 
         def get_ruleset():
+            """Fetch the central server's latest model's RuleSet.
+            :attribute:~ifra.node.Node.last_fetch will be set to now and
+            :attribute:~ifra.node.Node.new_data to True."""
             central_ruleset = RuleSet()
             central_ruleset.load(self.public_configs.central_model_path)
             self.last_fetch = datetime.now()
-            self.update_from_central(central_ruleset)
+            self._update_from_central(central_ruleset)
             logger.info(f"Fetched new central ruleset in node {self.public_configs.id} at {self.last_fetch}")
             self.new_data = True
 
         t = time()
         new_central_model = True  # start at true to trigger fit even if no central model is here at first iteration
         while time() - t < timeout:
-            if self.public_configs.id is None:
-                self.public_configs = NodePublicConfig(self.path_public_configs)
+            self.public_configs = NodePublicConfig(self.path_public_configs)
+            if self.public_configs.stop:
+                logger.info(f"Stopping learning in node {self.public_configs.id}")
+                del self.public_configs.stop
+                self.public_configs.save()
+                break
             if self.public_configs.id is None:
                 logger.warning(
                     "Node id is not set, meaning central server is not running. Waiting for central server to start."
@@ -226,8 +323,9 @@ class Node:
                     new_central_model = True
 
             if new_central_model:
-                self.fit()
+                self._fit()
                 new_central_model = False
             sleep(sleeptime)
 
-        logger.info(f"Timeout of {timeout} seconds reached, stopping learning in node {self.public_configs.id}.")
+        if not self.public_configs.stop:
+            logger.info(f"Timeout of {timeout} seconds reached, stopping learning in node {self.public_configs.id}.")

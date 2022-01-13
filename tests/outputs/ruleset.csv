@@ -1,18 +1,17 @@
 ,features_names,features_indexes,bmins,bmaxs,prediction,criterion
-R_0(2),"['sepal width in cm', 'petal length in cm']","[1, 2]","[0, 0]","[0.5, 3.5]",Iris-setosa,None
-R_1(2),"['petal length in cm', 'petal width in cm']","[2, 3]","[0, 2.5]","[2.5, 4]",Iris-virginica,None
-R_2(3),"['sepal length in cm', 'petal length in cm', 'petal width in cm']","[0, 2, 3]","[0, 1.5, 3.5]","[2.5, 4, 4]",Iris-virginica,None
-R_3(1),['petal length in cm'],[2],[3.5],[4],Iris-setosa,None
-R_4(2),"['sepal width in cm', 'petal length in cm']","[1, 2]","[0, 0]","[0.5, 1.5]",Iris-setosa,None
-R_5(2),"['petal length in cm', 'petal width in cm']","[2, 3]","[3.5, 0]","[4, 3.5]",Iris-versicolor,None
-R_6(2),"['petal length in cm', 'petal width in cm']","[2, 3]","[0, 0]","[0.5, 3.5]",Iris-versicolor,None
-R_7(3),"['sepal length in cm', 'sepal width in cm', 'petal length in cm']","[0, 1, 2]","[0, 0, 0]","[1.5, 0.5, 3.5]",Iris-versicolor,None
-R_8(3),"['sepal width in cm', 'petal length in cm', 'petal width in cm']","[1, 2, 3]","[3.5, 0.5, 0]","[4, 4, 3.5]",Iris-versicolor,None
-R_9(2),"['sepal width in cm', 'petal width in cm']","[1, 3]","[0, 0]","[2.5, 0.5]",Iris-versicolor,None
-R_10(3),"['sepal length in cm', 'petal length in cm', 'petal width in cm']","[0, 2, 3]","[2.5, 1.5, 3.5]","[4, 4, 4]",Iris-virginica,None
-R_11(3),"['sepal length in cm', 'sepal width in cm', 'petal length in cm']","[0, 1, 2]","[1.5, 0, 0]","[4, 0.5, 3.5]",Iris-versicolor,None
-R_12(2),"['sepal width in cm', 'petal width in cm']","[1, 3]","[2.5, 1.5]","[4, 4]",Iris-setosa,None
-R_13(2),"['petal length in cm', 'petal width in cm']","[2, 3]","[1.5, 2.5]","[3, 3]",Iris-versicolor,None
+R_0(2),"['sepal width in cm', 'petal width in cm']","[1, 3]","[3.5, 0.5]","[4, 4]",Iris-versicolor,None
+R_1(3),"['sepal length in cm', 'sepal width in cm', 'petal length in cm']","[0, 1, 2]","[0, 0, 0]","[1.5, 0.5, 3.5]",Iris-versicolor,None
+R_2(2),"['sepal length in cm', 'petal width in cm']","[0, 3]","[0, 3.5]","[2.5, 4]",Iris-virginica,None
+R_3(2),"['sepal width in cm', 'petal length in cm']","[1, 2]","[0, 0]","[0.5, 3.5]",Iris-setosa,None
+R_4(3),"['sepal length in cm', 'sepal width in cm', 'petal length in cm']","[0, 1, 2]","[1.5, 0, 0]","[4, 0.5, 3.5]",Iris-versicolor,None
+R_5(2),"['sepal width in cm', 'petal width in cm']","[1, 3]","[0, 0]","[0.5, 1.5]",Iris-setosa,None
+R_6(1),['petal width in cm'],[3],[0],[0.5],Iris-versicolor,None
+R_7(2),"['petal length in cm', 'petal width in cm']","[2, 3]","[3.5, 1.5]","[4, 3.5]",Iris-versicolor,None
+R_8(2),"['sepal width in cm', 'petal width in cm']","[1, 3]","[0, 0]","[2.5, 0.5]",Iris-versicolor,None
+R_9(3),"['sepal length in cm', 'sepal width in cm', 'petal width in cm']","[0, 1, 3]","[2.5, 2.5, 0]","[4, 4, 2.5]",Iris-setosa,None
+R_10(2),"['petal length in cm', 'petal width in cm']","[2, 3]","[0, 2.5]","[2.5, 4]",Iris-virginica,None
+R_11(1),['petal length in cm'],[2],[3.5],[4],Iris-setosa,None
+R_12(2),"['sepal length in cm', 'petal width in cm']","[0, 3]","[2.5, 3.5]","[4, 4]",Iris-virginica,None
+R_13(1),['petal width in cm'],[3],[2.5],[3],Iris-setosa,None
 R_14(3),"['sepal length in cm', 'sepal width in cm', 'petal width in cm']","[0, 1, 3]","[1.5, 1, 2.5]","[4, 1.5, 3]",Iris-versicolor,None
 R_15(3),"['sepal length in cm', 'sepal width in cm', 'petal width in cm']","[0, 1, 3]","[1.5, 1.5, 2.5]","[4, 3, 3]",Iris-versicolor,None
-R_16(1),['petal length in cm'],[2],[1],[1.5],Iris-versicolor,None

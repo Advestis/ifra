@@ -11,8 +11,10 @@ class Config:
     """Abstract class to load a configuration. Basically just a wrapper around a json file.
 
         This class should be overloaded and not used as-is, for only keys present in
-        :attribute:~ifra.configs.Config.EXPECTED_CONFIGS will be accepted from the json file, attribute that is empty in
-        this abstract class.
+        :attribute:~ifra.configs.Config.EXPECTED_CONFIGS and :attribute:~ifra.configs.Config.ADDITIONNAL_CONFIGS will
+        be accepted from the json file, attribute that is empty in this abstract class. Any key present in
+        :attribute:~ifra.configs.Config.EXPECTED_CONFIGS must be present in the json file. Any key present in
+        :attribute:~ifra.configs.Config.ADDITIONNAL_CONFIGS can be present in the file.
 
         The json file can be on GCP, the use of transparentpath is supported.
 
@@ -37,6 +39,7 @@ class Config:
         """
 
     EXPECTED_CONFIGS = []
+    ADDITIONNAL_CONFIGS = []
 
     # noinspection PyUnresolvedReferences
     def __init__(self, path: Union[str, Path, TransparentPath]):
@@ -65,7 +68,7 @@ class Config:
             if key not in self.configs:
                 raise IndexError(f"Missing required config {key}")
         for key in self.configs:
-            if key not in self.EXPECTED_CONFIGS:
+            if key not in self.EXPECTED_CONFIGS and key not in self.ADDITIONNAL_CONFIGS:
                 raise IndexError(f"Unexpected config {key}")
 
         for key in self.configs:
@@ -76,6 +79,11 @@ class Config:
         if item not in self.configs:
             raise ValueError(f"No configuration named '{item}' was found")
         return self.configs[item]
+
+    def __setattr__(self, item, value):
+        if item not in self.configs and item not in self.EXPECTED_CONFIGS and item not in self.ADDITIONNAL_CONFIGS:
+            raise ValueError(f"No configuration named '{item}' is not allowed")
+        self.configs[item] = value
 
     def save(self):
         """Saves the configuration back to the json file it was read from."""
@@ -146,6 +154,8 @@ class NodePublicConfig(Config):
     id: Union[None, int, str]
         Name or number of the node. If not specified, will be set by central server. If not specified, the json file
         should still contain the key 'id', but with value "".
+    stop: bool
+        Set to True by :class:~ifra.central_server.CentralServer when the learning is over.
     """
 
     EXPECTED_CONFIGS = [
@@ -163,6 +173,7 @@ class NodePublicConfig(Config):
         "dataprep_method",
         "id"
     ]
+    ADDITIONNAL_CONFIGS = ["stop"]
 
     def __init__(self, path: Union[str, Path, TransparentPath]):
         super().__init__(path)

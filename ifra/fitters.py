@@ -33,11 +33,17 @@ class DecisionTreeFitter:
     Methods
     -------
     fit() -> RuleSet
-        Fits the decision tree on the data pointed by :attribute:~irfa.fitters.DecisionTreeClassifier.data.x and
-        :attribute:~irfa.fitters.DecisionTreeClassifier.y, sets :attribute:~irfa.fitters.DecisionTreeClassifier.tree
-        saves it as a .dot, .svg and .joblib file in the same place the node will save its ruleset.
-        Those files will be unique for each time the fit function is called.
-        Also sets :attribute:~irfa.fitters.DecisionTreeClassifier.ruleset and returns it.
+        Calls :func:~ifra.fitters.DecisionTreeClassifier._fit
+        Saves :attribute:~ifra.fitters.DecisionTreeClassifier.tree as a .dot, .svg and .joblib file in the same place
+        the node will save its ruleset. Those files will be unique for each time the fit function is called.
+        Also sets :attribute:~ifra.fitters.DecisionTreeClassifier.ruleset and returns it.
+    _fit() -> None
+        Fits the decision tree on the data pointed by :attribute:~ifra.fitters.DecisionTreeClassifier.data.x and
+        :attribute:~ifra.fitters.DecisionTreeClassifier.y, sets :attribute:~ifra.fitters.DecisionTreeClassifier.tree
+    _tree_to_graph() -> None
+        Saves the fitted tree in a .dot and .svg
+    _tree_to_joblib() -> None
+        Saves the fitted tree in a .joblib
     """
 
     # noinspection PyUnresolvedReferences
@@ -47,24 +53,24 @@ class DecisionTreeFitter:
         data: Paths,
     ):
         self.public_configs = public_configs
-        self.data = data
+        self.paths = data
         self.tree, self.ruleset = None, None
 
     def fit(self) -> RuleSet:
-        """Fits the decision tree on the data pointed by :attribute:~irfa.fitters.DecisionTreeClassifier.data.x and
-        :attribute:~irfa.fitters.DecisionTreeClassifier.y, sets :attribute:~irfa.fitters.DecisionTreeClassifier.tree
-        saves it as a .dot, .svg and .joblib file in the same place the node will save its ruleset.
-        Those files will be unique for each time the fit function is called.
-        Also sets :attribute:~irfa.fitters.DecisionTreeClassifier.ruleset and returns it.
+        """Fits the decision tree on the data pointed by :attribute:~ifra.fitters.DecisionTreeClassifier.paths.x and
+        :attribute:~ifra.fitters.DecisionTreeClassifier.paths.y, sets
+        :attribute:~ifra.fitters.DecisionTreeClassifier.tree saves it as a .dot, .svg and .joblib file in the same place
+        the node will save its ruleset. Those files will be unique for each time the fit function is called.
+        Also sets :attribute:~ifra.fitters.DecisionTreeClassifier.ruleset and returns it.
 
         Returns
         -------
         RuleSet
-            :attribute:~irfa.fitters.DecisionTreeClassifier.ruleset
+            :attribute:~ifra.fitters.DecisionTreeClassifier.ruleset
         """
         self._fit(
-            self.data.x.read(**self.data.x_read_kwargs).values,
-            self.data.y.read(**self.data.y_read_kwargs).values,
+            self.paths.x.read(**self.paths.x_read_kwargs).values,
+            self.paths.y.read(**self.paths.y_read_kwargs).values,
             self.public_configs.max_depth,
             self.public_configs.get_leaf,
             self.public_configs.x_mins,
@@ -91,8 +97,8 @@ class DecisionTreeFitter:
         stack_activation: bool = False,
     ):
         """Fits x and y using a decision tree cassifier, setting
-         :attribute:~irfa.fitters.DecisionTreeClassifier.tree and
-         :attribute:~irfa.fitters.DecisionTreeClassifier.ruleset
+         :attribute:~ifra.fitters.DecisionTreeClassifier.tree and
+         :attribute:~ifra.fitters.DecisionTreeClassifier.ruleset
 
         x array must contain one column for each feature that can exist across all nodes. Some columns can contain
         only NaNs.
