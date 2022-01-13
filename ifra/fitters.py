@@ -15,7 +15,30 @@ logger = logging.getLogger(__name__)
 
 class DecisionTreeFitter:
 
-    """Fits a DecisionTreeClassifier on some data."""
+    """Fits a DecisionTreeClassifier on some data.
+
+    Can be used by giving ''decisiontree'' as ''fitter'' argument when creating a :class:~ifra.node.Node
+
+    Attributes
+    ----------
+    learning_configs: NodePublicConfig
+        The public configuration of the node using this fitter
+    data: Paths
+        The data paths configuration of the node using this fitter
+    tree: Union[None, DecisionTreeClassifier]
+        Fitted tree, or None if fit not done yet
+    ruleset: Union[None, RuleSet]
+        Fitted ruleset, or None if fit not done yet
+
+    Methods
+    -------
+    fit() -> RuleSet
+        Fits the decision tree on the data pointed by :attribute:~irfa.fitters.DecisionTreeClassifier.data.x and
+        :attribute:~irfa.fitters.DecisionTreeClassifier.y, sets :attribute:~irfa.fitters.DecisionTreeClassifier.tree
+        saves it as a .dot, .svg and .joblib file in the same place the node will save its ruleset.
+        Those files will be unique for each time the fit function is called.
+        Also sets :attribute:~irfa.fitters.DecisionTreeClassifier.ruleset and returns it.
+    """
 
     # noinspection PyUnresolvedReferences
     def __init__(
@@ -38,8 +61,8 @@ class DecisionTreeFitter:
             self.learning_configs.features_names,
             self.learning_configs.classes_names
         )
-        self.tree_to_graph()
-        self.tree_to_joblib()
+        self._tree_to_graph()
+        self._tree_to_joblib()
         return self.ruleset
 
     # noinspection PyArgumentList
@@ -56,9 +79,11 @@ class DecisionTreeFitter:
         remember_activation: bool = True,
         stack_activation: bool = False,
     ):
-        """Fits x and y using a decision tree cassifier, setting self.tree and self.ruleset
+        """Fits x and y using a decision tree cassifier, setting
+         :attribute:~irfa.fitters.DecisionTreeClassifier.tree and
+         :attribute:~irfa.fitters.DecisionTreeClassifier.ruleset
 
-        x array must contain one column for each feature that can exist across all nodes. Some features can contain
+        x array must contain one column for each feature that can exist across all nodes. Some columns can contain
         only NaNs.
 
         Parameters
@@ -70,17 +95,17 @@ class DecisionTreeFitter:
         max_depth: int
             Maximum tree depth
         x_mins: Optional[List[float]]
-            Lower limits of features
+            Lower limits of features. If not specified, will use x.min(axis=0)
         x_maxs: Optional[List[float]]
-            Upper limits of features
+            Upper limits of features. If not specified, will use x.max(axis=0)
         features_names: Optional[List[str]]
             Names of features
         classes_names: Optional[List[str]]
             Names of the classes
         remember_activation: bool
-            See extract_rules_from_tree, default = True
+            See :func:ruleskit.utils.rule_utils.extract_rules_from_tree, default = True
         stack_activation: bool
-            See extract_rules_from_tree, default = False
+            See :func:ruleskit.utils.rule_utils.extract_rules_from_tree, default = False
         """
 
         if x_mins is None:
@@ -105,12 +130,18 @@ class DecisionTreeFitter:
         )
 
         if len(self.ruleset) > 0:
+            # Compute each rule's activation vector, and the ruleset's if remember_activation, and will stack the
+            # rules' if stack_activation is True
             self.ruleset.calc_activation(x)
 
-    def tree_to_graph(
+    def _tree_to_graph(
         self,
     ):
-        """Saves self.tree to a .dot file and a .svg file. Does not do anything if self.tree is None
+        """Saves :attribute:~ifra.fitters.DecisionTreeClassifier.tree to a .dot file and a .svg file at the same place
+         the node will save its ruleset. Does not do anything if :attribute:~ifra.fitters.DecisionTreeClassifier.tree
+        is None.
+
+        Will create a unique file by looking at existing files and appending a unique integer to the name.
         """
         thetree = self.tree
         features_names = self.learning_configs.features_names
@@ -135,10 +166,13 @@ class DecisionTreeFitter:
         # joblib.dump(self.tree, self.__trees_path / (Y_name + ".joblib"))
         os.system(f'dot -Tsvg "{path}" -o "{path.with_suffix(".svg")}"')
 
-    def tree_to_joblib(
+    def _tree_to_joblib(
         self,
     ):
-        """Saves self.tree to a .joblib file. Does not do anything if self.tree is None
+        """Saves :attribute:~ifra.fitters.DecisionTreeClassifier.tree to a .joblib file. Does not do anything if
+        :attribute:~ifra.fitters.DecisionTreeClassifier.tree is None
+
+        Will create a unique file by looking at existing files and appending a unique integer to the name.
         """
 
         thetree = self.tree
