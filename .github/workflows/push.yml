@@ -51,6 +51,7 @@ jobs:
       - name: make doc
         run: |
           pip install pdoc3
+          pdoc --docformat numpydoc
           pdoc --html ifra -o docs
           mv docs/ifra/* docs/
           rm -r docs/ifra
