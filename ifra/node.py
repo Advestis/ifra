@@ -79,7 +79,7 @@ class Node:
             module = self.public_configs.dataprep_method.replace(f".{function}", "")
             self.dataprep_method = __import__(module, globals(), locals(), [function], 0)
 
-    def _fit(self) -> RuleSet:
+    def fit(self) -> RuleSet:
         """Plots the features and classes distribution in `ifra.node.Node`'s ''\_\_paths.x'' and
         `ifra.node.Node`'s ''\_\_paths.y'' parent directories if `ifra.configs.NodePublicConfig` ''plot_data''
         is True.
@@ -103,7 +103,7 @@ class Node:
             `node.Node.ruleset`
         """
         if self.public_configs.plot_data:
-            self._plot_data_histogram(self.__data.x.parent / "plots")
+            self.plot_data_histogram(self.__data.x.parent / "plots")
         if self.dataprep_method is not None and not self.datapreped:
             logger.info(f"Datapreping data of node {self.public_configs.id}...")
             x, y = self.dataprep_method(
@@ -121,7 +121,7 @@ class Node:
             self.__fitter.paths.x = x_datapreped_path
             self.__fitter.paths.y = y_datapreped_path
             if self.public_configs.plot_data:
-                self._plot_data_histogram(self.__data.x.parent / "plots_datapreped")
+                self.plot_data_histogram(self.__data.x.parent / "plots_datapreped")
             self.datapreped = True
             logger.info(f"...datapreping done for node {self.public_configs.id}")
 
@@ -137,12 +137,12 @@ class Node:
 
         logger.info(f"Fitting node {self.public_configs.id} using {self.public_configs.fitter}...")
         self.ruleset = self.__fitter.fit()
-        self._ruleset_to_file()
+        self.ruleset_to_file()
         logger.info(f"... node {self.public_configs.id} fitted, results saved in"
                     f" {self.public_configs.local_model_path.parent}.")
         return self.ruleset
 
-    def _update_from_central(self, ruleset: RuleSet) -> None:
+    def update_from_central(self, ruleset: RuleSet) -> None:
         """Ignores points activated by the central server ruleset in order to find other relevant rules in the next
         iterations. Modifies the files pointed by `fra.node.Node`'s ''\_\_paths.x'' and
         `ifra.node.Node`'s ''\_\_paths.y''.
@@ -164,7 +164,7 @@ class Node:
         self.__data.y.write(y)
         logger.info(f"... node {self.public_configs.id} updated.")
 
-    def _ruleset_to_file(self) -> None:
+    def ruleset_to_file(self) -> None:
         """Saves `ifra.node.Node.ruleset` to `ifra.configs.NodePublicConfig` ''local_model_path'',
         overwritting any existing file here, and in another file in the same directory but with a unique name.
         Does not do anything if `ifra.node.Node.ruleset` is None
@@ -183,7 +183,7 @@ class Node:
         ruleset.save(path)
         ruleset.save(self.public_configs.local_model_path)
 
-    def _plot_data_histogram(self, path: TransparentPath) -> None:
+    def plot_data_histogram(self, path: TransparentPath) -> None:
         """Plots the distribution of the data located in `ifra.node.Node`'s ''\_\_paths.x'' and
         `ifra.node.Node`'s ''\_\_paths.y'' and save them in unique files.
 
@@ -246,7 +246,7 @@ class Node:
             central_ruleset = RuleSet()
             central_ruleset.load(self.public_configs.central_model_path)
             self.last_fetch = datetime.now()
-            self._update_from_central(central_ruleset)
+            self.update_from_central(central_ruleset)
             logger.info(f"Fetched new central ruleset in node {self.public_configs.id} at {self.last_fetch}")
             self.new_data = True
 
@@ -278,7 +278,7 @@ class Node:
                     new_central_model = True
 
             if new_central_model:
-                self._fit()
+                self.fit()
                 new_central_model = False
             sleep(sleeptime)
 
