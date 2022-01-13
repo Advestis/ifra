@@ -1,5 +1,1 @@
-,features_names,features_indexes,bmins,bmaxs,prediction,criterion
-R_0(1),['petal length in cm'],[2],[0],[1.5],Iris-setosa,None
-R_1(1),['petal length in cm'],[2],[1.5],[4],Iris-setosa,None
-R_2(2),"['sepal length in cm', 'petal length in cm']","[0, 2]","[0, 1.5]","[2.5, 4]",Iris-virginica,None
-R_3(2),"['sepal length in cm', 'petal length in cm']","[0, 2]","[2.5, 1.5]","[4, 4]",Iris-virginica,None
+""

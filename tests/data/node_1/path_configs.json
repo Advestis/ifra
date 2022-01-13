@@ -1,6 +1,6 @@
 {
   "x": "tests/data/node_1/x.csv",
   "y": "tests/data/node_1/y.csv",
-  "x_read_kwargs": {},
-  "y_read_kwargs": {}
+  "x_read_kwargs": {"index_col": 0},
+  "y_read_kwargs": {"index_col": 0}
 }

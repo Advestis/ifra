@@ -14,5 +14,5 @@ for i in range(4):
     suby = y.loc[index]
     suby = suby.reset_index(drop=True)
 
-    subx.to_csv(f"tests/data/node_{i}/x.csv", index=False)
-    suby.to_csv(f"tests/data/node_{i}/y.csv", index=False)
+    subx.to_csv(f"node_{i}/x.csv")
+    suby.to_csv(f"node_{i}/y.csv")

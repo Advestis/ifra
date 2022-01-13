@@ -92,8 +92,10 @@ class Node:
             y_suffix = self.__data.y.suffix
             x_datapreped_path = self.__data.x.with_suffix("").append("_datapreped").with_suffix(x_suffix)
             y_datapreped_path = self.__data.y.with_suffix("").append("_datapreped").with_suffix(y_suffix)
-            x_datapreped_path.write(x, index=False)
-            y_datapreped_path.write(y, index=False)
+
+            x_datapreped_path.write(x)
+            y_datapreped_path.write(y)
+
             self.__fitter.data.x = x_datapreped_path
             self.__fitter.data.y = y_datapreped_path
             if self.learning_configs.plot_data:
@@ -131,8 +133,8 @@ class Node:
         ruleset.calc_activation(x.values)
         x = x[ruleset.activation == 0]
         y = y[ruleset.activation == 0]
-        self.__data.x.write(x, index=False)
-        self.__data.y.write(y, index=False)
+        self.__data.x.write(x)
+        self.__data.y.write(y)
         logger.info(f"... node {self.learning_configs.id} updated.")
 
     def tree_to_graph(

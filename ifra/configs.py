@@ -92,7 +92,7 @@ class Config:
 
 class NodePublicConfig(Config):
     # noinspection PyUnresolvedReferences
-    """Overloads of :class:~ifra.configs.Config, corresponding to configuration of a node that can be accessed by the
+    """Overloads :class:~ifra.configs.Config, corresponding to configuration of a node that can be accessed by the
     central server.
 
     Used by :class:~ifra.node.Node and :class:~ifra.central_server.NodeGate
@@ -184,7 +184,7 @@ class NodePublicConfig(Config):
 
 class CentralConfig(Config):
     # noinspection PyUnresolvedReferences
-    """Overloads of :class:~ifra.configs.Config, corresponding to the central server configuration.
+    """Overloads :class:~ifra.configs.Config, corresponding to the central server configuration.
 
     Used by :class:~ifra.central_server.CentralServer
 
@@ -218,13 +218,16 @@ class CentralConfig(Config):
 
 class Paths(Config):
     # noinspection PyUnresolvedReferences
-    """Overloads of :class:~ifra.configs.Config, corresponding to the node data paths configuration. Not accessible by
+    """Overloads :class:~ifra.configs.Config, corresponding to one node data paths configuration. Not accessible by
     the central server.
 
     Used by :class:~ifra.node.Node
 
     The node expects two files separate files : one for the features and one for the targets. They both should return
     a dataframe (a single column in the case of the target file).
+    The features file should contain one column for EACH FEATURE USED IN THE LEARNING, even if not all of them have data
+    in this node. The order of the columns should match the order in
+    :class:~ifra.configs.NodePublicConfig.features_names.
 
     Attributes
     ----------
@@ -234,9 +237,11 @@ class Paths(Config):
         see :class:~ifra.configs.Config
 
     x: TransparentPath
-        Path to the features file
+        Path to the features file. If it is a csv, it MUST contain the index and columns (can be integers), and
+        x_read_kwargs should contain index_col=0
     y: TransparentPath
-        Path to the target (classes) file
+        Path to the target (classes) file. If it is a csv, it MUST contain the index and columns (can be integers), and
+        y_read_kwargs should contain index_col=0
     x_read_kwargs: Union[None, dict]
         Keyword arguments to read the features file. If not specified, the json file should still contain the key
         'x_read_kwargs', but with value "".
@@ -249,6 +254,23 @@ class Paths(Config):
 
     def __init__(self, path: Union[str, Path, TransparentPath]):
         super().__init__(path)
+
+        if "index_col" in self.x_read_kwargs:
+            if self.x_read_kwargs["index_col"] != 0:
+                raise ValueError("If specifying index_col, it should be 0, otherwise you will have problem when saving "
+                                 "intermediate data")
+        else:
+            if self.x.suffix == ".csv":
+                raise ValueError("If file is a csv, then its read kwargs should contain index_col=0")
+
+        if "index_col" in self.y_read_kwargs:
+            if self.y_read_kwargs["index_col"] != 0:
+                raise ValueError("If specifying index_col, it should be 0, otherwise you will have problem when saving "
+                                 "intermediate data")
+        else:
+            if self.y.suffix == ".csv":
+                raise ValueError("If file is a csv, then its read kwargs should contain index_col=0")
+
         for item in self.configs:
             if isinstance(self.configs[item], str):
                 self.configs[item] = TransparentPath(self.configs[item])

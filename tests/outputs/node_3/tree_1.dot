@@ -1,13 +1,5 @@
 digraph Tree {
 node [shape=box, style="filled, rounded", color="black", fontname="helvetica"] ;
 edge [fontname="helvetica"] ;
-0 [label=<petal length in cm &le; 1.5<br/>gini = 0.595<br/>samples = 11<br/>value = [6, 2, 3]>, fillcolor="#f5d0b5"] ;
-1 [label=<gini = 0.0<br/>samples = 6<br/>value = [6, 0, 0]>, fillcolor="#e58139"] ;
-0 -> 1 [labeldistance=2.5, labelangle=45, headlabel="True"] ;
-2 [label=<sepal length in cm &le; 2.5<br/>gini = 0.48<br/>samples = 5<br/>value = [0, 2, 3]>, fillcolor="#d5bdf6"] ;
-0 -> 2 [labeldistance=2.5, labelangle=-45, headlabel="False"] ;
-3 [label=<gini = 0.0<br/>samples = 2<br/>value = [0, 2, 0]>, fillcolor="#39e581"] ;
-2 -> 3 ;
-4 [label=<gini = 0.0<br/>samples = 3<br/>value = [0, 0, 3]>, fillcolor="#8139e5"] ;
-2 -> 4 ;
+0 [label=<gini = 0.0<br/>samples = 2<br/>value = 2.0>, fillcolor="#ffffff"] ;
 }

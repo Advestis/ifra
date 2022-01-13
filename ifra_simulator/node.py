@@ -160,8 +160,8 @@ class Node:
             y_suffix = self.__paths.y.suffix
             x_datapreped_path = self.__paths.x.with_suffix("").append("_datapreped").with_suffix(x_suffix)
             y_datapreped_path = self.__paths.y.with_suffix("").append("_datapreped").with_suffix(y_suffix)
-            x_datapreped_path.write(x, index=False)
-            y_datapreped_path.write(y, index=False)
+            x_datapreped_path.write(x)
+            y_datapreped_path.write(y)
             self.__fitter.paths.x = x_datapreped_path
             self.__fitter.paths.y = y_datapreped_path
             if self.learning_configs.plot_data:
@@ -195,8 +195,8 @@ class Node:
         ruleset.calc_activation(x.values)
         x = x[ruleset.activation == 0]
         y = y[ruleset.activation == 0]
-        self.__paths.x.write(x, index=False)
-        self.__paths.y.write(y, index=False)
+        self.__paths.x.write(x)
+        self.__paths.y.write(y)
         logger.info(f"... node {self.id} updated.")
 
     @classmethod
