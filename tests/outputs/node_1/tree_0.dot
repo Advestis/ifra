@@ -10,7 +10,7 @@ edge [fontname="helvetica"] ;
 2 -> 3 ;
 4 [label=<gini = 0.0<br/>samples = 15<br/>value = [0, 15, 0]>, fillcolor="#39e581"] ;
 2 -> 4 ;
-5 [label=<sepal length in cm &le; 2.5<br/>gini = 0.219<br/>samples = 16<br/>value = [14, 2, 0]>, fillcolor="#e99355"] ;
+5 [label=<petal width in cm &le; 1.5<br/>gini = 0.219<br/>samples = 16<br/>value = [14, 2, 0]>, fillcolor="#e99355"] ;
 1 -> 5 ;
 6 [label=<gini = 0.0<br/>samples = 14<br/>value = [14, 0, 0]>, fillcolor="#e58139"] ;
 5 -> 6 ;

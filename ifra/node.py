@@ -23,12 +23,10 @@ mpl.rcParams["text.usetex"] = True
 mpl.rcParams["text.latex.preamble"] = r"\usepackage{amsmath}\boldmath"
 
 
-def format_x(s):
+def format_x(s: Union[float, int], with_dollar: bool = False) -> str:
     """For a given number, will put it in scientific notation if lower than 0.01, using LaTex synthax.
-
-    In addition, if the value is lower than alpha, will change set the color of the value to green.
     """
-    if s > 0.01:
+    if 1000 > s > 0.01:
         xstr = str(round(s, 2))
     else:
         xstr = "{:.4E}".format(s)
@@ -36,18 +34,14 @@ def format_x(s):
             lead, tail = xstr.split("E-")
             middle = "-"
         else:
-            if "E" not in xstr:
-                lead, tail = xstr, ""
-            else:
-                lead, tail = xstr.split("E")
+            lead, tail = xstr.split("E")
             middle = ""
-        while tail.startswith("0"):
-            tail = tail[1:]
-        while lead.endswith("0") and "." in lead:
-            lead = lead[:-1]
-            if lead.endswith("."):
-                lead = lead[:-1]
-        xstr = ("\\times 10^{" + middle).join([lead, tail]) + "}"
+        lead = round(float(lead), 2)
+        tail = round(float(tail), 2)
+        if with_dollar:
+            xstr = ("$\\cdot 10^{" + middle).join([str(lead), str(tail)]) + "}$"
+        else:
+            xstr = ("\\cdot 10^{" + middle).join([str(lead), str(tail)]) + "}"
     return xstr
 
 
