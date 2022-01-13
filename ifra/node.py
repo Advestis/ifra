@@ -39,6 +39,8 @@ class Node:
         Fitted ruleset
     last_fetch: Union[None, datetime]
         Date and time when the central model was last fetched.
+    \_\_data: Paths
+        Configuration of the paths to the node's features and target data files
     """
 
     possible_fitters = {
@@ -80,19 +82,19 @@ class Node:
             self.dataprep_method = __import__(module, globals(), locals(), [function], 0)
 
     def fit(self) -> RuleSet:
-        """Plots the features and classes distribution in `ifra.node.Node`'s *\_\_paths.x* and
-        `ifra.node.Node`'s *\_\_paths.y* parent directories if `ifra.configs.NodePublicConfig` *plot_data*
+        """Plots the features and classes distribution in `ifra.node.Node`'s *\_\_data.x* and
+        `ifra.node.Node`'s *\_\_data.y* parent directories if `ifra.configs.NodePublicConfig` *plot_data*
         is True.
 
         Triggers `ifra.node.Node`'s *dataprep_method* on the features and classes if a dataprep method was
         specified, and if `ifra.node.Node` *datapreped* if False. Writes the output in
-        `ifra.node.Node`'s *\_\_paths.x* and `ifra.node.Node`'s *\_\_paths.y* parent directories by
+        `ifra.node.Node`'s *\_\_data.x* and `ifra.node.Node`'s *\_\_data.y* parent directories by
         appending *_datapreped* to the files names, sets `ifra.node.Node` datapreped to True
-        Modifies `ifra.node.Node`'s *\_\_paths.x* and `ifra.node.Node`'s *\_\_paths.y* to point to those files.
+        Modifies `ifra.node.Node`'s *\_\_data.x* and `ifra.node.Node`'s *\_\_data.y* to point to those files.
         Plots the distributions of the datapreped data.
 
-        If `ifra.node.Node` *copied* is False, copies the files pointed by `ifra.node.Node`'s *\_\_paths.x*
-        and `ifra.node.Node`'s *\_\_paths.y* in new files in the same directories by appending
+        If `ifra.node.Node` *copied* is False, copies the files pointed by `ifra.node.Node`'s *\_\_data.x*
+        and `ifra.node.Node`'s *\_\_data.y* in new files in the same directories by appending
         *_copy_for_learning* to their names. Sets `ifra.node.Node` *copied* to True.
         Calls the the fitter corresponding to `ifra.node.Node` *public_configs.fitter* on the node's features and
         targets and save the resulting ruleset in `ifra.node.Node` *public_configs.local_model_path*.
@@ -144,8 +146,8 @@ class Node:
 
     def update_from_central(self, ruleset: RuleSet) -> None:
         """Ignores points activated by the central server ruleset in order to find other relevant rules in the next
-        iterations. Modifies the files pointed by `ifra.node.Node`'s *\_\_paths.x* and
-        `ifra.node.Node`'s *\_\_paths.y*.
+        iterations. Modifies the files pointed by `ifra.node.Node`'s *\_\_data.x* and
+        `ifra.node.Node`'s *\_\_data.y*.
 
         Parameters
         ----------
@@ -184,8 +186,8 @@ class Node:
         ruleset.save(self.public_configs.local_model_path)
 
     def plot_data_histogram(self, path: TransparentPath) -> None:
-        """Plots the distribution of the data located in `ifra.node.Node`'s *\_\_paths.x* and
-        `ifra.node.Node`'s *\_\_paths.y* and save them in unique files.
+        """Plots the distribution of the data located in `ifra.node.Node`'s *\_\_data.x* and
+        `ifra.node.Node`'s *\_\_data.y* and save them in unique files.
 
         Parameters
         ----------
