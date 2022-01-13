@@ -22,7 +22,7 @@ class Node:
     
     Attributes
     ----------
-    public_configs: NodePublicConfig
+    public_configs: `ifra.configs.NodePublicConfig`
         The public configuration of the node. Will be accessible by the central server.
         see `ifra.configs.NodePublicConfig`
     path_public_configs: TransparentPath
@@ -39,7 +39,7 @@ class Node:
         Fitted ruleset
     last_fetch: Union[None, datetime]
         Date and time when the central model was last fetched.
-    \_\_data: Paths
+    \_\_data: `ifra.configs.Paths`
         Configuration of the paths to the node's features and target data files
     """
 

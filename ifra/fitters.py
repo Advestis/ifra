@@ -21,7 +21,7 @@ class DecisionTreeFitter:
 
     Attributes
     ----------
-    public_configs: NodePublicConfig
+    public_configs: `ifra.configs.NodePublicConfig`
         The public configuration of the node using this fitter
     data: Paths
         The data paths configuration of the node using this fitter
