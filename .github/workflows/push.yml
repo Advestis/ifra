@@ -77,11 +77,3 @@ jobs:
           password: ${{ secrets.ORG_PYPI_PASSWD }}
           skip_existing: true
           verbose: true
-
-      - name: todocker
-        uses: docker/build-push-action@v1
-        with:
-          username: ${{ secrets.ORG_DOCKER_LOGIN }}
-          password: ${{ secrets.ORG_DOCKER_PASSWD }}
-          repository: advestisrepositories/${{ env.REPO_NAME }}
-          tag_with_ref: true
