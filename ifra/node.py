@@ -24,7 +24,7 @@ class Node:
     ----------
     public_configs: NodePublicConfig
         The public configuration of the node. Will be accessible by the central server.
-        see :class:~ifra.configs.NodePublicConfig
+        see `ifra.configs.NodePublicConfig`
     path_public_configs: TransparentPath
         Path to the json file containing public configuration of the node. Needs to be kept in memory to potentially
         update the node's id once set by the central server.
@@ -43,8 +43,8 @@ class Node:
     Methods
     -------
     _fit() -> RuleSet
-        Plots the features and classes distribution in :attribute:~ifra.node.Node.__paths.x's and
-        :attribute:~ifra.node.Node.__paths.y's parent directories if :attribute:~ifra.configs.NodePublicConfig.plot_data
+        Plots the features and classes distribution in `ifra.node.Node`'s __paths.x's and
+        `ifra.node.Node`'s __paths.y's parent directories if `ifra.configs.NodePublicConfig`'s plot_data
         is True.
         Triggers :attribute:~ifra.node.Node.dataprep_method on the features and classes if a dataprep method was
         specified, and if :attribute:~ifra.node.Node.datapreped if False. Writes the output in
