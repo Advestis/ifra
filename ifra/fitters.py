@@ -17,7 +17,7 @@ class DecisionTreeFitter:
 
     """Fits a DecisionTreeClassifier on some data.
 
-    Can be used by giving ''decisiontree'' as ''fitter'' argument when creating a :class:~ifra.node.Node
+    Can be used by giving *decisiontree* as *fitter* argument when creating a `ifra.node.Node`
 
     Attributes
     ----------
@@ -42,7 +42,7 @@ class DecisionTreeFitter:
         self.tree, self.ruleset = None, None
 
     def fit(self) -> RuleSet:
-        """Fits the decision tree on the data pointed by :attribute:~ifra.fitters.DecisionTreeClassifier.paths.x and
+        """Fits the decision tree on the data pointed by `ifra.fitters.DecisionTreeClassifier`.paths.x and
         :attribute:~ifra.fitters.DecisionTreeClassifier.paths.y, sets
         :attribute:~ifra.fitters.DecisionTreeClassifier.tree saves it as a .dot, .svg and .joblib file in the same place
         the node will save its ruleset. Those files will be unique for each time the fit function is called.

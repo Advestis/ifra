@@ -94,13 +94,13 @@ class Node:
         If `ifra.node.Node` *copied* is False, copies the files pointed by `ifra.node.Node`'s *\_\_paths.x*
         and `ifra.node.Node`'s *\_\_paths.y* in new files in the same directories by appending
         *_copy_for_learning* to their names. Sets `ifra.node.Node` *copied* to True.
-        Calls the the fitter corresponding to `ifra.node.Node.public_config` *fitter* on the node's features and
-        targets and save the resulting ruleset in `ifra.node.Node.public_configs` *local_model_path*.
+        Calls the the fitter corresponding to `ifra.node.Node` *public_configs.fitter* on the node's features and
+        targets and save the resulting ruleset in `ifra.node.Node` *public_configs.local_model_path*.
 
         Returns
         -------
         RuleSet
-            `node.Node.ruleset`
+            `node.Node` *ruleset*
         """
         if self.public_configs.plot_data:
             self.plot_data_histogram(self.__data.x.parent / "plots")
@@ -144,7 +144,7 @@ class Node:
 
     def update_from_central(self, ruleset: RuleSet) -> None:
         """Ignores points activated by the central server ruleset in order to find other relevant rules in the next
-        iterations. Modifies the files pointed by `fra.node.Node`'s *\_\_paths.x* and
+        iterations. Modifies the files pointed by `ifra.node.Node`'s *\_\_paths.x* and
         `ifra.node.Node`'s *\_\_paths.y*.
 
         Parameters
@@ -165,9 +165,9 @@ class Node:
         logger.info(f"... node {self.public_configs.id} updated.")
 
     def ruleset_to_file(self) -> None:
-        """Saves `ifra.node.Node.ruleset` to `ifra.configs.NodePublicConfig` *local_model_path*,
+        """Saves `ifra.node.Node` *ruleset* to `ifra.configs.NodePublicConfig` *local_model_path*,
         overwritting any existing file here, and in another file in the same directory but with a unique name.
-        Does not do anything if `ifra.node.Node.ruleset` is None
+        Does not do anything if `ifra.node.Node` *ruleset* is None
         """
 
         ruleset = self.ruleset
