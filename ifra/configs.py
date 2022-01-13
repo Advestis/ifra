@@ -30,7 +30,7 @@ class Config:
         >>> conf = MyConfig(path)
         >>> conf.some_key
 
-        assuming MyConfig overloads this class and path points to a valid json file containing the key *some_key*
+        assuming *MyConfig* overloads this class and *path* points to a valid json file containing the key *some_key*
     """
 
     EXPECTED_CONFIGS = []
