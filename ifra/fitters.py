@@ -29,21 +29,6 @@ class DecisionTreeFitter:
         Fitted tree, or None if fit not done yet
     ruleset: Union[None, RuleSet]
         Fitted ruleset, or None if fit not done yet
-
-    Methods
-    -------
-    fit() -> RuleSet
-        Calls :func:~ifra.fitters.DecisionTreeClassifier._fit
-        Saves :attribute:~ifra.fitters.DecisionTreeClassifier.tree as a .dot, .svg and .joblib file in the same place
-        the node will save its ruleset. Those files will be unique for each time the fit function is called.
-        Also sets :attribute:~ifra.fitters.DecisionTreeClassifier.ruleset and returns it.
-    _fit() -> None
-        Fits the decision tree on the data pointed by :attribute:~ifra.fitters.DecisionTreeClassifier.data.x and
-        :attribute:~ifra.fitters.DecisionTreeClassifier.y, sets :attribute:~ifra.fitters.DecisionTreeClassifier.tree
-    _tree_to_graph() -> None
-        Saves the fitted tree in a .dot and .svg
-    _tree_to_joblib() -> None
-        Saves the fitted tree in a .joblib
     """
 
     # noinspection PyUnresolvedReferences

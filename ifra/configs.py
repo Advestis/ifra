@@ -28,7 +28,7 @@ class Config:
         instance and can be accessed by doing
         >>> conf = MyConfig(path)
         >>> conf.some_key
-        assuming MyConfig overloads this class and path points to a valid json file containing the key 'some_key'
+        assuming MyConfig overloads this class and path points to a valid json file containing the key *some_key*
     """
 
     EXPECTED_CONFIGS = []
@@ -104,7 +104,7 @@ class NodePublicConfig(Config):
     Used by `ifra.node.Node` and `ifra.central_server.NodeGate`
 
     Overloads \_\_eq\_\_ to allow for node configuration comparison. Two configurations are equal if all their
-    configuration values are equal, except ''local_model_path'' and ''central_model_path'' that can be different.
+    configuration values are equal, except *local_model_path* and *central_model_path* that can be different.
 
     Attributes
     ----------
@@ -118,15 +118,15 @@ class NodePublicConfig(Config):
         this node. If not specified, the json file should still contain the key *features_names*, but with value "".
     classes_names: List[str]
         Names of the classes used in the learning. It should contain all the classes, not only those available to
-        this node. If not specified, the json file should still contain the key 'classes_names', but with value "".
+        this node. If not specified, the json file should still contain the key *classes_names*, but with value "".
     x_mins: Union[None, List[Union[int, float]]]
         Mmin values of each feature. Here too, if not None, should contain one entry for each
         feature used in the learning, and not only this node. If not specified, the json file should still contain the
-        key 'x_mins', but with value "".
+        key *x_mins*, but with value "".
     x_maxs: Union[None, List[Union[int, float]]]
         Max values of each feature. Here too, if not None, should contain one entry for each
         feature used in the learning, and not only this node. If not specified, the json file should still contain the
-        key 'x_maxs', but with value "".
+        key *x_maxs*, but with value "".
     max_depth: int
         Maximum depth of the decision tree to use in the model
     remember_activation: bool
@@ -148,10 +148,10 @@ class NodePublicConfig(Config):
     dataprep_method: Union[str]
         Name of the method used to do dataprep. The given string must be importable from the current working directry.
         Will be None if "" is given. If not specified, the json file should still contain the
-        key 'dataprep_method', but with value "".
+        key *dataprep_method*, but with value "".
     id: Union[None, int, str]
         Name or number of the node. If not specified, will be set by central server. If not specified, the json file
-        should still contain the key 'id', but with value "".
+        should still contain the key *id*, but with value "".
     fitter: str
         Fitter to use. Can be one of :\n
           * decisiontree\n
@@ -257,10 +257,10 @@ class Paths(Config):
         y_read_kwargs should contain index_col=0
     x_read_kwargs: Union[None, dict]
         Keyword arguments to read the features file. If not specified, the json file should still contain the key
-        'x_read_kwargs', but with value "".
+        *x_read_kwargs*, but with value "".
     y_read_kwargs: Union[None, dict]
         Keyword arguments to read the target file. If not specified, the json file should still contain the key
-        'x_read_kwargs', but with value "".
+        *x_read_kwargs*, but with value "".
     """
 
     EXPECTED_CONFIGS = ["x", "y", "x_read_kwargs", "y_read_kwargs"]
