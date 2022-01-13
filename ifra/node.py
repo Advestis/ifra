@@ -44,7 +44,7 @@ class Node:
     possible_fitters = {
         "decisiontree": DecisionTreeFitter
     }
-    """Possible string values and corresponding fitter object for ''fitter'' attribute of
+    """Possible string values and corresponding fitter object for *fitter* attribute of
     `ifra.configs.NodePublicConfig`"""
 
     def __init__(
@@ -80,22 +80,22 @@ class Node:
             self.dataprep_method = __import__(module, globals(), locals(), [function], 0)
 
     def fit(self) -> RuleSet:
-        """Plots the features and classes distribution in `ifra.node.Node`'s ''\_\_paths.x'' and
-        `ifra.node.Node`'s ''\_\_paths.y'' parent directories if `ifra.configs.NodePublicConfig` ''plot_data''
+        """Plots the features and classes distribution in `ifra.node.Node`'s *\_\_paths.x* and
+        `ifra.node.Node`'s *\_\_paths.y* parent directories if `ifra.configs.NodePublicConfig` *plot_data*
         is True.
 
-        Triggers `ifra.node.Node`'s ''dataprep_method'' on the features and classes if a dataprep method was
-        specified, and if `ifra.node.Node` ''datapreped'' if False. Writes the output in
-        `ifra.node.Node`'s ''\_\_paths.x'' and `ifra.node.Node`'s ''\_\_paths.y'' parent directories by
-        appending ''_datapreped'' to the files names, sets `ifra.node.Node` datapreped to True
-        Modifies `ifra.node.Node`'s ''\_\_paths.x'' and `ifra.node.Node`'s ''\_\_paths.y'' to point to those files.
+        Triggers `ifra.node.Node`'s *dataprep_method* on the features and classes if a dataprep method was
+        specified, and if `ifra.node.Node` *datapreped* if False. Writes the output in
+        `ifra.node.Node`'s *\_\_paths.x* and `ifra.node.Node`'s *\_\_paths.y* parent directories by
+        appending *_datapreped* to the files names, sets `ifra.node.Node` datapreped to True
+        Modifies `ifra.node.Node`'s *\_\_paths.x* and `ifra.node.Node`'s *\_\_paths.y* to point to those files.
         Plots the distributions of the datapreped data.
 
-        If `ifra.node.Node` ''copied'' is False, copies the files pointed by `ifra.node.Node`'s ''\_\_paths.x''
-        and `ifra.node.Node`'s ''\_\_paths.y'' in new files in the same directories by appending
-        ''_copy_for_learning'' to their names. Sets `ifra.node.Node` ''copied'' to True.
-        Calls the the fitter corresponding to `ifra.node.Node.public_config` ''fitter'' on the node's features and
-        targets and save the resulting ruleset in `ifra.node.Node.public_configs` ''local_model_path''.
+        If `ifra.node.Node` *copied* is False, copies the files pointed by `ifra.node.Node`'s *\_\_paths.x*
+        and `ifra.node.Node`'s *\_\_paths.y* in new files in the same directories by appending
+        *_copy_for_learning* to their names. Sets `ifra.node.Node` *copied* to True.
+        Calls the the fitter corresponding to `ifra.node.Node.public_config` *fitter* on the node's features and
+        targets and save the resulting ruleset in `ifra.node.Node.public_configs` *local_model_path*.
 
         Returns
         -------
@@ -144,8 +144,8 @@ class Node:
 
     def update_from_central(self, ruleset: RuleSet) -> None:
         """Ignores points activated by the central server ruleset in order to find other relevant rules in the next
-        iterations. Modifies the files pointed by `fra.node.Node`'s ''\_\_paths.x'' and
-        `ifra.node.Node`'s ''\_\_paths.y''.
+        iterations. Modifies the files pointed by `fra.node.Node`'s *\_\_paths.x* and
+        `ifra.node.Node`'s *\_\_paths.y*.
 
         Parameters
         ----------
@@ -165,7 +165,7 @@ class Node:
         logger.info(f"... node {self.public_configs.id} updated.")
 
     def ruleset_to_file(self) -> None:
-        """Saves `ifra.node.Node.ruleset` to `ifra.configs.NodePublicConfig` ''local_model_path'',
+        """Saves `ifra.node.Node.ruleset` to `ifra.configs.NodePublicConfig` *local_model_path*,
         overwritting any existing file here, and in another file in the same directory but with a unique name.
         Does not do anything if `ifra.node.Node.ruleset` is None
         """
@@ -184,8 +184,8 @@ class Node:
         ruleset.save(self.public_configs.local_model_path)
 
     def plot_data_histogram(self, path: TransparentPath) -> None:
-        """Plots the distribution of the data located in `ifra.node.Node`'s ''\_\_paths.x'' and
-        `ifra.node.Node`'s ''\_\_paths.y'' and save them in unique files.
+        """Plots the distribution of the data located in `ifra.node.Node`'s *\_\_paths.x* and
+        `ifra.node.Node`'s *\_\_paths.y* and save them in unique files.
 
         Parameters
         ----------
@@ -225,17 +225,17 @@ class Node:
         fig.savefig(path_y)
 
     def watch(self, timeout: Optional[int] = None, sleeptime: int = 5) -> None:
-        """Monitors new changes in the central server, every ''sleeptime'' seconds for ''timeout'' seconds, triggering
+        """Monitors new changes in the central server, every *sleeptime* seconds for *timeout* seconds, triggering
         node fit when a new model is found, or if the function just started. Sets
-       ` ifra.configs.NodePublicConfig` ''id'' by re-reading the configuration file if it is None.
-        Stops if `ifra.configs.NodePublicConfig` ''stop'' is True (set by `ifra.central_server` ''CentralServer'')
+       ` ifra.configs.NodePublicConfig` *id* by re-reading the configuration file if it is None.
+        Stops if `ifra.configs.NodePublicConfig` *stop* is True (set by `ifra.central_server` *CentralServer*)
         This is the only method the user should call.
 
         Parameters
         ----------
         timeout: Optional[int]
             How long should the watch last. If None, will last until the central server sets
-            `ifra.configs.NodePublicConfig` ''stop'' to True
+            `ifra.configs.NodePublicConfig` *stop* to True
         sleeptime: int
             How long between each checks for new central model
         """
