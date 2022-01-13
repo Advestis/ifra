@@ -13,8 +13,8 @@ class Config:
         This class should be overloaded and not used as-is, for only keys present in
         `Config.EXPECTED_CONFIGS` and `Config.ADDITIONNAL_CONFIGS` will
         be accepted from the json file, attribute that is empty in this abstract class. Any key present in
-        :attribute:~ifra.configs.Config.EXPECTED_CONFIGS must be present in the json file. Any key present in
-        :attribute:~ifra.configs.Config.ADDITIONNAL_CONFIGS can be present in the file.
+        `Config.EXPECTED_CONFIGS` must be present in the json file. Any key present in
+        `Config.ADDITIONNAL_CONFIGS` can be present in the file.
 
         The json file can be on GCP, the use of transparentpath is supported.
 
@@ -35,7 +35,7 @@ class Config:
         save() -> None
             Saves the current configuration into the file it used to load. This allows the user to change the
             configuration in code and save it. Note that one can not have added a key not present in
-            :attribute:~ifra.configs.Config.EXPECTED_CONFIGS
+            `Config.EXPECTED_CONFIGS`
         """
 
     EXPECTED_CONFIGS = []
@@ -103,10 +103,10 @@ class Config:
 
 class NodePublicConfig(Config):
     # noinspection PyUnresolvedReferences
-    """Overloads :class:~ifra.configs.Config, corresponding to configuration of a node that can be accessed by the
+    """Overloads :`Config`, corresponding to configuration of a node that can be accessed by the
     central server.
 
-    Used by :class:~ifra.node.Node and :class:~ifra.central_server.NodeGate
+    Used by `Node` and `NodeGate`
 
     Overloads __eq__ to allow for node configuration comparison. Two configurations are equal if all their configuration
     values are equal, except "local_model_path" and "central_model_path" that can be different.
