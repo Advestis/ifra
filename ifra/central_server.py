@@ -46,12 +46,12 @@ class NodeGate:
 
     Methods
     -------
-    interact()
+    interact() -> None
         Fetch the node's configuration if not done yet and the node's latest model if it is new compared to central
         server model. Sets :attribute:~ifra.central_server.NodeGate.learning_configs,
         :attribute:~ifra.central_server.NodeGate.ruleset, :attribute:~ifra.central_server.NodeGate.last_fetch to now
         and :attribute:~ifra.central_server.NodeGate.new_data to True
-    push_central_model(ruleset: RuleSet)
+    push_central_model(ruleset: RuleSet) -> None
         Pushes latest central model's ruleset to the node's directory. Sets
         :attribute:~ifra.central_server.NodeGate.new_data to False
     """
@@ -166,11 +166,11 @@ class CentralServer:
 
     Methods
     -------
-    _aggregate()
+    _aggregate() -> Tuple[str, Union[RuleSet, None]]
         Aggregate rulesets present in :attribute:~ifra.central_server.CentralServer.rulesets using
         :attribute:~ifra.central_server.CentralServer.aggregation and updates
         :attribute:~ifra.central_server.CentralServer.ruleset
-    watch(timeout: int = 60, sleeptime: int = 5)
+    watch(timeout: int = 60, sleeptime: int = 5) -> None
         Monitors new changes in the nodes, every ''sleeptime'' seconds for ''timeout'' seconds, triggering aggregation
         and pushing central model to nodes when enough new node models are available.
         This is the only method the user should call.
@@ -199,20 +199,25 @@ class CentralServer:
         """
         self.reference_node_config = None
 
-        if type(central_configs_path) == str:
-            central_configs_path = Path(central_configs_path)
         self.central_configs = CentralConfig(central_configs_path)
         self.nodes = [NodeGate(path) for path in nodes_configs_paths]
+
+        if len(self.nodes) < self.central_configs.min_number_of_new_models:
+            raise ValueError(f"The minimum number of nodes to trigger aggregation "
+                             f"({self.central_configs.min_number_of_new_models}) is greater than the number of"
+                             f" available nodes ({len(self.nodes)}): that can not work !")
+
         self.ruleset = None
 
         if aggregation not in self.possible_aggregations:
-            s = f"Aggregation '{aggregation}' is not known. Can be:"
+            s = f"Aggregation '{aggregation}' is not known. Can be one of:"
             "\n".join([s] + list(self.possible_aggregations.keys()))
             raise ValueError(s)
         self.aggregation = aggregation
 
     def _aggregate(self, rulesets: List[RuleSet]) -> Tuple[str, Union[RuleSet, None]]:
-        """
+        """Aggregates rulesets in :attribute:~ifra.central_server.ruleset using
+        :attribute:~ifra.central_server.aggregation
         
         Parameters
         ----------
@@ -228,7 +233,6 @@ class CentralServer:
               * "stop" otherwise.
             The second item is the aggregated ruleset if the first item is "updated", None otherwise
         """
-        logger.info("Aggregating fit results...")
         return self.possible_aggregations[self.aggregation](
             rulesets, len(self.nodes), self.ruleset, self.central_configs.max_coverage
         )
@@ -287,7 +291,7 @@ class CentralServer:
                 for node in self.nodes:
                     node.push_central_model(deepcopy(self.ruleset))
                 if self.ruleset is None:
-                    raise ValueError("Should never happeb !")
+                    raise ValueError("Should never happen !")
                 iteration = 0
                 name = self.central_configs.output_path.stem
                 path = self.central_configs.output_path.parent / f"{name}_{iteration}.csv"

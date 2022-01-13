@@ -57,12 +57,8 @@ class Node:
         path_learning_configs: TransparentPath,
         path_data: Union[str, Path, TransparentPath],
     ):
-        if type(path_learning_configs) == str:
-            path_learning_configs = TransparentPath(path_learning_configs)
-        self.path_learning_configs = path_learning_configs
-        if type(path_data) == str:
-            path_data = TransparentPath(path_data)
         self.learning_configs = NodePublicConfig(path_learning_configs)
+        self.path_learning_configs = self.learning_configs.path  # Will be a TransparentPath
 
         if not len(list(self.learning_configs.local_model_path.parent.ls(""))) == 0:
             raise ValueError(

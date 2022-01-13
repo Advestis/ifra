@@ -38,7 +38,7 @@ def adaboost_aggregation(
           * "stop" otherwise.
         The second item is the aggregated ruleset if the first item is "updated", None otherwise
     """
-    logger.info("Aggregating fit results...")
+    logger.info("Aggregating fit results using AdaBoost method...")
     all_rules = []
     for rs in rulesets:
         all_rules += rs.rules

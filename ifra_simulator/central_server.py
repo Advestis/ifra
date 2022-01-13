@@ -54,9 +54,6 @@ class CentralServer:
 
         self.nodes = nodes
         if learning_configs_path is not None:
-            if type(learning_configs_path) == str:
-                learning_configs_path = Path(learning_configs_path)
-
             self.learning_configs = LearningConfig(learning_configs_path)
             if self.nodes is not None:
                 for node in self.nodes:
