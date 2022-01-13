@@ -1,5 +1,5 @@
 ---
-permalink: /docs/ifra/index.html
+permalink: /docs/index.html
 ---
 
 **The complete documentation is available at https://advestis.github.io/ifra/**
