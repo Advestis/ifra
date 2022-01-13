@@ -53,7 +53,8 @@ jobs:
         run: |
           pip install pdoc3
           pdoc --html ifra -o docs
-          pdoc --html ifra_simulator -o docs
+          mv docs/ifra/* docs/
+          rm -r docs/ifra
 
       - name: commit doc
         run: |
