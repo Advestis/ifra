@@ -109,14 +109,14 @@ class NodePublicConfig(Config):
     Used by `Node` and `NodeGate`
 
     Overloads __eq__ to allow for node configuration comparison. Two configurations are equal if all their configuration
-    values are equal, except "local_model_path" and "central_model_path" that can be different.
+    values are equal, except ''local_model_path'' and ''central_model_path'' that can be different.
 
     Attributes
     ----------
     path: TransparentPath
-        see :class:~ifra.configs.Config
+        see `Config`
     configs: dict
-        see :class:~ifra.configs.Config
+        see `Config`
 
     features_names: List[str]
         Names of the features used in the learning. It should contain all the features, not only those available to
@@ -202,16 +202,16 @@ class NodePublicConfig(Config):
 
 class CentralConfig(Config):
     # noinspection PyUnresolvedReferences
-    """Overloads :class:~ifra.configs.Config, corresponding to the central server configuration.
+    """Overloads `Config`, corresponding to the central server configuration.
 
     Used by :class:~ifra.central_server.CentralServer
 
     Attributes
     ----------
     path: TransparentPath
-        see :class:~ifra.configs.Config
+        see `Config`
     configs: dict
-        see :class:~ifra.configs.Config
+        see `Config`
 
     max_coverage: float
         Maximum coverage allowed for a rule of the node to be aggregated into the central mode
@@ -236,7 +236,7 @@ class CentralConfig(Config):
 
 class Paths(Config):
     # noinspection PyUnresolvedReferences
-    """Overloads :class:~ifra.configs.Config, corresponding to one node data paths configuration. Not accessible by
+    """Overloads `Config`, corresponding to one node data paths configuration. Not accessible by
     the central server.
 
     Used by :class:~ifra.node.Node
@@ -245,14 +245,14 @@ class Paths(Config):
     a dataframe (a single column in the case of the target file).
     The features file should contain one column for EACH FEATURE USED IN THE LEARNING, even if not all of them have data
     in this node. The order of the columns should match the order in
-    :class:~ifra.configs.NodePublicConfig.features_names.
+    `NodePublicConfig.features_names`.
 
     Attributes
     ----------
     path: TransparentPath
-        see :class:~ifra.configs.Config
+        see `Config`
     configs: dict
-        see :class:~ifra.configs.Config
+        see `Config`
 
     x: TransparentPath
         Path to the features file. If it is a csv, it MUST contain the index and columns (can be integers), and
