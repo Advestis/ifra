@@ -24,7 +24,7 @@ class Node:
     ----------
     public_configs: NodePublicConfig
         The public configuration of the node. Will be accessible by the central server.
-        see :class:~ifra.config.NodePublicConfig
+        see :class:~ifra.configs.NodePublicConfig
     path_public_configs: TransparentPath
         Path to the json file containing public configuration of the node. Needs to be kept in memory to potentially
         update the node's id once set by the central server.
@@ -46,35 +46,28 @@ class Node:
         Plots the features and classes distribution in :attribute:~ifra.node.Node.__paths.x's and
         :attribute:~ifra.node.Node.__paths.y's parent directories if :attribute:~ifra.configs.NodePublicConfig.plot_data
         is True.
-
         Triggers :attribute:~ifra.node.Node.dataprep_method on the features and classes if a dataprep method was
         specified, and if :attribute:~ifra.node.Node.datapreped if False. Writes the output in
         :attribute:~ifra.node.Node.__paths.x's and :attribute:~ifra.node.Node.__paths.y's parent directories by
         appending ''_datapreped'' to the files names, sets :attribute:~ifra.node.Node.datapreped to True
         Modifies :attribute:~ifra.node.Node.__paths.x and :attribute:~ifra.node.Node.__paths.y to point to those files.
         Plots the distributions of the datapreped data.
-
         If :attribute:~ifra.node.Node.copied is False, copies the files pointed by :attribute:~ifra.node.Node.__paths.x
         and :attribute:~ifra.node.Node.__paths.y in new files in the same directories by appending
         ''_copy_for_learning'' to their names. Sets :attribute:~ifra.node.Node.copied to True.
-
         Calls the the fitter corresponding to :attribute:~ifra.node.Node.fitter on the node's features and targets and
         save the resulting ruleset in :attribute:~ifra.node.Node.public_configs.local_model_path.
-
     _update_from_central(ruleset: RuleSet) -> None
         Ignores points activated by the central server ruleset in order to find other relevant rules in the next
         iterations. Modifies the files pointed by :attribute:~ifra.node.Node.__paths.x and
         :attribute:~ifra.node.Node.__paths.y.
-
     _ruleset_to_file() -> None
         Saves :attribute:~ifra.node.Node.ruleset to :attribute:~ifra.configs.NodePublicConfig.local_model_path,
         overwritting any existing file here, and in another file in the same directory but with a unique name.
         Does not do anything if :attribute:~ifra.node.Node.ruleset is None
-
     _plot_data_histogram(path: TransparentPath) -> None
         Plots the distribution of the data located in :attribute:~ifra.node.Node.__paths.x and
         :attribute:~ifra.node.Node.__paths.y and save them in unique files
-
     watch(timeout: int = 60, sleeptime: int = 5) -> None
         Monitors new changes in the central server, every ''sleeptime'' seconds for ''timeout'' seconds, triggering node
         fit when a new model is found, or if the function just started. Sets
@@ -174,7 +167,7 @@ class Node:
             self.__data.y = self.__data.y.with_suffix("").append("_copy_for_learning").with_suffix(y_suffix)
             self.copied = True
 
-        logger.info(f"Fitting node {self.public_configs.id} using {self.fitter}...")
+        logger.info(f"Fitting node {self.public_configs.id} using {self.public_configs.fitter}...")
         self.ruleset = self.__fitter.fit()
         self._ruleset_to_file()
         logger.info(f"... node {self.public_configs.id} fitted, results saved in"
