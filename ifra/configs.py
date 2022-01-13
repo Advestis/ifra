@@ -29,13 +29,6 @@ class Config:
         >>> conf = MyConfig(path)
         >>> conf.some_key
         assuming MyConfig overloads this class and path points to a valid json file containing the key 'some_key'
-
-    Methods
-    -------
-    `save()` -> None\n
-    Saves the current configuration into the file it used to load. This allows the user to change the
-    configuration in code and save it. Note that one can not have added a key not present in
-    `Config.EXPECTED_CONFIGS`
     """
 
     EXPECTED_CONFIGS = []
@@ -89,7 +82,9 @@ class Config:
         self.configs[item] = value
 
     def save(self):
-        """Saves the configuration back to the json file it was read from."""
+        """Saves the current configuration into the file it used to load. This allows the user to change the
+        configuration in code and save it. Note that one can not have added a key not present in
+        `Config.EXPECTED_CONFIGS`"""
         to_save = copy(self.configs)
 
         for key in to_save:
