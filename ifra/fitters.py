@@ -1,29 +1,34 @@
-from typing import Optional, List, Tuple
+import os
+from typing import Optional, List
 
+import joblib
 import numpy as np
 from ruleskit import RuleSet
 from sklearn import tree
 from ruleskit.utils.rule_utils import extract_rules_from_tree
 import logging
 
+from .configs import NodePublicConfig, Paths
+
 logger = logging.getLogger(__name__)
 
 
 class DecisionTreeFitter:
 
-    """Fitter class. Fits a DecisionTreeClassifier on some data."""
+    """Fits a DecisionTreeClassifier on some data."""
 
     # noinspection PyUnresolvedReferences
     def __init__(
         self,
-        learning_configs: LearningConfig,
+        learning_configs: NodePublicConfig,
         data: Paths,
     ):
         self.learning_configs = learning_configs
         self.data = data
+        self.tree, self.ruleset = None, None
 
-    def fit(self):
-        return self._fit(
+    def fit(self) -> RuleSet:
+        self._fit(
             self.data.x.read(**self.data.x_read_kwargs).values,
             self.data.y.read(**self.data.y_read_kwargs).values,
             self.learning_configs.max_depth,
@@ -33,6 +38,9 @@ class DecisionTreeFitter:
             self.learning_configs.features_names,
             self.learning_configs.classes_names
         )
+        self.tree_to_graph()
+        self.tree_to_joblib()
+        return self.ruleset
 
     # noinspection PyArgumentList
     def _fit(
@@ -47,7 +55,7 @@ class DecisionTreeFitter:
         classes_names: Optional[List[str]],
         remember_activation: bool = True,
         stack_activation: bool = False,
-    ) -> Tuple[tree.DecisionTreeClassifier, RuleSet]:
+    ):
         """Fits x and y using a decision tree cassifier, setting self.tree and self.ruleset
 
         x array must contain one column for each feature that can exist across all nodes. Some features can contain
@@ -84,9 +92,9 @@ class DecisionTreeFitter:
         elif not isinstance(x_maxs, np.ndarray):
             x_maxs = np.array(x_maxs)
 
-        self.thetree = tree.DecisionTreeClassifier(max_depth=max_depth).fit(x, y)
+        self.tree = tree.DecisionTreeClassifier(max_depth=max_depth).fit(x, y)
         self.ruleset = extract_rules_from_tree(
-            self.thetree,
+            self.tree,
             xmins=x_mins,
             xmaxs=x_maxs,
             features_names=features_names,
@@ -98,4 +106,49 @@ class DecisionTreeFitter:
 
         if len(self.ruleset) > 0:
             self.ruleset.calc_activation(x)
-        return self.thetree, self.ruleset
+
+    def tree_to_graph(
+        self,
+    ):
+        """Saves self.tree to a .dot file and a .svg file. Does not do anything if self.tree is None
+        """
+        thetree = self.tree
+        features_names = self.learning_configs.features_names
+        iteration = 0
+        name = self.learning_configs.local_model_path.stem
+        path = self.learning_configs.local_model_path.parent / f"{name}_{iteration}.dot"
+
+        while path.isfile():
+            iteration += 1
+            path = self.learning_configs.local_model_path.parent / f"{name}_{iteration}.dot"
+
+        with open(path, "w") as dotfile:
+            tree.export_graphviz(
+                thetree,
+                out_file=dotfile,
+                feature_names=features_names,
+                filled=True,
+                rounded=True,
+                special_characters=True,
+            )
+
+        # joblib.dump(self.tree, self.__trees_path / (Y_name + ".joblib"))
+        os.system(f'dot -Tsvg "{path}" -o "{path.with_suffix(".svg")}"')
+
+    def tree_to_joblib(
+        self,
+    ):
+        """Saves self.tree to a .joblib file. Does not do anything if self.tree is None
+        """
+
+        thetree = self.tree
+        iteration = 0
+        name = self.learning_configs.local_model_path.stem
+        path = self.learning_configs.local_model_path.parent / f"{name}_{iteration}.joblib"
+
+        while path.isfile():
+            iteration += 1
+            path = self.learning_configs.local_model_path.parent / f"{name}_{iteration}.joblib"
+
+        path = path.with_suffix(".joblib")
+        joblib.dump(thetree, path)

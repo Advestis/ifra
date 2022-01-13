@@ -29,7 +29,7 @@ def format_x(s: Union[float, int], with_dollar: bool = False) -> str:
     return xstr
 
 
-def plot_histogram(**kwargs):
+def plot_histogram(**kwargs) -> plt.Figure:
     data = kwargs.get("data")
     xlabel = kwargs.get("xlabel", "x")
     xlabel = "".join(["\\textbf{", xlabel, "}"])

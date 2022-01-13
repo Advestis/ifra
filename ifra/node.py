@@ -2,9 +2,6 @@ from datetime import datetime
 from pathlib import Path
 from time import time, sleep
 
-from sklearn import tree
-import os
-import joblib
 from typing import Union
 
 from ruleskit import RuleSet
@@ -54,7 +51,6 @@ class Node:
         self.dataprep_method = None
         self.datapreped = False
         self.copied = False
-        self.tree = None
         self.ruleset = None
         self.last_fetch = None
         if self.learning_configs.dataprep_method is not None:
@@ -62,7 +58,7 @@ class Node:
             module = self.learning_configs.dataprep_method.replace(f".{function}", "")
             self.dataprep_method = __import__(module, globals(), locals(), [function], 0)
 
-    def fit(self):
+    def fit(self) -> RuleSet:
         if self.learning_configs.plot_data:
             self.plot_data_histogram(self.__data.x.parent / "plots")
         if self.dataprep_method is not None and not self.datapreped:
@@ -97,13 +93,11 @@ class Node:
             self.copied = True
 
         logger.info(f"Fitting node {self.learning_configs.id} using {self.fitter}...")
-        self.tree, self.ruleset = self.__fitter.fit()
-        self.tree_to_graph()
-        self.tree_to_joblib()
+        self.ruleset = self.__fitter.fit()
         self.ruleset_to_file()
         logger.info(f"... node {self.learning_configs.id} fitted, results saved in"
                     f" {self.learning_configs.local_model_path.parent}.")
-        return self.tree, self.ruleset
+        return self.ruleset
 
     def update_from_central(self, ruleset):
         """Ignore points activated by the central server ruleset in order to find other relevant rules in the next
@@ -119,52 +113,6 @@ class Node:
         self.__data.x.write(x)
         self.__data.y.write(y)
         logger.info(f"... node {self.learning_configs.id} updated.")
-
-    def tree_to_graph(
-        self,
-    ):
-        """Saves self.tree to a .dot file and a .svg file. Does not do anything if self.tree is None
-        """
-        thetree = self.tree
-        features_names = self.learning_configs.features_names
-        iteration = 0
-        name = self.learning_configs.local_model_path.stem
-        path = self.learning_configs.local_model_path.parent / f"{name}_{iteration}.dot"
-
-        while path.isfile():
-            iteration += 1
-            path = self.learning_configs.local_model_path.parent / f"{name}_{iteration}.dot"
-
-        with open(path, "w") as dotfile:
-            tree.export_graphviz(
-                thetree,
-                out_file=dotfile,
-                feature_names=features_names,
-                filled=True,
-                rounded=True,
-                special_characters=True,
-            )
-
-        # joblib.dump(self.tree, self.__trees_path / (Y_name + ".joblib"))
-        os.system(f'dot -Tsvg "{path}" -o "{path.with_suffix(".svg")}"')
-
-    def tree_to_joblib(
-        self,
-    ):
-        """Saves self.tree to a .joblib file. Does not do anything if self.tree is None
-        """
-
-        thetree = self.tree
-        iteration = 0
-        name = self.learning_configs.local_model_path.stem
-        path = self.learning_configs.local_model_path.parent / f"{name}_{iteration}.joblib"
-
-        while path.isfile():
-            iteration += 1
-            path = self.learning_configs.local_model_path.parent / f"{name}_{iteration}.joblib"
-
-        path = path.with_suffix(".joblib")
-        joblib.dump(thetree, path)
 
     def ruleset_to_file(
         self
