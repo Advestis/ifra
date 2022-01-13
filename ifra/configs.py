@@ -11,7 +11,7 @@ class Config:
     """Abstract class to load a configuration. Basically just a wrapper around a json file.
 
         This class should be overloaded and not used as-is, for only keys present in
-        `EXPECTED_CONFIGS` and `ADDITIONNAL_CONFIGS` will
+        `Config.EXPECTED_CONFIGS` and `Config.ADDITIONNAL_CONFIGS` will
         be accepted from the json file, attribute that is empty in this abstract class. Any key present in
         :attribute:~ifra.configs.Config.EXPECTED_CONFIGS must be present in the json file. Any key present in
         :attribute:~ifra.configs.Config.ADDITIONNAL_CONFIGS can be present in the file.
