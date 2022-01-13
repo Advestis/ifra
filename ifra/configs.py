@@ -115,7 +115,7 @@ class NodePublicConfig(Config):
 
     features_names: List[str]
         Names of the features used in the learning. It should contain all the features, not only those available to
-        this node. If not specified, the json file should still contain the key 'features_names', but with value "".
+        this node. If not specified, the json file should still contain the key *features_names*, but with value "".
     classes_names: List[str]
         Names of the classes used in the learning. It should contain all the classes, not only those available to
         this node. If not specified, the json file should still contain the key 'classes_names', but with value "".

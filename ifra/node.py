@@ -87,13 +87,13 @@ class Node:
         Triggers `ifra.node.Node`'s ''dataprep_method'' on the features and classes if a dataprep method was
         specified, and if `ifra.node.Node` ''datapreped'' if False. Writes the output in
         `ifra.node.Node`'s ''\_\_paths.x'' and `ifra.node.Node`'s ''\_\_paths.y'' parent directories by
-        appending ''\_datapreped'' to the files names, sets `ifra.node.Node` datapreped to True
+        appending ''_datapreped'' to the files names, sets `ifra.node.Node` datapreped to True
         Modifies `ifra.node.Node`'s ''\_\_paths.x'' and `ifra.node.Node`'s ''\_\_paths.y'' to point to those files.
         Plots the distributions of the datapreped data.
 
         If `ifra.node.Node` ''copied'' is False, copies the files pointed by `ifra.node.Node`'s ''\_\_paths.x''
         and `ifra.node.Node`'s ''\_\_paths.y'' in new files in the same directories by appending
-        ''\_copy_for_learning'' to their names. Sets `ifra.node.Node` ''copied'' to True.
+        ''_copy_for_learning'' to their names. Sets `ifra.node.Node` ''copied'' to True.
         Calls the the fitter corresponding to `ifra.node.Node.public_config` ''fitter'' on the node's features and
         targets and save the resulting ruleset in `ifra.node.Node.public_configs` ''local_model_path''.
 
