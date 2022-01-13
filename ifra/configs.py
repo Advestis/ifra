@@ -108,8 +108,8 @@ class NodePublicConfig(Config):
 
     Used by `ifra.node.Node` and `ifra.central_server.NodeGate`
 
-    Overloads __eq__ to allow for node configuration comparison. Two configurations are equal if all their configuration
-    values are equal, except ''local_model_path'' and ''central_model_path'' that can be different.
+    Overloads \_\_eq\_\_ to allow for node configuration comparison. Two configurations are equal if all their
+    configuration values are equal, except ''local_model_path'' and ''central_model_path'' that can be different.
 
     Attributes
     ----------
@@ -245,7 +245,7 @@ class Paths(Config):
     a dataframe (a single column in the case of the target file).
     The features file should contain one column for EACH FEATURE USED IN THE LEARNING, even if not all of them have data
     in this node. The order of the columns should match the order in
-    `ifra.central_server.NodePublicConfig.features_names`.
+    `ifra.central_server.NodePublicConfig`'s features_names`.
 
     Attributes
     ----------
