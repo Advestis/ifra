@@ -21,7 +21,7 @@ class DecisionTreeFitter:
 
     Attributes
     ----------
-    learning_configs: NodePublicConfig
+    public_configs: NodePublicConfig
         The public configuration of the node using this fitter
     data: Paths
         The data paths configuration of the node using this fitter
@@ -43,23 +43,34 @@ class DecisionTreeFitter:
     # noinspection PyUnresolvedReferences
     def __init__(
         self,
-        learning_configs: NodePublicConfig,
+        public_configs: NodePublicConfig,
         data: Paths,
     ):
-        self.learning_configs = learning_configs
+        self.public_configs = public_configs
         self.data = data
         self.tree, self.ruleset = None, None
 
     def fit(self) -> RuleSet:
+        """Fits the decision tree on the data pointed by :attribute:~irfa.fitters.DecisionTreeClassifier.data.x and
+        :attribute:~irfa.fitters.DecisionTreeClassifier.y, sets :attribute:~irfa.fitters.DecisionTreeClassifier.tree
+        saves it as a .dot, .svg and .joblib file in the same place the node will save its ruleset.
+        Those files will be unique for each time the fit function is called.
+        Also sets :attribute:~irfa.fitters.DecisionTreeClassifier.ruleset and returns it.
+
+        Returns
+        -------
+        RuleSet
+            :attribute:~irfa.fitters.DecisionTreeClassifier.ruleset
+        """
         self._fit(
             self.data.x.read(**self.data.x_read_kwargs).values,
             self.data.y.read(**self.data.y_read_kwargs).values,
-            self.learning_configs.max_depth,
-            self.learning_configs.get_leaf,
-            self.learning_configs.x_mins,
-            self.learning_configs.x_maxs,
-            self.learning_configs.features_names,
-            self.learning_configs.classes_names
+            self.public_configs.max_depth,
+            self.public_configs.get_leaf,
+            self.public_configs.x_mins,
+            self.public_configs.x_maxs,
+            self.public_configs.features_names,
+            self.public_configs.classes_names
         )
         self._tree_to_graph()
         self._tree_to_joblib()
@@ -144,14 +155,14 @@ class DecisionTreeFitter:
         Will create a unique file by looking at existing files and appending a unique integer to the name.
         """
         thetree = self.tree
-        features_names = self.learning_configs.features_names
+        features_names = self.public_configs.features_names
         iteration = 0
-        name = self.learning_configs.local_model_path.stem
-        path = self.learning_configs.local_model_path.parent / f"{name}_{iteration}.dot"
+        name = self.public_configs.local_model_path.stem
+        path = self.public_configs.local_model_path.parent / f"{name}_{iteration}.dot"
 
         while path.isfile():
             iteration += 1
-            path = self.learning_configs.local_model_path.parent / f"{name}_{iteration}.dot"
+            path = self.public_configs.local_model_path.parent / f"{name}_{iteration}.dot"
 
         with open(path, "w") as dotfile:
             tree.export_graphviz(
@@ -177,12 +188,12 @@ class DecisionTreeFitter:
 
         thetree = self.tree
         iteration = 0
-        name = self.learning_configs.local_model_path.stem
-        path = self.learning_configs.local_model_path.parent / f"{name}_{iteration}.joblib"
+        name = self.public_configs.local_model_path.stem
+        path = self.public_configs.local_model_path.parent / f"{name}_{iteration}.joblib"
 
         while path.isfile():
             iteration += 1
-            path = self.learning_configs.local_model_path.parent / f"{name}_{iteration}.joblib"
+            path = self.public_configs.local_model_path.parent / f"{name}_{iteration}.joblib"
 
         path = path.with_suffix(".joblib")
         joblib.dump(thetree, path)

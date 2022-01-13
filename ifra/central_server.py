@@ -31,7 +31,7 @@ class NodeGate:
     node_config_path: TransparentPath
         Path to the node's public configuration file. The corresponding instance of the
          :class:~ifra.central_server.node.Node class must use the same file.
-    learning_configs: NodePublicConfig
+    public_configs: NodePublicConfig
         Node's public configuration. See :class:~ifra.configs.NodePublicConfig. None at initialisation, set by
         :func:~ifra.central_server.NodeGate.interact
     ruleset: RuleSet
@@ -48,7 +48,7 @@ class NodeGate:
     -------
     interact() -> None
         Fetch the node's configuration if not done yet and the node's latest model if it is new compared to central
-        server model. Sets :attribute:~ifra.central_server.NodeGate.learning_configs,
+        server model. Sets :attribute:~ifra.central_server.NodeGate.public_configs,
         :attribute:~ifra.central_server.NodeGate.ruleset, :attribute:~ifra.central_server.NodeGate.last_fetch to now
         and :attribute:~ifra.central_server.NodeGate.new_data to True
     push_central_model(ruleset: RuleSet) -> None
@@ -70,7 +70,7 @@ class NodeGate:
 
         self.id = NodeGate.instances
         self.node_config_path = node_config_path
-        self.learning_configs = None
+        self.public_configs = None
 
         self.ruleset = None
         self.last_fetch = None
@@ -79,7 +79,7 @@ class NodeGate:
 
     def interact(self):
         """Fetch the node's configuration if not done yet and the node's latest model if it is new compared to central
-        server model. Sets :attribute:~ifra.central_server.NodeGate.learning_configs,
+        server model. Sets :attribute:~ifra.central_server.NodeGate.public_configs,
         :attribute:~ifra.central_server.NodeGate.ruleset, :attribute:~ifra.central_server.NodeGate.last_fetch to now
         and :attribute:~ifra.central_server.NodeGate.new_data to True"""
         def get_ruleset():
@@ -87,7 +87,7 @@ class NodeGate:
             :attribute:~ifra.central_server.NodeGate.last_fetch will be set to now and
             :attribute:~ifra.central_server.NodeGate.new_data to True."""
             self.ruleset = RuleSet()
-            self.ruleset.load(self.learning_configs.local_model_path)
+            self.ruleset.load(self.public_configs.local_model_path)
             self.last_fetch = datetime.now()
             self.new_data = True
             logger.info(f"Fetched new ruleset from node {self.id} at {self.last_fetch}")
@@ -98,30 +98,30 @@ class NodeGate:
             # In that case, it is pointless to interact with the node.
             return
 
-        if self.learning_configs is None:
+        if self.public_configs is None:
             # If we are here, it means the node has not provided any configurations yet. Either because we interact for
             # the first time, or because last time we checked, there was no file at self.node_config_path. So need to
             # load the configuration, if available
             if not self.node_config_path.isfile():
                 return
-            self.learning_configs = NodePublicConfig(self.node_config_path)
-            if self.learning_configs.id is None:
+            self.public_configs = NodePublicConfig(self.node_config_path)
+            if self.public_configs.id is None:
                 # If the node was not given an id by its local user, then the central server provides one, being
                 # this NodeGate's id number
-                self.learning_configs.id = self.id
-                self.learning_configs.save()
+                self.public_configs.id = self.id
+                self.public_configs.save()
 
         if self.ruleset is None:
             # The node has not produced any model yet if self.ruleset is None. No need to bother with self.last fetch
             # then, just get the ruleset.
-            if self.learning_configs.local_model_path.isfile():
+            if self.public_configs.local_model_path.isfile():
                 get_ruleset()
         else:
             # The node has already produced a model. So we only get its ruleset if the model is new. We know that by
             # checking the modification time of the node's ruleset file.
             if (
-                self.learning_configs.local_model_path.isfile()
-                and self.learning_configs.local_model_path.info()["mtime"] > self.last_fetch.timestamp()
+                self.public_configs.local_model_path.isfile()
+                and self.public_configs.local_model_path.info()["mtime"] > self.last_fetch.timestamp()
             ):
                 get_ruleset()
 
@@ -135,8 +135,8 @@ class NodeGate:
         ruleset: RuleSet
             The central model's ruleset
         """
-        logger.info(f"Pushing central model to node {self.id} at {self.learning_configs.central_model_path}")
-        ruleset.save(self.learning_configs.central_model_path)
+        logger.info(f"Pushing central model to node {self.id} at {self.public_configs.central_model_path}")
+        ruleset.save(self.public_configs.central_model_path)
         self.new_data = False
 
 
@@ -253,11 +253,11 @@ class CentralServer:
                     continue
                 node.interact()  # Node fetches its latest data from GCP
 
-                if node.learning_configs is not None:
+                if node.public_configs is not None:
                     if self.reference_node_config is None:
-                        self.reference_node_config = deepcopy(node.learning_configs)
+                        self.reference_node_config = deepcopy(node.public_configs)
                     # Nodes with configurations different from central's are ignored
-                    elif node.learning_configs != self.reference_node_config:
+                    elif node.public_configs != self.reference_node_config:
                         logger.warning(
                             f"Node {node.id}'s configuration is not compatible with previous"
                             " configuration. Ignoring."

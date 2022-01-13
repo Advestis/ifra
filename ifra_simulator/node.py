@@ -119,16 +119,16 @@ class Node:
     # noinspection PyUnresolvedReferences
     def __init__(
         self,
-        learning_configs_path: Optional[Union[str, Path, TransparentPath]] = None,
-        learning_configs: Optional[LearningConfig] = None,
+        public_configs_path: Optional[Union[str, Path, TransparentPath]] = None,
+        public_configs: Optional[LearningConfig] = None,
         path_configs_path: Optional[Union[str, Path, TransparentPath]] = None,
         dataprep_method: Callable = None
     ):
 
-        if learning_configs_path is None and learning_configs is None:
-            raise ValueError("One of learning_configs_path and learning_configs must be not None")
-        if learning_configs_path is not None and learning_configs is not None:
-            raise ValueError("Only one of learning_configs_path and learning_configs must be not None")
+        if public_configs_path is None and public_configs is None:
+            raise ValueError("One of public_configs_path and public_configs must be not None")
+        if public_configs_path is not None and public_configs is not None:
+            raise ValueError("Only one of public_configs_path and public_configs must be not None")
 
         self.id = len(Node.instances)
         self.tree = None
@@ -136,19 +136,19 @@ class Node:
         if path_configs_path is None:
             path_configs_path = TransparentPath("path_configs.json")
 
-        if learning_configs_path is not None:
-            self.learning_configs = LearningConfig(learning_configs_path)
+        if public_configs_path is not None:
+            self.public_configs = LearningConfig(public_configs_path)
         else:
-            self.learning_configs = learning_configs
+            self.public_configs = public_configs
         self.dataprep_method = dataprep_method
         self.datapreped = False
         self.copied = False
         self.__paths = Paths(path_configs_path)
-        self.__fitter = Fitter(self.learning_configs, self.__paths)
+        self.__fitter = Fitter(self.public_configs, self.__paths)
         Node.instances.append(self)
 
     def fit(self):
-        if self.learning_configs.plot_data:
+        if self.public_configs.plot_data:
             self.plot_data_histogram(self.__paths.x.parent / "plots")
         if self.dataprep_method is not None and not self.datapreped:
             logger.info(f"Datapreping data of node {self.id}...")
@@ -164,7 +164,7 @@ class Node:
             y_datapreped_path.write(y)
             self.__fitter.paths.x = x_datapreped_path
             self.__fitter.paths.y = y_datapreped_path
-            if self.learning_configs.plot_data:
+            if self.public_configs.plot_data:
                 self.plot_data_histogram(self.__paths.x.parent / "plots_datapreped")
             self.datapreped = True
             logger.info(f"...datapreping done for node {self.id}")
@@ -225,7 +225,7 @@ class Node:
 
         if node is not None:
             thetree = node.tree
-            features_names = node.learning_configs.features_names
+            features_names = node.public_configs.features_names
         if thetree is None:
             return
 
@@ -333,7 +333,7 @@ class Node:
 
     def plot_data_histogram(self, path):
         x = self.__paths.x.read(**self.__paths.x_read_kwargs)
-        for col, name in zip(x.columns, self.learning_configs.features_names):
+        for col, name in zip(x.columns, self.public_configs.features_names):
             fig = plot_histogram(
                 data=x[col],
                 xlabel=name,
@@ -454,22 +454,22 @@ class Fitter:
     # noinspection PyUnresolvedReferences
     def __init__(
         self,
-        learning_configs: LearningConfig,
+        public_configs: LearningConfig,
         paths: Paths,
     ):
-        self.learning_configs = learning_configs
+        self.public_configs = public_configs
         self.paths = paths
 
     def fit(self):
         return self._fit(
             self.paths.x.read(**self.paths.x_read_kwargs).values,
             self.paths.y.read(**self.paths.y_read_kwargs).values,
-            self.learning_configs.max_depth,
-            self.learning_configs.get_leaf,
-            self.learning_configs.x_mins,
-            self.learning_configs.x_maxs,
-            self.learning_configs.features_names,
-            self.learning_configs.classes_names
+            self.public_configs.max_depth,
+            self.public_configs.get_leaf,
+            self.public_configs.x_mins,
+            self.public_configs.x_maxs,
+            self.public_configs.features_names,
+            self.public_configs.classes_names
         )
 
     # noinspection PyArgumentList

@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 class CentralServer:
 
-    """Central server. Can create nodes, pass learning_configs to them,
+    """Central server. Can create nodes, pass public_configs to them,
     launch their learning and gather their results."""
 
     # If True, calling 'fit' of each node is done in parallel.
@@ -21,14 +21,14 @@ class CentralServer:
 
     def __init__(
         self,
-        learning_configs_path: Union[str, Path, TransparentPath] = None,
+        public_configs_path: Union[str, Path, TransparentPath] = None,
         nodes: Union[List[Node], None] = None,
         nnodes: Union[None, int] = None,
         dataprep_method: Callable = None,
     ):
-        """Must specify one of learning_configs_path and nodes.
+        """Must specify one of public_configs_path and nodes.
 
-        If learning_configs_path, will create nnodes using the given learning configurations
+        If public_configs_path, will create nnodes using the given learning configurations
         Else, if nodes is passed, assumes that they are compatible and will get the learning configuration of the first
         node.
 
@@ -44,8 +44,8 @@ class CentralServer:
             if nnodes is not None:
                 logger.warning("Nodes were given to central server, so number of nodes to create will be ignored")
 
-        if learning_configs_path is None and nodes is None:
-            raise ValueError("At least one of learning_configs_path and nodes must be specified")
+        if public_configs_path is None and nodes is None:
+            raise ValueError("At least one of public_configs_path and nodes must be specified")
 
         if nnodes is not None and not isinstance(nnodes, int):
             raise TypeError(f"nnodes should be a integer, got a {type(nnodes)}")
@@ -53,22 +53,22 @@ class CentralServer:
         self.dataprep_method = dataprep_method
 
         self.nodes = nodes
-        if learning_configs_path is not None:
-            self.learning_configs = LearningConfig(learning_configs_path)
+        if public_configs_path is not None:
+            self.public_configs = LearningConfig(public_configs_path)
             if self.nodes is not None:
                 for node in self.nodes:
-                    node.learning_configs = self.learning_configs
+                    node.public_configs = self.public_configs
                     node.dataprep_method = dataprep_method
             else:
                 for i in range(nnodes):
                     self.add_node()
         else:
             if len(self.nodes) == 0:
-                raise ValueError("If learning_configs_path is not specified, nodes must not be empty")
-            self.learning_configs = nodes[0].learning_configs
+                raise ValueError("If public_configs_path is not specified, nodes must not be empty")
+            self.public_configs = nodes[0].public_configs
             self.dataprep_method = nodes[0].dataprep_method
             for node in self.nodes[1:]:
-                node.learning_configs = self.learning_configs
+                node.public_configs = self.public_configs
                 node.dataprep_method = self.dataprep_method
 
         self.rulesets = []
@@ -79,9 +79,9 @@ class CentralServer:
         if node is not None:
             if not isinstance(node, Node):
                 raise TypeError(f"Node is not of class Node, but {type(node)}")
-            node.learning_configs = self.learning_configs
+            node.public_configs = self.public_configs
         else:
-            node = Node(learning_configs=self.learning_configs, dataprep_method=self.dataprep_method)
+            node = Node(public_configs=self.public_configs, dataprep_method=self.dataprep_method)
         self.nodes.append(node)
 
     def aggregate(self) -> bool:
@@ -99,7 +99,7 @@ class CentralServer:
         if len(all_rules) == 0:
             logger.info("... no more rules found, stopping learning")
             return False
-        occurences = {r: all_rules.count(r) for r in set(all_rules) if r.coverage < self.learning_configs.max_coverage}
+        occurences = {r: all_rules.count(r) for r in set(all_rules) if r.coverage < self.public_configs.max_coverage}
         if len(occurences) == 0:
             logger.warning("No rules matched coverage criterion, stopping learning")
             return False
@@ -132,7 +132,7 @@ class CentralServer:
             logger.warning("Zero nodes. Fitting canceled.")
             return
 
-        features_names = self.nodes[0].learning_configs.features_names
+        features_names = self.nodes[0].public_configs.features_names
         for _ in range(niterations):
             if CentralServer.PARALLEL_NODES:
                 with ProcessPoolExecutor(max_workers=cpu_count(), mp_context=get_context("spawn")) as executor:
@@ -165,12 +165,12 @@ class CentralServer:
 
             if self.ruleset is not None:
                 iteration = 0
-                name = TransparentPath(self.learning_configs.output_path).stem
-                path = TransparentPath(self.learning_configs.output_path).parent / f"{name}_{iteration}.csv"
+                name = TransparentPath(self.public_configs.output_path).stem
+                path = TransparentPath(self.public_configs.output_path).parent / f"{name}_{iteration}.csv"
                 while path.isfile():
                     iteration += 1
                     path = path.parent / f"{name}_{iteration}.csv"
-                self.ruleset.save(self.learning_configs.output_path)
+                self.ruleset.save(self.public_configs.output_path)
                 self.ruleset.save(path)
 
         logger.info("...fit finished")

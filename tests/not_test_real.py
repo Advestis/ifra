@@ -32,7 +32,7 @@ def dataprep_method(x, y):
 def test_iris(clean):
     nodes = [
         Node(
-            learning_configs_path="tests/data/learning_real.json",
+            public_configs_path="tests/data/learning_real.json",
             path_configs_path=f"tests/data/node_{i}/path_configs.json",
             dataprep_method=dataprep_method,
         )
@@ -45,7 +45,7 @@ def test_iris(clean):
 # def test_iris_one_iteration_one_node():
 #     nodes = [
 #         Node(
-#             learning_configs_path="tests/data/learning_real.json",
+#             public_configs_path="tests/data/learning_real.json",
 #             path_configs_path="tests/data/node_alone/path_configs.json",
 #             dataprep_method=dataprep_method,
 #         )
