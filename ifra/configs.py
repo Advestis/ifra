@@ -106,7 +106,7 @@ class NodePublicConfig(Config):
     """Overloads :`Config`, corresponding to configuration of a node that can be accessed by the
     central server.
 
-    Used by `Node` and `NodeGate`
+    Used by `ifra.node.Node` and `ifra.central_server.NodeGate`
 
     Overloads __eq__ to allow for node configuration comparison. Two configurations are equal if all their configuration
     values are equal, except ''local_model_path'' and ''central_model_path'' that can be different.
@@ -161,7 +161,7 @@ class NodePublicConfig(Config):
         Fitter to use. Can be one of :\n
           * decisiontree\n
     stop: bool
-        Set to True by :class:~ifra.central_server.CentralServer when the learning is over.
+        Set to True by `ifra.central_server.CentralServer` when the learning is over.
     """
 
     EXPECTED_CONFIGS = [
@@ -204,7 +204,7 @@ class CentralConfig(Config):
     # noinspection PyUnresolvedReferences
     """Overloads `Config`, corresponding to the central server configuration.
 
-    Used by :class:~ifra.central_server.CentralServer
+    Used by `ifra.central_server.CentralServer`
 
     Attributes
     ----------
@@ -239,13 +239,13 @@ class Paths(Config):
     """Overloads `Config`, corresponding to one node data paths configuration. Not accessible by
     the central server.
 
-    Used by :class:~ifra.node.Node
+    Used by `ifra.node.Node`
 
     The node expects two files separate files : one for the features and one for the targets. They both should return
     a dataframe (a single column in the case of the target file).
     The features file should contain one column for EACH FEATURE USED IN THE LEARNING, even if not all of them have data
     in this node. The order of the columns should match the order in
-    `NodePublicConfig.features_names`.
+    `ifra.central_server.NodePublicConfig.features_names`.
 
     Attributes
     ----------
