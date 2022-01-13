@@ -81,7 +81,7 @@ class Config:
             raise ValueError(f"No configuration named '{item}' is not allowed")
         self.configs[item] = value
 
-    def save(self):
+    def save(self) -> None:
         """Saves the current configuration into the file it used to load. This allows the user to change the
         configuration in code and save it. Note that one can not have added a key not present in
         `Config.EXPECTED_CONFIGS`"""

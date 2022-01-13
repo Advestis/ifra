@@ -142,7 +142,7 @@ class Node:
                     f" {self.public_configs.local_model_path.parent}.")
         return self.ruleset
 
-    def _update_from_central(self, ruleset: RuleSet):
+    def _update_from_central(self, ruleset: RuleSet) -> None:
         """Ignores points activated by the central server ruleset in order to find other relevant rules in the next
         iterations. Modifies the files pointed by `fra.node.Node`'s ''\_\_paths.x'' and
         `ifra.node.Node`'s ''\_\_paths.y''.
@@ -164,7 +164,7 @@ class Node:
         self.__data.y.write(y)
         logger.info(f"... node {self.public_configs.id} updated.")
 
-    def _ruleset_to_file(self):
+    def _ruleset_to_file(self) -> None:
         """Saves `ifra.node.Node.ruleset` to `ifra.configs.NodePublicConfig` ''local_model_path'',
         overwritting any existing file here, and in another file in the same directory but with a unique name.
         Does not do anything if `ifra.node.Node.ruleset` is None
@@ -183,7 +183,7 @@ class Node:
         ruleset.save(path)
         ruleset.save(self.public_configs.local_model_path)
 
-    def _plot_data_histogram(self, path: TransparentPath):
+    def _plot_data_histogram(self, path: TransparentPath) -> None:
         """Plots the distribution of the data located in `ifra.node.Node`'s ''\_\_paths.x'' and
         `ifra.node.Node`'s ''\_\_paths.y'' and save them in unique files.
 
@@ -224,7 +224,7 @@ class Node:
 
         fig.savefig(path_y)
 
-    def watch(self, timeout: Optional[int] = None, sleeptime: int = 5):
+    def watch(self, timeout: Optional[int] = None, sleeptime: int = 5) -> None:
         """Monitors new changes in the central server, every ''sleeptime'' seconds for ''timeout'' seconds, triggering
         node fit when a new model is found, or if the function just started. Sets
        ` ifra.configs.NodePublicConfig` ''id'' by re-reading the configuration file if it is None.
@@ -240,7 +240,7 @@ class Node:
             How long between each checks for new central model
         """
 
-        def get_ruleset():
+        def get_ruleset() -> None:
             """Fetch the central server's latest model's RuleSet.
             `ifra.node.Node.last_fetch` will be set to now and `ifra.node.Node.new_data` to True."""
             central_ruleset = RuleSet()
