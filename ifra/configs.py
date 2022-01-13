@@ -10,33 +10,33 @@ class Config:
     # noinspection PyUnresolvedReferences
     """Abstract class to load a configuration. Basically just a wrapper around a json file.
 
-        This class should be overloaded and not used as-is, for only keys present in
-        `Config.EXPECTED_CONFIGS` and `Config.ADDITIONNAL_CONFIGS` will
-        be accepted from the json file, attribute that is empty in this abstract class. Any key present in
-        `Config.EXPECTED_CONFIGS` must be present in the json file. Any key present in
-        `Config.ADDITIONNAL_CONFIGS` can be present in the file.
+    This class should be overloaded and not used as-is, for only keys present in
+    `Config.EXPECTED_CONFIGS` and `Config.ADDITIONNAL_CONFIGS` will
+    be accepted from the json file, attribute that is empty in this abstract class. Any key present in
+    `Config.EXPECTED_CONFIGS` must be present in the json file. Any key present in
+    `Config.ADDITIONNAL_CONFIGS` can be present in the file.
 
-        The json file can be on GCP, the use of transparentpath is supported.
+    The json file can be on GCP, the use of transparentpath is supported.
 
-        Attributes
-        ----------
-        path: TransparentPath
-            The path to the json file containing the configuration. Will be casted into a transparentpath if a str is
-            given, so make sure that if you pass a string that should be local, you did not set a global file system.
-        configs: dict
-            Content of the json file. Any pair of key value present in it will be seen as an attribute of the class
-            instance and can be accessed by doing
-            >>> conf = MyConfig(path)
-            >>> conf.some_key
-            assuming MyConfig overloads this class and path points to a valid json file containing the key 'some_key'
+    Attributes
+    ----------
+    path: TransparentPath
+        The path to the json file containing the configuration. Will be casted into a transparentpath if a str is
+        given, so make sure that if you pass a string that should be local, you did not set a global file system.
+    configs: dict
+        Content of the json file. Any pair of key value present in it will be seen as an attribute of the class
+        instance and can be accessed by doing
+        >>> conf = MyConfig(path)
+        >>> conf.some_key
+        assuming MyConfig overloads this class and path points to a valid json file containing the key 'some_key'
 
-        Methods
-        -------
-         `save()`-> None\n
-            Saves the current configuration into the file it used to load. This allows the user to change the
-            configuration in code and save it. Note that one can not have added a key not present in
-            `Config.EXPECTED_CONFIGS`
-        """
+    Methods
+    -------
+     `save()`-> None\n
+        Saves the current configuration into the file it used to load. This allows the user to change the
+        configuration in code and save it. Note that one can not have added a key not present in
+        `Config.EXPECTED_CONFIGS`
+    """
 
     EXPECTED_CONFIGS = []
     """Configuration keys that MUST figure in the json file"""
