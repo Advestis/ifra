@@ -1,7 +1,6 @@
-import logging
 from typing import List, Union, Tuple
-
 from ruleskit import RuleSet
+import logging
 
 logger = logging.getLogger(__name__)
 

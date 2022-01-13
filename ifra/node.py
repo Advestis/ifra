@@ -3,54 +3,43 @@ from pathlib import Path
 from time import time, sleep
 
 from sklearn import tree
-import numpy as np
-from ruleskit.utils.rule_utils import extract_rules_from_tree
 import os
 import joblib
-import matplotlib.pyplot as plt
-import matplotlib as mpl
-from typing import List, Union, Optional, Tuple
+from typing import Union
 
 from ruleskit import RuleSet
 from transparentpath import TransparentPath
 import logging
 
-from ifra.configs import NodePublicConfig, Paths
+from .configs import NodePublicConfig, Paths
+from .fitters import DecisionTreeFitter
+from .plot import plot_histogram
 
 logger = logging.getLogger(__name__)
 
-mpl.rcParams["text.usetex"] = True
-mpl.rcParams["text.latex.preamble"] = r"\usepackage{amsmath}\boldmath"
-
-
-def format_x(s: Union[float, int], with_dollar: bool = False) -> str:
-    """For a given number, will put it in scientific notation if lower than 0.01, using LaTex synthax.
-    """
-    if 1000 > s > 0.01:
-        xstr = str(round(s, 2))
-    else:
-        xstr = "{:.4E}".format(s)
-        if "E-" in xstr:
-            lead, tail = xstr.split("E-")
-            middle = "-"
-        else:
-            lead, tail = xstr.split("E")
-            middle = ""
-        lead = round(float(lead), 2)
-        tail = round(float(tail), 2)
-        if with_dollar:
-            xstr = ("$\\cdot 10^{" + middle).join([str(lead), str(tail)]) + "}$"
-        else:
-            xstr = ("\\cdot 10^{" + middle).join([str(lead), str(tail)]) + "}"
-    return xstr
-
 
 class Node:
+    """One node of federated learning. This class should be used by each machine that is supposed to produce a local
+    model.
+    """
+
+    possible_fitters = {
+        "decisiontree": DecisionTreeFitter
+    }
+
     def __init__(
         self,
         path_learning_configs: TransparentPath,
         path_data: Union[str, Path, TransparentPath],
+        fitter: str
     ):
+
+        if fitter not in self.possible_fitters:
+            s = f"Fitter '{fitter}' is not known. Can be one of:"
+            "\n".join([s] + list(self.possible_fitters.keys()))
+            raise ValueError(s)
+        self.fitter = fitter
+
         self.learning_configs = NodePublicConfig(path_learning_configs)
         self.path_learning_configs = self.learning_configs.path  # Will be a TransparentPath
 
@@ -60,7 +49,7 @@ class Node:
             )
 
         self.__data = Paths(path_data)
-        self.__fitter = Fitter(self.learning_configs, self.__data)
+        self.__fitter = self.possible_fitters[self.fitter](self.learning_configs, self.__data)
 
         self.dataprep_method = None
         self.datapreped = False
@@ -107,7 +96,7 @@ class Node:
             self.__data.y = self.__data.y.with_suffix("").append("_copy_for_learning").with_suffix(y_suffix)
             self.copied = True
 
-        logger.info(f"Fitting node {self.learning_configs.id}...")
+        logger.info(f"Fitting node {self.learning_configs.id} using {self.fitter}...")
         self.tree, self.ruleset = self.__fitter.fit()
         self.tree_to_graph()
         self.tree_to_joblib()
@@ -267,180 +256,3 @@ class Node:
             sleep(sleeptime)
 
         logger.info(f"Timeout of {timeout} seconds reached, stopping learning in node {self.learning_configs.id}.")
-
-
-def plot_histogram(**kwargs):
-    data = kwargs.get("data")
-    xlabel = kwargs.get("xlabel", "x")
-    xlabel = "".join(["\\textbf{", xlabel, "}"])
-    ylabel = kwargs.get("ylabel", "count")
-    ylabel = "".join(["\\textbf{", ylabel, "}"])
-    xlabelfontsize = kwargs.get("xlabelfontsize", 20)
-    ylabelfontsize = kwargs.get("ylabelfontsize", 20)
-    title = kwargs.get("title", None)
-    titlefontsize = kwargs.get("titlefontsize", 20)
-    xticks = kwargs.get("xticks", None)
-    yticks = kwargs.get("yticks", None)
-    xtickslabels = kwargs.get("xtickslabels", None)
-    xticksfontsize = kwargs.get("xticksfontsize", 15)
-    yticksfontsize = kwargs.get("yticksfontsize", 15)
-    force_xlim = kwargs.get("force_xlim", False)
-    xlim = kwargs.get("xlim", [])
-    ylim = kwargs.get("ylim", [])
-    figsize = kwargs.get("figsize", None)
-    legendfontsize = kwargs.get("legendfontsize", 12)
-    plt.close("all")
-    fig = plt.figure(0, figsize=figsize)
-    ax1 = fig.gca()
-
-    # If xlim is specified, set it. Otherwise, if force_xlim is specified,
-    # redefine the x limites to match the histo ranges.
-    if len(xlim) == 2:
-        ax1.set_xlim(left=xlim[0], right=xlim[1])
-    elif force_xlim:
-        ax1.set_xlim([0.99 * data.min(), 1.01 * data.max()])
-    if len(ylim) == 2:
-        ax1.set_ylim(ylim)
-
-    label = None
-
-    try:
-        mean = format_x(data.mean())
-        std = format_x(data.std())
-        count = format_x(len(data))
-        integral = format_x(sum(data))
-        label = (
-                f"\\flushleft$\\mu={mean}$ \\\\ $\\sigma={std}$ \\\\ "
-                + "\\textbf{Count}$="
-                + f"{count}$ \\\\ "
-                + "\\textbf{Integral}$="
-                + f"{integral}$"
-        )
-    except TypeError:
-        pass
-
-    data.hist(ax=ax1, bins=100, label=label)
-
-    if ylabel is not None:
-        ax1.set_ylabel(ylabel, fontsize=ylabelfontsize)
-    if xlabel is not None:
-        ax1.set_xlabel(xlabel, fontsize=xlabelfontsize)
-    if title is not None:
-        ax1.set_title(title, fontsize=titlefontsize)
-
-    if xticksfontsize is not None:
-        ax1.tick_params(axis="x", labelsize=xticksfontsize)
-    if yticksfontsize is not None:
-        ax1.tick_params(axis="y", labelsize=yticksfontsize)
-
-    if xticks is not None:
-        ax1.set_xticks(xticks)
-    if yticks is not None:
-        ax1.set_yticks(yticks)
-    if xtickslabels is not None:
-        ax1.set_xticklabels(xtickslabels)
-
-    if label:
-        ax1.legend(
-            # bbox_to_anchor=(0.9, 0, 0, 1),
-            loc="upper right",
-            facecolor="wheat",
-            fontsize=legendfontsize,
-            shadow=True,
-            title=None,
-        )
-    plt.gcf().tight_layout()
-
-    return fig
-
-
-class Fitter:
-
-    """Fitter class. Fits a DecisionTreeClassifier on some data."""
-
-    # noinspection PyUnresolvedReferences
-    def __init__(
-        self,
-        learning_configs: LearningConfig,
-        data: Paths,
-    ):
-        self.learning_configs = learning_configs
-        self.data = data
-
-    def fit(self):
-        return self._fit(
-            self.data.x.read(**self.data.x_read_kwargs).values,
-            self.data.y.read(**self.data.y_read_kwargs).values,
-            self.learning_configs.max_depth,
-            self.learning_configs.get_leaf,
-            self.learning_configs.x_mins,
-            self.learning_configs.x_maxs,
-            self.learning_configs.features_names,
-            self.learning_configs.classes_names
-        )
-
-    # noinspection PyArgumentList
-    def _fit(
-        self,
-        x: np.array,
-        y: np.array,
-        max_depth: int,
-        get_leaf: bool,
-        x_mins: Optional[List[float]],
-        x_maxs: Optional[List[float]],
-        features_names: Optional[List[str]],
-        classes_names: Optional[List[str]],
-        remember_activation: bool = True,
-        stack_activation: bool = False,
-    ) -> Tuple[tree.DecisionTreeClassifier, RuleSet]:
-        """Fits x and y using a decision tree cassifier, setting self.tree and self.ruleset
-
-        x array must contain one column for each feature that can exist across all nodes. Some features can contain
-        only NaNs.
-
-        Parameters
-        ----------
-        x: np.ndarray
-            Must be of shape (# observations, # features)
-        y: np.ndarray
-            Must be of shape (# observations,)
-        max_depth: int
-            Maximum tree depth
-        x_mins: Optional[List[float]]
-            Lower limits of features
-        x_maxs: Optional[List[float]]
-            Upper limits of features
-        features_names: Optional[List[str]]
-            Names of features
-        classes_names: Optional[List[str]]
-            Names of the classes
-        remember_activation: bool
-            See extract_rules_from_tree, default = True
-        stack_activation: bool
-            See extract_rules_from_tree, default = False
-        """
-
-        if x_mins is None:
-            x_mins = x.min(axis=0)
-        elif not isinstance(x_mins, np.ndarray):
-            x_mins = np.array(x_mins)
-        if x_maxs is None:
-            x_maxs = x.max(axis=0)
-        elif not isinstance(x_maxs, np.ndarray):
-            x_maxs = np.array(x_maxs)
-
-        self.thetree = tree.DecisionTreeClassifier(max_depth=max_depth).fit(x, y)
-        self.ruleset = extract_rules_from_tree(
-            self.thetree,
-            xmins=x_mins,
-            xmaxs=x_maxs,
-            features_names=features_names,
-            classes_names=classes_names,
-            get_leaf=get_leaf,
-            remember_activation=remember_activation,
-            stack_activation=stack_activation,
-        )
-
-        if len(self.ruleset) > 0:
-            self.ruleset.calc_activation(x)
-        return self.thetree, self.ruleset
