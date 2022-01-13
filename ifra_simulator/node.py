@@ -106,7 +106,8 @@ class LearningConfig(Config):
         "plot_data",
         "get_leaf",
         "max_coverage",
-        "output_path"
+        "output_path",
+        "fitter"  # Unused in simulator, decisiontree is hard-coded
     ]
 
 

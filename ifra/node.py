@@ -28,8 +28,6 @@ class Node:
     path_public_configs: TransparentPath
         Path to the json file containing public configuration of the node. Needs to be kept in memory to potentially
         update the node's id once set by the central server.
-    fitter: str
-        A string corresponding to the fitter class used by the node.
     dataprep_method: Union[None, Callable]
         The dataprep method to apply to the data before fitting. Optional, specified in the node's public configuration.
     datapreped: bool
@@ -92,16 +90,14 @@ class Node:
         self,
         path_public_configs: TransparentPath,
         path_data: Union[str, Path, TransparentPath],
-        fitter: str
     ):
 
-        if fitter not in self.possible_fitters:
-            s = f"Fitter '{fitter}' is not known. Can be one of:"
+        self.public_configs = NodePublicConfig(path_public_configs)
+
+        if self.public_configs.fitter not in self.possible_fitters:
+            s = f"Fitter '{self.public_configs.fitter}' is not known. Can be one of:"
             "\n".join([s] + list(self.possible_fitters.keys()))
             raise ValueError(s)
-        self.fitter = fitter
-
-        self.public_configs = NodePublicConfig(path_public_configs)
         self.path_public_configs = self.public_configs.path  # Will be a TransparentPath
 
         if not len(list(self.public_configs.local_model_path.parent.ls(""))) == 0:
@@ -110,7 +106,7 @@ class Node:
             )
 
         self.__data = Paths(path_data)
-        self.__fitter = self.possible_fitters[self.fitter](self.public_configs, self.__data)
+        self.__fitter = self.possible_fitters[self.public_configs.fitter](self.public_configs, self.__data)
 
         self.dataprep_method = None
         self.datapreped = False

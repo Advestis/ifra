@@ -9,5 +9,6 @@
   "plot_data": false,
   "get_leaf": false,
   "max_coverage": 0.25,
-  "output_path": "tests/outputs/ruleset.csv"
+  "output_path": "tests/outputs/ruleset.csv",
+  "fitter": "decisiontree"
 }

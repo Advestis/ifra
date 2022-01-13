@@ -154,6 +154,9 @@ class NodePublicConfig(Config):
     id: Union[None, int, str]
         Name or number of the node. If not specified, will be set by central server. If not specified, the json file
         should still contain the key 'id', but with value "".
+    fitter: str
+        Fitter to use. Can be one of :
+        |  * decisiontree
     stop: bool
         Set to True by :class:~ifra.central_server.CentralServer when the learning is over.
     """
@@ -171,7 +174,8 @@ class NodePublicConfig(Config):
         "local_model_path",
         "central_model_path",
         "dataprep_method",
-        "id"
+        "id",
+        "fitter"
     ]
     ADDITIONNAL_CONFIGS = ["stop"]
 

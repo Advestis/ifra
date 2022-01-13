@@ -32,9 +32,9 @@ def adaboost_aggregation(
     -------
     Tuple[str, Union[RuleSet, None]]
         First item of the tuple can be :
-          * "updated" if central model was updates
-          * "pass" if no new rules were found but learning should continue
-          * "stop" otherwise.
+        |  * "updated" if central model was updates
+        |  * "pass" if no new rules were found but learning should continue
+        |  * "stop" otherwise.
         The second item is the aggregated ruleset if the first item is "updated", None otherwise
     """
     logger.info("Aggregating fit results using AdaBoost method...")
