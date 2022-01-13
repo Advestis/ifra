@@ -162,7 +162,8 @@ class CentralServer:
     ruleset: RuleSet
         Central server model's ruleset
     aggregation: str
-        Name of the aggregation method
+        Name of the aggregation method. Can be one of: \n
+          * adaboost\n
 
     Methods
     -------
@@ -194,8 +195,8 @@ class CentralServer:
         central_configs_path: Union[str, Path, TransparentPath]
             Central server configuration. See :class:~ifra.configs.CentralConfig
         aggregation: str
-            Can be :
-              * adaboost
+            Name of the aggregation method. Can be one of: \n
+              * adaboost\n
         """
         self.reference_node_config = None
 
