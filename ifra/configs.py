@@ -49,7 +49,7 @@ class Config:
         """
         Parameters
         ----------
-         path: Union[str, Path, TransparentPath]
+        path: Union[str, Path, TransparentPath]
             The path to the json file containing the configuration. Will be casted into a transparentpath if a str is
             given, so make sure that if you pass a str that should be local, you did not set a global file system.
         """
