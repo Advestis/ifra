@@ -32,7 +32,7 @@ class Config:
 
         Methods
         -------
-        save() -> None
+        save()
             Saves the current configuration into the file it used to load. This allows the user to change the
             configuration in code and save it. Note that one can not have added a key not present in
             `Config.EXPECTED_CONFIGS`
