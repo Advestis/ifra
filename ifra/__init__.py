@@ -3,11 +3,11 @@
 **Federated Learning** allows several sources (*nodes*) of data to contribute to a single model without sharing their
 data between them. It thus answers the problematic of data confidentiality. All federated learning algorithm follow
 those steps:\n
-    1. Choosing a model to train\n
-    2. Having each node training its own model\n
-    3. Each node sends its model to a central server\n
-    4. The central server aggregates all models into a single one, and send it back to each node which take it into
-    account for their next learning phase\n
+  1. Choosing a model to train\n
+  2. Having each node training its own model\n
+  3. Each node sends its model to a central server\n
+  4. The central server aggregates all models into a single one, and send it back to each node which take it into
+  account for their next learning phase\n
 Steps 2 to 4 are then repeated until either the user stops the algorithm or some threshold is reached.
 
 In IFRA, the model to train produces rules as learning output. Rules are managed by the `ruleskit` pacakge. The
