@@ -1,3 +1,0 @@
-,features_names,features_indexes,bmins,bmaxs,prediction,criterion
-R_0(1),['sepal width in cm'],[1],[0],[2.0],Iris-versicolor,None
-R_1(1),['sepal width in cm'],[1],[2.0],[3],Iris-versicolor,None

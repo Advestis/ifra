@@ -34,14 +34,14 @@ def dataprep_method(x, y):
 def test_iris(clean):
     nodes = [
         Node(
-            public_configs_path="tests/data/learning_simulator.json",
-            path_configs_path=f"tests/data/node_{i}/path_configs.json",
+            public_configs_path="tests/data/simulator/learning_simulator.json",
+            path_configs_path=f"tests/data/simulator/node_{i}/path_configs.json",
             dataprep_method=dataprep_method,
         )
         for i in range(4)
     ]
     cs = CentralServer(nodes=nodes)
-    cs.fit(5, save_path="tests/outputs")
+    cs.fit(5, save_path="tests/outputs/simulator")
 
 
 # def test_iris_one_iteration_one_node():

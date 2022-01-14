@@ -1,0 +1,8 @@
+{
+  "x": "tests/data/real/node_0/x.csv",
+  "y": "tests/data/real/node_0/y.csv",
+  "x_read_kwargs": {"index_col": 0},
+  "y_read_kwargs": {"index_col": 0},
+  "x_fs": "local",
+  "y_fs": "local"
+}

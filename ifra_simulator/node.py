@@ -111,7 +111,8 @@ class LearningConfig(Config):
         "get_leaf",
         "max_coverage",
         "output_path",
-        "fitter"  # Unused in simulator, decisiontree is hard-coded
+        "fitter",  # Unused in simulator, decisiontree_fitter is hard-coded
+        "updater"  # Unused in simulator, decisiontree_fitter is hard-coded
     ]
 
 

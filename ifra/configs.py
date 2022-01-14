@@ -148,19 +148,18 @@ class NodePublicConfig(Config):
         access.
     central_model_path: TransparentPath
         Path where the node is supposed to look for the central model. Should point to a csv file.
-    dataprep_method: Union[str]
-        Name of the method used to do dataprep. The given string must be importable from the current working directry.
-        Will be None if "" is given. If not specified, the json file should still contain the
-        key *dataprep_method*, but with value "".
+    dataprep: Union[str]
+        Name of the dataprep to use. Can be one of:\n
+          * BinFeaturesDataPrep (see `ifra.datapreps.BinFeaturesDataPrep`)\n
     id: Union[None, int, str]
         Name or number of the node. If not specified, will be set by central server. If not specified, the json file
         should still contain the key *id*, but with value "".
     fitter: str
         Fitter to use. Can be one of :\n
-          * decisiontree (see `ifra.fitter.DecisionTreeFitter`)\n
+          * decisiontree_fitter (see `ifra.fitter.DecisionTreeFitter`)\n
     updater: str
         Update method to be used by the node to take the central model into account. Can be one of:\n
-          * adaboost (see `ifra.updaters.AdaboostUpdater`)\n
+          * adaboost_updater (see `ifra.updaters.AdaboostUpdater`)\n
     stop: bool
         Set to True by `ifra.central_server.CentralServer` when the learning is over.
     """
@@ -177,14 +176,14 @@ class NodePublicConfig(Config):
         "get_leaf",
         "local_model_path",
         "central_model_path",
-        "dataprep_method",
+        "dataprep",
         "id",
         "fitter",
         "updater"
     ]
     ADDITIONNAL_CONFIGS = ["stop"]
 
-    def __init__(self, path: Union[str, Path, TransparentPath]):
+    def __init__(self, path: Union[str, TransparentPath]):
         super().__init__(path)
         if isinstance(self.configs["local_model_path"], str):
             self.configs["local_model_path"] = TransparentPath(self.configs["local_model_path"])
@@ -224,13 +223,17 @@ class CentralConfig(Config):
         File system to use for learning outpout. Can be 'gcs', 'local' or ""
     min_number_of_new_models: int
         Minimum number of nodes that must have prodived a new model to trigger aggregation.
+    aggregation: str
+        Name of the aggregation method. Can be one of: \n
+          * adaboost_aggregation (see `ifra.aggregations.AdaBoostAggregation`)\n
     """
 
     EXPECTED_CONFIGS = [
         "max_coverage",
         "output_path",
         "output_path_fs",
-        "min_number_of_new_models"
+        "min_number_of_new_models",
+        "aggregation"
     ]
 
     def __init__(self, path: Union[str, Path, TransparentPath]):

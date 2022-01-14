@@ -1,0 +1,15 @@
+{
+  "features_names": ["sepal length in cm", "sepal width in cm", "petal length in cm", "petal width in cm"],
+  "classes_names": ["Iris-setosa", "Iris-versicolor", "Iris-virginica"],
+  "x_mins": "",
+  "x_maxs": "",
+  "max_depth": 3,
+  "remember_activation": false,
+  "stack_activation": false,
+  "plot_data": false,
+  "get_leaf": false,
+  "max_coverage": 0.25,
+  "output_path": "tests/outputs/simulator/ruleset.csv",
+  "fitter": "decisiontree_fitter",
+  "updater": "adaboost_updater"
+}

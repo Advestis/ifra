@@ -10,7 +10,8 @@ import logging
 
 from .configs import NodePublicConfig, NodeDataConfig
 from .fitters import DecisionTreeFitter
-from .updaters import AdaboostUpdater
+from .updaters import AdaBoostUpdater
+from .datapreps import BinFeaturesDataPrep
 from .plot import plot_histogram
 
 logger = logging.getLogger(__name__)
@@ -29,7 +30,7 @@ class Node:
     path_public_configs: TransparentPath
         Path to the json file containing public configuration of the node. Needs to be kept in memory to potentially
         update the node's id once set by the central server.
-    dataprep_method: Union[None, Callable]
+    dataprep: Union[None, Callable]
         The dataprep method to apply to the data before fitting. Optional, specified in the node's public configuration.
     datapreped: bool
         False if the dataprep has not been done yet, True after
@@ -40,29 +41,35 @@ class Node:
         Fitted ruleset
     last_fetch: Union[None, datetime]
         Date and time when the central model was last fetched.
-    \_\_data: `ifra.configs.NodeDataConfig`
+    data: `ifra.configs.NodeDataConfig`
         Configuration of the paths to the node's features and target data files
-    \_\_fitter: `ifra.fitters.Fitter`
+    fitter: `ifra.fitters.Fitter`
         Configuration of the paths to the node's features and target data files
-    \_\_updater: `ifra.updaters.Updater`
+    updater: `ifra.updaters.Updater`
         Configuration of the paths to the node's features and target data files
     """
 
     possible_fitters = {
-        "decisiontree": DecisionTreeFitter
+        "decisiontree_fitter": DecisionTreeFitter
     }
     """Possible string values and corresponding fitter object for *fitter* attribute of
     `ifra.configs.NodePublicConfig`"""
 
     possible_updaters = {
-        "adaboost_updater": AdaboostUpdater
+        "adaboost_updater": AdaBoostUpdater
+    }
+    """Possible string values and corresponding updaters object for *updater* attribute of
+    `ifra.configs.NodePublicConfig`"""
+
+    possible_datapreps = {
+        "binfeatures_dataprep": BinFeaturesDataPrep
     }
     """Possible string values and corresponding updaters object for *updater* attribute of
     `ifra.configs.NodePublicConfig`"""
 
     def __init__(
         self,
-        path_public_configs: TransparentPath,
+        path_public_configs: Union[str, TransparentPath],
         path_data: Union[str, Path, TransparentPath],
     ):
 
@@ -77,6 +84,16 @@ class Node:
             s = f"Updater '{self.public_configs.updater}' is not known. Can be one of:"
             "\n".join([s] + list(self.possible_updaters.keys()))
             raise ValueError(s)
+
+        if self.public_configs.dataprep is not None:
+            if self.public_configs.dataprep not in self.possible_datapreps:
+                s = f"Dataprep '{self.public_configs.dataprep}' is not known. Can be one of:"
+                "\n".join([s] + list(self.possible_datapreps.keys()))
+                raise ValueError(s)
+            # function = self.public_configs.dataprep.split(".")[-1]
+            # module = self.public_configs.dataprep.replace(f".{function}", "")
+            # # self.dataprep = __import__(module, globals(), locals(), [function], 0)
+
         self.path_public_configs = self.public_configs.path  # Will be a TransparentPath
 
         if not len(list(self.public_configs.local_model_path.parent.ls(""))) == 0:
@@ -84,34 +101,30 @@ class Node:
                 "Path were Node model should be saved is not empty. Make sure you cleaned all previous learning output"
             )
 
-        self.__data = NodeDataConfig(path_data)
-        self.__fitter = self.possible_fitters[self.public_configs.fitter](self.public_configs, self.__data)
-        self.__updater = self.possible_fitters[self.public_configs.updater](self.__data)
+        self.data = NodeDataConfig(path_data)
+        self.fitter = self.possible_fitters[self.public_configs.fitter](self.public_configs, self.data)
+        self.updater = self.possible_updaters[self.public_configs.updater](self.data)
+        if self.public_configs.dataprep is not None:
+            self.dataprep = self.possible_datapreps[self.public_configs.dataprep](self.data)
+        else:
+            self.dataprep = None
 
-        self.dataprep_method = None
+        self.dataprep = None
         self.datapreped = False
         self.copied = False
         self.ruleset = None
         self.last_fetch = None
-        if self.public_configs.dataprep_method is not None:
-            function = self.public_configs.dataprep_method.split(".")[-1]
-            module = self.public_configs.dataprep_method.replace(f".{function}", "")
-            self.dataprep_method = __import__(module, globals(), locals(), [function], 0)
 
     def fit(self) -> RuleSet:
-        """Plots the features and classes distribution in `ifra.node.Node`'s *\_\_data.x* and
-        `ifra.node.Node`'s *\_\_data.y* parent directories if `ifra.configs.NodePublicConfig` *plot_data*
+        """Plots the features and classes distribution in `ifra.node.Node`'s *data.x* and
+        `ifra.node.Node`'s *data.y* parent directories if `ifra.configs.NodePublicConfig` *plot_data*
         is True.
 
-        Triggers `ifra.node.Node`'s *dataprep_method* on the features and classes if a dataprep method was
-        specified, and if `ifra.node.Node` *datapreped* if False. Writes the output in
-        `ifra.node.Node`'s *\_\_data.x* and `ifra.node.Node`'s *\_\_data.y* parent directories by
-        appending *_datapreped* to the files names, sets `ifra.node.Node` datapreped to True
-        Modifies `ifra.node.Node`'s *\_\_data.x* and `ifra.node.Node`'s *\_\_data.y* to point to those files.
-        Plots the distributions of the datapreped data.
+        Triggers `ifra.node.Node`'s *dataprep* on the features and classes if a dataprep method was
+        specified, sets `ifra.node.Node` datapreped to True, plots the distributions of the datapreped data.
 
-        If `ifra.node.Node` *copied* is False, copies the files pointed by `ifra.node.Node`'s *\_\_data.x*
-        and `ifra.node.Node`'s *\_\_data.y* in new files in the same directories by appending
+        If `ifra.node.Node` *copied* is False, copies the files pointed by `ifra.node.Node`'s *data.x*
+        and `ifra.node.Node`'s *data.y* in new files in the same directories by appending
         *_copy_for_learning* to their names. Sets `ifra.node.Node` *copied* to True.
         Calls the the fitter corresponding to `ifra.node.Node` *public_configs.fitter* on the node's features and
         targets and save the resulting ruleset in `ifra.node.Node` *public_configs.local_model_path*.
@@ -122,47 +135,35 @@ class Node:
             `node.Node` *ruleset*
         """
         if self.public_configs.plot_data:
-            self.plot_data_histogram(self.__data.x.parent / "plots")
-        if self.dataprep_method is not None and not self.datapreped:
+            self.plot_data_histogram(self.data.x.parent / "plots")
+
+        if self.dataprep is not None and not self.datapreped:
             logger.info(f"Datapreping data of node {self.public_configs.id}...")
-            x, y = self.dataprep_method(
-                self.__data.x.read(**self.__data.x_read_kwargs),
-                self.__data.y.read(**self.__data.y_read_kwargs)
-            )
-            x_suffix = self.__data.x.suffix
-            y_suffix = self.__data.y.suffix
-            x_datapreped_path = self.__data.x.with_suffix("").append("_datapreped").with_suffix(x_suffix)
-            y_datapreped_path = self.__data.y.with_suffix("").append("_datapreped").with_suffix(y_suffix)
-
-            x_datapreped_path.write(x)
-            y_datapreped_path.write(y)
-
-            self.__fitter.paths.x = x_datapreped_path
-            self.__fitter.paths.y = y_datapreped_path
+            self.dataprep.dataprep()
             if self.public_configs.plot_data:
-                self.plot_data_histogram(self.__data.x.parent / "plots_datapreped")
+                self.plot_data_histogram(self.data.x.parent / "plots_datapreped")
             self.datapreped = True
             logger.info(f"...datapreping done for node {self.public_configs.id}")
 
         if not self.copied:
             # Copy x and y in a different file, for it will be changed after each iterations by the update from central
-            x_suffix = self.__data.x.suffix
-            self.__data.x.cp(self.__data.x.with_suffix("").append("_copy_for_learning").with_suffix(x_suffix))
-            self.__data.x = self.__data.x.with_suffix("").append("_copy_for_learning").with_suffix(x_suffix)
-            y_suffix = self.__data.y.suffix
-            self.__data.y.cp(self.__data.y.with_suffix("").append("_copy_for_learning").with_suffix(y_suffix))
-            self.__data.y = self.__data.y.with_suffix("").append("_copy_for_learning").with_suffix(y_suffix)
+            x_suffix = self.data.x.suffix
+            self.data.x.cp(self.data.x.with_suffix("").append("_copy_for_learning").with_suffix(x_suffix))
+            self.data.x = self.data.x.with_suffix("").append("_copy_for_learning").with_suffix(x_suffix)
+            y_suffix = self.data.y.suffix
+            self.data.y.cp(self.data.y.with_suffix("").append("_copy_for_learning").with_suffix(y_suffix))
+            self.data.y = self.data.y.with_suffix("").append("_copy_for_learning").with_suffix(y_suffix)
             self.copied = True
 
         logger.info(f"Fitting node {self.public_configs.id} using {self.public_configs.fitter}...")
-        self.ruleset = self.__fitter.fit()
+        self.ruleset = self.fitter.fit()
         self.ruleset_to_file()
         logger.info(f"... node {self.public_configs.id} fitted, results saved in"
                     f" {self.public_configs.local_model_path.parent}.")
         return self.ruleset
 
     def update_from_central(self, ruleset: RuleSet) -> None:
-        """Modifies the files pointed by `ifra.node.Node`'s *\_\_data.x* and `ifra.node.Node`'s *\_\_data.y* by
+        """Modifies the files pointed by `ifra.node.Node`'s *data.x* and `ifra.node.Node`'s *data.y* by
         calling `ifra.node.Node` *public_configs.updater*.
 
         Parameters
@@ -172,7 +173,7 @@ class Node:
         """
         logger.info(f"Updating node {self.public_configs.id}...")
         # Compute activation of the selected rules
-        self.__updater(ruleset)
+        self.updater(ruleset)
         logger.info(f"... node {self.public_configs.id} updated.")
 
     def ruleset_to_file(self) -> None:
@@ -195,8 +196,8 @@ class Node:
         ruleset.save(self.public_configs.local_model_path)
 
     def plot_data_histogram(self, path: TransparentPath) -> None:
-        """Plots the distribution of the data located in `ifra.node.Node`'s *\_\_data.x* and
-        `ifra.node.Node`'s *\_\_data.y* and save them in unique files.
+        """Plots the distribution of the data located in `ifra.node.Node`'s *data.x* and
+        `ifra.node.Node`'s *data.y* and save them in unique files.
 
         Parameters
         ----------
@@ -204,7 +205,7 @@ class Node:
             Path to save the data. Should be a file. Will not be overwritten, a new file name will be created if it
             already exists.
         """
-        x = self.__data.x.read(**self.__data.x_read_kwargs)
+        x = self.data.x.read(**self.data.x_read_kwargs)
         for col, name in zip(x.columns, self.public_configs.features_names):
             fig = plot_histogram(
                 data=x[col],
@@ -220,7 +221,7 @@ class Node:
                 path_x = path_x.parent / f"{name}_{iteration}.pdf"
             fig.savefig(path_x)
 
-        y = self.__data.y.read(**self.__data.y_read_kwargs)
+        y = self.data.y.read(**self.data.y_read_kwargs)
         fig = plot_histogram(
             data=y.squeeze(),
             xlabel="Class",

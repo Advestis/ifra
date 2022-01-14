@@ -43,9 +43,11 @@ class Updater:
         pass
 
 
-class AdaboostUpdater(Updater):
+class AdaBoostUpdater(Updater):
     """Ignores points activated by the central server ruleset in order to find other relevant rules in the next
     iterations.
+
+    Can be used by giving *adaboost_updater* as *updater* configuration when creating a `ifra.node.Node`
     """
 
     @staticmethod

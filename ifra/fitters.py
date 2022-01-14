@@ -13,25 +13,9 @@ from .configs import NodePublicConfig, NodeDataConfig
 logger = logging.getLogger(__name__)
 
 
-class DecisionTreeFitter:
+class Fitter:
+    """Abstract class of fitter object."""
 
-    """Fits a DecisionTreeClassifier on some data.
-
-    Can be used by giving *decisiontree* as *fitter* argument when creating a `ifra.node.Node`
-
-    Attributes
-    ----------
-    public_configs: `ifra.configs.NodePublicConfig`
-        The public configuration of the node using this fitter
-    data: NodeDataConfig
-        The data paths configuration of the node using this fitter
-    tree: Union[None, DecisionTreeClassifier]
-        Fitted tree, or None if fit not done yet
-    ruleset: Union[None, RuleSet]
-        Fitted ruleset, or None if fit not done yet
-    """
-
-    # noinspection PyUnresolvedReferences
     def __init__(
         self,
         public_configs: NodePublicConfig,
@@ -39,7 +23,38 @@ class DecisionTreeFitter:
     ):
         self.public_configs = public_configs
         self.paths = data
-        self.tree, self.ruleset = None, None
+        self.ruleset = None
+
+    def fit(self) -> RuleSet:
+        """To be implemented in daughter class"""
+        pass
+
+
+class DecisionTreeFitter(Fitter):
+
+    """Overloads the Fitter class. Fits a DecisionTreeClassifier on some data.
+
+    Can be used by giving *decisiontree_fitter* as *fitter* configuration when creating a `ifra.node.Node`
+
+    Attributes
+    ----------
+    public_configs: `ifra.configs.NodePublicConfig`
+        The public configuration of the node using this fitter
+    data: NodeDataConfig
+        The data paths configuration of the node using this fitter
+    ruleset: Union[None, RuleSet]
+        Fitted ruleset, or None if fit not done yet
+    tree: Union[None, DecisionTreeClassifier]
+        Fitted tree, or None if fit not done yet
+    """
+
+    def __init__(
+        self,
+        public_configs: NodePublicConfig,
+        data: NodeDataConfig,
+    ):
+        super().__init__(public_configs, data)
+        self.tree = None
 
     def fit(self) -> RuleSet:
         """Fits the decision tree on the data pointed by `ifra.fitters.DecisionTreeClassifier` *paths.x* and
@@ -61,7 +76,7 @@ class DecisionTreeFitter:
             self.public_configs.x_mins,
             self.public_configs.x_maxs,
             self.public_configs.features_names,
-            self.public_configs.classes_names
+            self.public_configs.classes_names,
         )
         self.tree_to_graph()
         self._tree_to_joblib()

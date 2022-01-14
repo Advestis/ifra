@@ -9,7 +9,7 @@ from transparentpath import TransparentPath
 import logging
 
 from .configs import NodePublicConfig, CentralConfig
-from .aggregations import adaboost_aggregation
+from .aggregations import AdaBoostAggregation
 
 logger = logging.getLogger(__name__)
 
@@ -151,22 +151,20 @@ class CentralServer:
         List of all gates to the nodes the central server should monitor.
     ruleset: RuleSet
         Central server model's ruleset
-    aggregation: str
-        Name of the aggregation method. Can be one of: \n
-          * adaboost\n
+    aggregation: Aggregation
+        Instance of one of the `ifra.aggregations.Aggregation` daughter classes.
     """
 
     possible_aggregations = {
-        "adaboost": adaboost_aggregation
+        "adaboost_aggregation": AdaBoostAggregation
     }
     """Possible string values and corresponding aggregation methods for *aggregation* attribute of
     `ifra.central_server.CentralServer`"""
 
     def __init__(
         self,
-        nodes_configs_paths: List[TransparentPath],
+        nodes_configs_paths: List[Union[str, TransparentPath]],
         central_configs_path: Union[str, Path, TransparentPath],
-        aggregation: str
     ):
         """
         Parameters
@@ -175,9 +173,6 @@ class CentralServer:
             List of remote paths pointing to each node's public configuration file
         central_configs_path: Union[str, Path, TransparentPath]
             Central server configuration. See `ifra.configs.CentralConfig`
-        aggregation: str
-            Name of the aggregation method. Can be one of: \n
-              * adaboost (see `ifra.aggregations.adaboost_aggregation`)\n
         """
         self.reference_node_config = None
 
@@ -191,15 +186,15 @@ class CentralServer:
 
         self.ruleset = None
 
-        if aggregation not in self.possible_aggregations:
-            s = f"Aggregation '{aggregation}' is not known. Can be one of:"
+        if self.central_configs.aggregation not in self.possible_aggregations:
+            s = f"Aggregation '{self.central_configs.aggregation}' is not known. Can be one of:"
             "\n".join([s] + list(self.possible_aggregations.keys()))
             raise ValueError(s)
-        self.aggregation = aggregation
+        self.aggregation = self.possible_aggregations[self.central_configs.aggregation](self)
 
     def aggregate(self, rulesets: List[RuleSet]) -> Tuple[str, Union[RuleSet, None]]:
         """Aggregates rulesets in `ifra.central_server` *ruleset* using
-        `ifra.central_server.aggregation`
+        `ifra.central_server.CentralServer` *aggregation*
         
         Parameters
         ----------

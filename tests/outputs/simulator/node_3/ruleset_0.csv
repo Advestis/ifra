@@ -1,0 +1,7 @@
+,features_names,features_indexes,bmins,bmaxs,prediction,criterion
+R_0(1),['sepal length in cm'],[0],[0],[3.5],Iris-setosa,None
+R_1(2),"['sepal length in cm', 'petal length in cm']","[0, 2]","[0, 0]","[3.5, 2.5]",Iris-setosa,None
+R_2(2),"['sepal length in cm', 'petal length in cm']","[0, 2]","[0, 2.5]","[3.5, 4]",Iris-setosa,None
+R_3(3),"['sepal length in cm', 'sepal width in cm', 'petal length in cm']","[0, 1, 2]","[0, 0, 2.5]","[3.5, 1.5, 4]",Iris-versicolor,None
+R_4(3),"['sepal length in cm', 'sepal width in cm', 'petal length in cm']","[0, 1, 2]","[0, 1.5, 2.5]","[3.5, 4, 4]",Iris-versicolor,None
+R_5(1),['sepal length in cm'],[0],[3.5],[4],Iris-setosa,None
