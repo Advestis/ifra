@@ -30,6 +30,7 @@ def format_x(s: Union[float, int], with_dollar: bool = False) -> str:
 
 
 def plot_histogram(**kwargs) -> plt.Figure:
+    """Plot the distribution of some data, including a statbox as legend"""
     data = kwargs.get("data")
     xlabel = kwargs.get("xlabel", "x")
     xlabel = "".join(["\\textbf{", xlabel, "}"])

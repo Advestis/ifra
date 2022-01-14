@@ -18,42 +18,32 @@ class NodeGate:
 
     """This class is the gate used by the central server to interact with the remote nodes. Mainly, it has in memory
     the public configuration of one given node, to which must correspond an instance of the
-    :class:~ifra.central_server.node.Node class. This configuration holds among other things, the places where the nodes
+    `ifra.node.Node` class. This configuration holds among other things, the places where the nodes
     are supposed to save their models and where they will be looking for the central model. It implements a method,
-    :func:~ifra.central_server.NodeGate.interact, that check whether the node produced a new model, and a method,
-    :func:~ifra.central_server.NodeGate.push_central_model, to send the latest central model to the node
+    `ifra.central_server.NodeGate.interact`, that check whether the node produced a new model, and a method,
+    `ifra.central_server.NodeGate.push_central_model`, to send the latest central model to the node
 
     Attributes
     ----------
     id: int
-        Unique NodeGate id number. If the corresponding :class:~ifra.central_server.node.Node instance has not custom
+        Unique NodeGate id number. If the corresponding `ifra.node.Node` instance has not custom
         id, then it will use this one.
     node_config_path: TransparentPath
         Path to the node's public configuration file. The corresponding instance of the
-         :class:~ifra.central_server.node.Node class must use the same file.
+         `ifra.node.Node` class must use the same file.
     public_configs: NodePublicConfig
-        Node's public configuration. See :class:~ifra.configs.NodePublicConfig. None at initialisation, set by
-        :func:~ifra.central_server.NodeGate.interact
+        Node's public configuration. See `ifra.configs.NodePublicConfig`. None at initialisation, set by
+        `ifra.central_server.NodeGate.interact`
     ruleset: RuleSet
-        Latest node model's ruleset, same as :attribute:~ifra.node.Node.ruleset. None at initialisation, set by
-        :func:~ifra.central_server.NodeGate.interact
+        Latest node model's ruleset, same as `ifra.node.Node` *ruleset*. None at initialisation, set by
+        `ifra.central_server.NodeGate.interact`
     last_fetch: datetime
         Last time the node produced a new model. None at initialisation, set by
-        :func:~ifra.central_server.NodeGate.interact
+        `ifra.central_server.NodeGate.interact`
     new_data: bool
-        True if self.ruleset is a ruleset not yet aggregated into the central server's model. False at first, modified
-        by :func:~ifra.central_server.NodeGate.interact and :func:~ifra.central_server.NodeGate.push_central_model
-
-    Methods
-    -------
-    interact() -> None
-        Fetch the node's configuration if not done yet and the node's latest model if it is new compared to central
-        server model. Sets :attribute:~ifra.central_server.NodeGate.public_configs,
-        :attribute:~ifra.central_server.NodeGate.ruleset, :attribute:~ifra.central_server.NodeGate.last_fetch to now
-        and :attribute:~ifra.central_server.NodeGate.new_data to True
-    push_central_model(ruleset: RuleSet) -> None
-        Pushes latest central model's ruleset to the node's directory. Sets
-        :attribute:~ifra.central_server.NodeGate.new_data to False
+        True if `ifra.central_server.NodeGate` *ruleset* is a ruleset not yet aggregated into the central server's
+        model. False at first, modified by `ifra.central_server.NodeGate.interact` and
+        `ifra.central_server.NodeGate.push_central_model`
     """
 
     instances = 0
@@ -79,13 +69,13 @@ class NodeGate:
 
     def interact(self):
         """Fetch the node's configuration if not done yet and the node's latest model if it is new compared to central
-        server model. Sets :attribute:~ifra.central_server.NodeGate.public_configs,
-        :attribute:~ifra.central_server.NodeGate.ruleset, :attribute:~ifra.central_server.NodeGate.last_fetch to now
-        and :attribute:~ifra.central_server.NodeGate.new_data to True"""
+        server model. Sets `ifra.central_server.NodeGate` *public_configs*,
+        `ifra.central_server.NodeGate` *ruleset*, `ifra.central_server.NodeGate` *last_fetch* to now
+        and `ifra.central_server.NodeGate` *new_data* to True"""
         def get_ruleset():
             """Fetch the node's latest model's RuleSet.
-            :attribute:~ifra.central_server.NodeGate.last_fetch will be set to now and
-            :attribute:~ifra.central_server.NodeGate.new_data to True."""
+            `ifra.central_server.NodeGate` *last_fetch* will be set to now and
+            `ifra.central_server.NodeGate` *new_data* to True."""
             self.ruleset = RuleSet()
             self.ruleset.load(self.public_configs.local_model_path)
             self.last_fetch = datetime.now()
@@ -128,7 +118,7 @@ class NodeGate:
     def push_central_model(self, ruleset: RuleSet):
         """Pushes central model's ruleset to the node remote directory. This means the node's latest model was used in
         central model aggregation, and that the aggregation produced new learning information. In that case, the node's
-        model is not new anymore, and :attribute:~ifra.central_server.NodeGate.new_data is thus set to False.
+        model is not new anymore, and `ifra.central_server.NodeGate` *new_data* is thus set to False.
 
         Parameters
         ----------
@@ -146,9 +136,9 @@ class CentralServer:
     It monitors changes in a given list of remote GCP directories, were nodes are expected to write their models.
     Upon changes of the model files, the central server downloads them. When enough model files are downloaded, the
     central server aggregates them to produce/update the central model, which is sent to each nodes' directories.
-    "enough" model is defined in the central server configuration (see :class:~ifra.configs.CentralConfig)
+    "enough" model is defined in the central server configuration (see `ifra.configs.CentralConfig`)
 
-    The aggregation method is that of AdaBoost. See :func:~ifra.central_server.CentralServer.aggregate
+    The aggregation method is that of AdaBoost. See `ifra.central_server.CentralServer.aggregate`
 
     Attributes
     ----------
@@ -164,22 +154,13 @@ class CentralServer:
     aggregation: str
         Name of the aggregation method. Can be one of: \n
           * adaboost\n
-
-    Methods
-    -------
-    _aggregate() -> Tuple[str, Union[RuleSet, None]]
-        Aggregate rulesets present in :attribute:~ifra.central_server.CentralServer.rulesets using
-        :attribute:~ifra.central_server.CentralServer.aggregation and updates
-        :attribute:~ifra.central_server.CentralServer.ruleset
-    watch(timeout: int = 60, sleeptime: int = 5) -> None
-        Monitors new changes in the nodes, every ''sleeptime'' seconds for ''timeout'' seconds, triggering aggregation
-        and pushing central model to nodes when enough new node models are available.
-        This is the only method the user should call.
     """
 
     possible_aggregations = {
         "adaboost": adaboost_aggregation
     }
+    """Possible string values and corresponding aggregation methods for *aggregation* attribute of
+    `ifra.central_server.CentralServer`"""
 
     def __init__(
         self,
@@ -193,7 +174,7 @@ class CentralServer:
         nodes_configs_paths: List[TransparentPath]
             List of remote paths pointing to each node's public configuration file
         central_configs_path: Union[str, Path, TransparentPath]
-            Central server configuration. See :class:~ifra.configs.CentralConfig
+            Central server configuration. See `ifra.configs.CentralConfig`
         aggregation: str
             Name of the aggregation method. Can be one of: \n
               * adaboost\n
@@ -216,9 +197,9 @@ class CentralServer:
             raise ValueError(s)
         self.aggregation = aggregation
 
-    def _aggregate(self, rulesets: List[RuleSet]) -> Tuple[str, Union[RuleSet, None]]:
-        """Aggregates rulesets in :attribute:~ifra.central_server.ruleset using
-        :attribute:~ifra.central_server.aggregation
+    def aggregate(self, rulesets: List[RuleSet]) -> Tuple[str, Union[RuleSet, None]]:
+        """Aggregates rulesets in `ifra.central_server` *ruleset* using
+        `ifra.central_server.aggregation`
         
         Parameters
         ----------
@@ -287,7 +268,7 @@ class CentralServer:
 
             if new_models:
                 logger.info("Found enough new nodes nodels.")
-                what_now = self._aggregate(rulesets)
+                what_now = self.aggregate(rulesets)
                 if what_now == "stop":
                     learning_over = True
                     for node in self.nodes:
