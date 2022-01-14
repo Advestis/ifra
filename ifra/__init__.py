@@ -12,7 +12,7 @@ Steps 2 to 4 are then repeated until either the user stops the algorithm or some
 
 In IFRA, the model to train produces rules as learning output. Rules are managed by the `ruleskit` pacakge. The
 available learning models are:\n
-  * decisiontree (see `ifra.fitter.DecisionTreeFitter`)`\n
+  * decisiontree (see `ifra.fitters.DecisionTreeFitter`)`\n
 The user has the liberty to choose the aggregation method among:\n
   * adaboost (see `ifra.aggregations.adaboost_aggregation`)\n
 The user has the liberty to choose the update method to be used by the node to take the central model into account.
