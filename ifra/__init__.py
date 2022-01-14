@@ -17,7 +17,7 @@ The user has the liberty to choose the aggregation method among:\n
   * adaboost (see `ifra.aggregations.adaboost_aggregation`)\n
 The user has the liberty to choose the update method to be used by the node to take the central model into account.
 The available updaters are:\n
-  * adaboost (see `ifra.updaters.AdaboostUpdater`)\n
+  * adaboost_updater (see `ifra.updaters.AdaboostUpdater`)\n
 
 To preserve data separation between each node and between the central server, IFRA assumes that each node has a
 dedicated GCS directory where it will send its model, and where it will look for the central model. GCS paths are
