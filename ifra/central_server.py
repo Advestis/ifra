@@ -48,15 +48,16 @@ class NodeGate:
 
     instances = 0
 
-    def __init__(self, node_config_path: TransparentPath):
+    def __init__(self, node_config_path: Union[str, TransparentPath]):
         """
         Parameters
         ----------
-        node_config_path: TransparentPath
+        node_config_path: Union[str, TransparentPath]
             Directory were node's public configuration file can be found
         """
-        if not isinstance(node_config_path, TransparentPath):
-            raise TypeError(f"node_config_path should be a transparentpath, got {type(node_config_path)} instead")
+
+        if type(node_config_path) == str:
+            node_config_path = TransparentPath(node_config_path)
 
         self.id = NodeGate.instances
         self.node_config_path = node_config_path
@@ -188,7 +189,7 @@ class CentralServer:
 
         if self.central_configs.aggregation not in self.possible_aggregations:
             s = f"Aggregation '{self.central_configs.aggregation}' is not known. Can be one of:"
-            "\n".join([s] + list(self.possible_aggregations.keys()))
+            s = "\n".join([s] + list(self.possible_aggregations.keys()))
             raise ValueError(s)
         self.aggregation = self.possible_aggregations[self.central_configs.aggregation](self)
 
@@ -214,7 +215,7 @@ class CentralServer:
             rulesets, len(self.nodes), self.ruleset, self.central_configs.max_coverage
         )
 
-    def watch(self, timeout: Optional[int], sleeptime: int = 5):
+    def watch(self, timeout: int = 0, sleeptime: int = 5):
         """Monitors new changes in the nodes, every ''sleeptime'' seconds for ''timeout'' seconds, triggering
         aggregation and pushing central model to nodes when enough new node models are available.
 
@@ -223,16 +224,16 @@ class CentralServer:
         Parameters
         ----------
         timeout: Optional[int]
-            How long should the watch last. If None, will last until all nodes gave a model but no new rules could be
-            found from them.
+            How many seconds should the watch last. If <= 0, will last until all nodes gave a model but no new rules
+            could be found from them. Default value = 0.
         sleeptime: int
-            How long between each checks for new nodes models
+            How many seconds between each checks for new nodes models. Default value = 5.
         """
         t = time()
         updated_nodes = []
         rulesets = []
         learning_over = False
-        while time() - t < timeout:
+        while time() - t < timeout or timeout <= 0:
             new_models = False
 
             for node in self.nodes:

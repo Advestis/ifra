@@ -31,7 +31,7 @@ def dataprep_method(x, y):
     return x, y
 
 
-def test_iris(clean):
+def test_iris(clean_simulator):
     nodes = [
         Node(
             public_configs_path="tests/data/simulator/learning_simulator.json",

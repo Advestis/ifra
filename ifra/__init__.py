@@ -59,7 +59,7 @@ Example of step 1: you could create nodes public configuration json files contan
 >>>   "central_model_path": "tests/outputs/real/ruleset.csv",
 >>>   "dataprep": "binfeatures_dataprep",
 >>>   "id": "",
->>>   "fitter": "decitiontree_fitter",
+>>>   "fitter": "decisiontree_fitter",
 >>>   "updater": "adaboost_updater"
 >>> }
 

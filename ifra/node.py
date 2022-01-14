@@ -77,18 +77,18 @@ class Node:
 
         if self.public_configs.fitter not in self.possible_fitters:
             s = f"Fitter '{self.public_configs.fitter}' is not known. Can be one of:"
-            "\n".join([s] + list(self.possible_fitters.keys()))
+            s = "\n".join([s] + list(self.possible_fitters.keys()))
             raise ValueError(s)
 
-        if self.public_configs.updater not in self.possible_fitters:
+        if self.public_configs.updater not in self.possible_updaters:
             s = f"Updater '{self.public_configs.updater}' is not known. Can be one of:"
-            "\n".join([s] + list(self.possible_updaters.keys()))
+            s = "\n".join([s] + list(self.possible_updaters.keys()))
             raise ValueError(s)
 
         if self.public_configs.dataprep is not None:
             if self.public_configs.dataprep not in self.possible_datapreps:
                 s = f"Dataprep '{self.public_configs.dataprep}' is not known. Can be one of:"
-                "\n".join([s] + list(self.possible_datapreps.keys()))
+                s = "\n".join([s] + list(self.possible_datapreps.keys()))
                 raise ValueError(s)
             # function = self.public_configs.dataprep.split(".")[-1]
             # module = self.public_configs.dataprep.replace(f".{function}", "")
@@ -102,6 +102,7 @@ class Node:
             )
 
         self.data = NodeDataConfig(path_data)
+        self.data.dataprep_kwargs = self.public_configs.dataprep_kwargs
         self.fitter = self.possible_fitters[self.public_configs.fitter](self.public_configs, self.data)
         self.updater = self.possible_updaters[self.public_configs.updater](self.data)
         if self.public_configs.dataprep is not None:
@@ -236,7 +237,7 @@ class Node:
 
         fig.savefig(path_y)
 
-    def watch(self, timeout: Optional[int] = None, sleeptime: int = 5) -> None:
+    def watch(self, timeout:int = 0, sleeptime: int = 5) -> None:
         """Monitors new changes in the central server, every *sleeptime* seconds for *timeout* seconds, triggering
         node fit when a new model is found, or if the function just started. Sets
        ` ifra.configs.NodePublicConfig` *id* by re-reading the configuration file if it is None.
@@ -246,10 +247,10 @@ class Node:
         Parameters
         ----------
         timeout: Optional[int]
-            How long should the watch last. If None, will last until the central server sets
-            `ifra.configs.NodePublicConfig` *stop* to True
+            How many seconds the watch last. If <= 0>, will last until the central server sets
+            `ifra.configs.NodePublicConfig` *stop* to True. Default value = 0
         sleeptime: int
-            How long between each checks for new central model
+            How many seconds between each checks for new central model. Default value = 5
         """
 
         def get_ruleset() -> None:
@@ -264,7 +265,7 @@ class Node:
 
         t = time()
         new_central_model = True  # start at true to trigger fit even if no central model is here at first iteration
-        while time() - t < timeout:
+        while time() - t < timeout or timeout <= 0:
             self.public_configs = NodePublicConfig(self.path_public_configs)
             if self.public_configs.stop:
                 logger.info(f"Stopping learning in node {self.public_configs.id}")

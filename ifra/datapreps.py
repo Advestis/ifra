@@ -13,7 +13,7 @@ class DataPrep:
         Parameters
         ----------
         data: NodeDataConfig
-            `ifra.node.Node` *data*
+            `ifra.node.Node`'s *data*
         """
         self.data = data
 

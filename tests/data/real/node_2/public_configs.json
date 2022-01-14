@@ -8,7 +8,7 @@
   "stack_activation": false,
   "plot_data": true,
   "get_leaf": false,
-  "local_model_path": "tests/outputs/real/node_0/ruleset.csv",
+  "local_model_path": "tests/outputs/real/node_2/ruleset.csv",
   "central_model_path": "tests/outputs/real/ruleset.csv",
   "dataprep": "binfeatures_dataprep",
   "dataprep_kwargs": {"nbins":  5},

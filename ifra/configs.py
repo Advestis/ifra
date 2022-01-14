@@ -51,7 +51,6 @@ class Config:
 
         if type(path) == str:
             path = TransparentPath(path)
-        self.path = path
 
         if not path.suffix == ".json":
             raise ValueError("Config path must be a json")
@@ -61,6 +60,8 @@ class Config:
         else:
             with open(path) as opath:
                 self.configs = load(opath)
+
+        self.path = path
 
         for key in self.EXPECTED_CONFIGS:
             if key not in self.configs:
@@ -74,13 +75,20 @@ class Config:
                 self.configs[key] = None
 
     def __getattr__(self, item):
+        if item == "configs":
+            raise ValueError("Config object's 'configs' not set")
+        if item == "path":
+            raise ValueError("Config object's 'path' not set")
         if item not in self.configs:
             raise ValueError(f"No configuration named '{item}' was found")
         return self.configs[item]
 
     def __setattr__(self, item, value):
+        if item == "configs" or item == "path":
+            super().__setattr__(item, value)
+            return
         if item not in self.configs and item not in self.EXPECTED_CONFIGS and item not in self.ADDITIONNAL_CONFIGS:
-            raise ValueError(f"No configuration named '{item}' is not allowed")
+            raise ValueError(f"Configuration named '{item}' is not allowed")
         self.configs[item] = value
 
     def save(self) -> None:
@@ -90,7 +98,7 @@ class Config:
         to_save = copy(self.configs)
 
         for key in to_save:
-            if key not in self.EXPECTED_CONFIGS:
+            if key not in self.EXPECTED_CONFIGS and key not in self.ADDITIONNAL_CONFIGS:
                 raise ValueError(f"Forbidden configuration '{key}'")
             if to_save[key] is None:
                 to_save[key] = ""
@@ -149,8 +157,13 @@ class NodePublicConfig(Config):
     central_model_path: TransparentPath
         Path where the node is supposed to look for the central model. Should point to a csv file.
     dataprep: Union[str]
-        Name of the dataprep to use. Can be one of:\n
+        Name of the dataprep to use. Can be "" or one of:\n
           * BinFeaturesDataPrep (see `ifra.datapreps.BinFeaturesDataPrep`)\n
+        If not specified, will be set by central server. If not specified, the json  file should still contain the key
+        *dataprep*, but with value "".
+    dataprep_kwargs: dict
+        Keyword arguments for the dataprep. If not specified, will be set by central server. If not specified, the json
+        file should still contain the key *dataprep_kwargs*, but with value "".
     id: Union[None, int, str]
         Name or number of the node. If not specified, will be set by central server. If not specified, the json file
         should still contain the key *id*, but with value "".
@@ -177,6 +190,7 @@ class NodePublicConfig(Config):
         "local_model_path",
         "central_model_path",
         "dataprep",
+        "dataprep_kwargs",
         "id",
         "fitter",
         "updater"
@@ -189,6 +203,8 @@ class NodePublicConfig(Config):
             self.configs["local_model_path"] = TransparentPath(self.configs["local_model_path"])
         if isinstance(self.configs["central_model_path"], str):
             self.configs["central_model_path"] = TransparentPath(self.configs["central_model_path"])
+        if "stop" not in self.configs:
+            self.configs["stop"] = False
 
     def __eq__(self, other):
         if not isinstance(other, NodePublicConfig):
@@ -283,9 +299,12 @@ class NodeDataConfig(Config):
         File system to use for x file. Can be 'gcs', 'local' or ""
     y_fs: str
         File system to use for y file. Can be 'gcs', 'local' or ""
+    dataprep_kwargs: dict
+        Set by `ifra.node.Node`. Keyword arguments for the dataprep.
     """
 
     EXPECTED_CONFIGS = ["x", "y", "x_read_kwargs", "y_read_kwargs", "x_fs", "y_fs"]
+    ADDITIONNAL_CONFIGS = ["dataprep_kwargs"]
 
     def __init__(self, path: Union[str, Path, TransparentPath]):
         super().__init__(path)
