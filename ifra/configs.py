@@ -144,7 +144,8 @@ class NodePublicConfig(Config):
         If True, will only consider the leaf ofthe tree to create rules. If False, every node of the tree will also be
         a rule.
     local_model_path: TransparentPath
-        Path where the node is supposed to write its model. Should point to a csv file.
+        Path where the node is supposed to write its model. Should point to a csv file to which the central server have
+        access.
     central_model_path: TransparentPath
         Path where the node is supposed to look for the central model. Should point to a csv file.
     dataprep_method: Union[str]
@@ -156,7 +157,10 @@ class NodePublicConfig(Config):
         should still contain the key *id*, but with value "".
     fitter: str
         Fitter to use. Can be one of :\n
-          * decisiontree\n
+          * decisiontree (see `ifra.fitter.DecisionTreeFitter`)\n
+    updater: str
+        Update method to be used by the node to take the central model into account. Can be one of:\n
+          * adaboost (see `ifra.updaters.AdaboostUpdater`)\n
     stop: bool
         Set to True by `ifra.central_server.CentralServer` when the learning is over.
     """
@@ -175,7 +179,8 @@ class NodePublicConfig(Config):
         "central_model_path",
         "dataprep_method",
         "id",
-        "fitter"
+        "fitter",
+        "updater"
     ]
     ADDITIONNAL_CONFIGS = ["stop"]
 
@@ -215,6 +220,8 @@ class CentralConfig(Config):
     output_path: TransparentPath
         Path where the central server will save its model at the end of the learning. Will also produce one output each
         time the model is updated. Should point to a csv file.
+    output_path_fs: str
+        File system to use for learning outpout. Can be 'gcs', 'local' or ""
     min_number_of_new_models: int
         Minimum number of nodes that must have prodived a new model to trigger aggregation.
     """
@@ -222,16 +229,22 @@ class CentralConfig(Config):
     EXPECTED_CONFIGS = [
         "max_coverage",
         "output_path",
+        "output_path_fs",
         "min_number_of_new_models"
     ]
 
     def __init__(self, path: Union[str, Path, TransparentPath]):
         super().__init__(path)
         if isinstance(self.configs["output_path"], str):
-            self.configs["output_path"] = TransparentPath(self.configs["output_path"])
+            if self.configs["output_path_fs"] is not None:
+                self.configs["output_path"] = TransparentPath(
+                    self.configs["output_path"], fs=self.configs["output_path_fs"]
+                )
+            else:
+                self.configs["output_path"] = TransparentPath(self.configs["output_path"])
 
 
-class Paths(Config):
+class NodeDataConfig(Config):
     # noinspection PyUnresolvedReferences
     """Overloads `Config`, corresponding to one node data paths configuration. Not accessible by
     the central server.
@@ -263,9 +276,13 @@ class Paths(Config):
     y_read_kwargs: Union[None, dict]
         Keyword arguments to read the target file. If not specified, the json file should still contain the key
         *x_read_kwargs*, but with value "".
+    x_fs: str
+        File system to use for x file. Can be 'gcs', 'local' or ""
+    y_fs: str
+        File system to use for y file. Can be 'gcs', 'local' or ""
     """
 
-    EXPECTED_CONFIGS = ["x", "y", "x_read_kwargs", "y_read_kwargs"]
+    EXPECTED_CONFIGS = ["x", "y", "x_read_kwargs", "y_read_kwargs", "x_fs", "y_fs"]
 
     def __init__(self, path: Union[str, Path, TransparentPath]):
         super().__init__(path)
@@ -288,4 +305,8 @@ class Paths(Config):
 
         for item in self.configs:
             if isinstance(self.configs[item], str):
-                self.configs[item] = TransparentPath(self.configs[item])
+                fs = f"{item}_fs"
+                if fs in self.configs and self.configs[fs] is not None:
+                    self.configs[item] = TransparentPath(self.configs[item], fs=self.configs[fs])
+                else:
+                    self.configs[item] = TransparentPath(self.configs[item])

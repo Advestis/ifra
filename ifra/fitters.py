@@ -8,7 +8,7 @@ from sklearn import tree
 from ruleskit.utils.rule_utils import extract_rules_from_tree
 import logging
 
-from .configs import NodePublicConfig, Paths
+from .configs import NodePublicConfig, NodeDataConfig
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ class DecisionTreeFitter:
     ----------
     public_configs: `ifra.configs.NodePublicConfig`
         The public configuration of the node using this fitter
-    data: Paths
+    data: NodeDataConfig
         The data paths configuration of the node using this fitter
     tree: Union[None, DecisionTreeClassifier]
         Fitted tree, or None if fit not done yet
@@ -35,7 +35,7 @@ class DecisionTreeFitter:
     def __init__(
         self,
         public_configs: NodePublicConfig,
-        data: Paths,
+        data: NodeDataConfig,
     ):
         self.public_configs = public_configs
         self.paths = data

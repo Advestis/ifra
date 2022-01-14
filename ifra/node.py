@@ -8,8 +8,9 @@ from ruleskit import RuleSet
 from transparentpath import TransparentPath
 import logging
 
-from .configs import NodePublicConfig, Paths
+from .configs import NodePublicConfig, NodeDataConfig
 from .fitters import DecisionTreeFitter
+from .updaters import AdaboostUpdater
 from .plot import plot_histogram
 
 logger = logging.getLogger(__name__)
@@ -39,7 +40,11 @@ class Node:
         Fitted ruleset
     last_fetch: Union[None, datetime]
         Date and time when the central model was last fetched.
-    \_\_data: `ifra.configs.Paths`
+    \_\_data: `ifra.configs.NodeDataConfig`
+        Configuration of the paths to the node's features and target data files
+    \_\_fitter: `ifra.fitters.Fitter`
+        Configuration of the paths to the node's features and target data files
+    \_\_updater: `ifra.updaters.Updater`
         Configuration of the paths to the node's features and target data files
     """
 
@@ -47,6 +52,12 @@ class Node:
         "decisiontree": DecisionTreeFitter
     }
     """Possible string values and corresponding fitter object for *fitter* attribute of
+    `ifra.configs.NodePublicConfig`"""
+
+    possible_updaters = {
+        "adaboost_updater": AdaboostUpdater
+    }
+    """Possible string values and corresponding updaters object for *updater* attribute of
     `ifra.configs.NodePublicConfig`"""
 
     def __init__(
@@ -61,6 +72,11 @@ class Node:
             s = f"Fitter '{self.public_configs.fitter}' is not known. Can be one of:"
             "\n".join([s] + list(self.possible_fitters.keys()))
             raise ValueError(s)
+
+        if self.public_configs.updater not in self.possible_fitters:
+            s = f"Updater '{self.public_configs.updater}' is not known. Can be one of:"
+            "\n".join([s] + list(self.possible_updaters.keys()))
+            raise ValueError(s)
         self.path_public_configs = self.public_configs.path  # Will be a TransparentPath
 
         if not len(list(self.public_configs.local_model_path.parent.ls(""))) == 0:
@@ -68,8 +84,9 @@ class Node:
                 "Path were Node model should be saved is not empty. Make sure you cleaned all previous learning output"
             )
 
-        self.__data = Paths(path_data)
+        self.__data = NodeDataConfig(path_data)
         self.__fitter = self.possible_fitters[self.public_configs.fitter](self.public_configs, self.__data)
+        self.__updater = self.possible_fitters[self.public_configs.updater](self.__data)
 
         self.dataprep_method = None
         self.datapreped = False
@@ -145,9 +162,8 @@ class Node:
         return self.ruleset
 
     def update_from_central(self, ruleset: RuleSet) -> None:
-        """Ignores points activated by the central server ruleset in order to find other relevant rules in the next
-        iterations. Modifies the files pointed by `ifra.node.Node`'s *\_\_data.x* and
-        `ifra.node.Node`'s *\_\_data.y*.
+        """Modifies the files pointed by `ifra.node.Node`'s *\_\_data.x* and `ifra.node.Node`'s *\_\_data.y* by
+        calling `ifra.node.Node` *public_configs.updater*.
 
         Parameters
         ----------
@@ -156,14 +172,7 @@ class Node:
         """
         logger.info(f"Updating node {self.public_configs.id}...")
         # Compute activation of the selected rules
-        x = self.__data.x.read(**self.__data.x_read_kwargs)
-        y = self.__data.y.read(**self.__data.y_read_kwargs)
-        ruleset.remember_activation = True
-        ruleset.calc_activation(x.values)
-        x = x[ruleset.activation == 0]
-        y = y[ruleset.activation == 0]
-        self.__data.x.write(x)
-        self.__data.y.write(y)
+        self.__updater(ruleset)
         logger.info(f"... node {self.public_configs.id} updated.")
 
     def ruleset_to_file(self) -> None:

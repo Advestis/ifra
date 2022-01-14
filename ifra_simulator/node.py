@@ -84,14 +84,18 @@ class Config:
         return self.configs[item]
 
 
-class Paths(Config):
-    EXPECTED_CONFIGS = ["x", "y", "x_read_kwargs", "y_read_kwargs"]
+class NodeDataConfig(Config):
+    EXPECTED_CONFIGS = ["x", "y", "x_read_kwargs", "y_read_kwargs", "x_fs", "y_fs"]
 
     def __init__(self, path: Union[str, Path, TransparentPath]):
         super().__init__(path)
         for item in self.configs:
             if isinstance(self.configs[item], str):
-                self.configs[item] = TransparentPath(self.configs[item])
+                fs = f"{item}_fs"
+                if fs in self.configs and self.configs[fs] is not None:
+                    self.configs[item] = TransparentPath(self.configs[item], fs=self.configs[fs])
+                else:
+                    self.configs[item] = TransparentPath(self.configs[item])
 
 
 class LearningConfig(Config):
@@ -144,7 +148,7 @@ class Node:
         self.dataprep_method = dataprep_method
         self.datapreped = False
         self.copied = False
-        self.__paths = Paths(path_configs_path)
+        self.__paths = NodeDataConfig(path_configs_path)
         self.__fitter = Fitter(self.public_configs, self.__paths)
         Node.instances.append(self)
 
@@ -456,7 +460,7 @@ class Fitter:
     def __init__(
         self,
         public_configs: LearningConfig,
-        paths: Paths,
+        paths: NodeDataConfig,
     ):
         self.public_configs = public_configs
         self.paths = paths

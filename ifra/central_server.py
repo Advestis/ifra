@@ -177,7 +177,7 @@ class CentralServer:
             Central server configuration. See `ifra.configs.CentralConfig`
         aggregation: str
             Name of the aggregation method. Can be one of: \n
-              * adaboost\n
+              * adaboost (see `ifra.aggregations.adaboost_aggregation`)\n
         """
         self.reference_node_config = None
 
