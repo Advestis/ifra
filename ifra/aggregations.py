@@ -57,6 +57,7 @@ class AdaBoostAggregation(Aggregation):
 
         for rs in rulesets:
             all_rules += rs.rules
+
         if len(all_rules) == 0:
             logger.info("... no rules found")
             if len(rulesets) == n_nodes:
@@ -65,6 +66,7 @@ class AdaBoostAggregation(Aggregation):
             return "pass"
         occurences = {r: all_rules.count(r) for r in set(all_rules)
                       if r.coverage < self.central_server.central_configs.max_coverage}
+
         if len(occurences) == 0:
             logger.warning("No rules matched coverage criterion")
             if len(rulesets) == n_nodes:
@@ -72,28 +74,32 @@ class AdaBoostAggregation(Aggregation):
                 return "stop"
             return "pass"
         max_occurences = max(list(occurences.values()))
+
         if self.central_server.ruleset is None:
-            self.central_server.ruleset = RuleSet(
-                [r for r in occurences if occurences[r] == max_occurences],
-                remember_activation=False,
-                stack_activation=False,
-            )
+            new_rules = RuleSet(remember_activation=False)
         else:
-            new_rules = [
-                r for r in occurences if occurences[r] == max_occurences and r not in self.central_server.ruleset
-            ]
-            if len(new_rules) == 0:
-                logger.warning("No new rules found")
-                if len(rulesets) == n_nodes:
-                    logger.info(
-                        "No new rules were found, despite all nodes having provided a new model" " : learning is over"
-                    )
-                    return "stop"
-                return "pass"
-            self.central_server.ruleset += RuleSet(
-                new_rules,
-                remember_activation=False,
-                stack_activation=False,
-            )
+            new_rules = RuleSet(rules_list=self.central_server.ruleset.rules, remember_activation=False)
+
+        found_new = False
+        for r in occurences:
+            if r not in new_rules and occurences[r] == max_occurences:
+                found_new = True
+                new_rules.append(r, update_activation=False)
+
+        if found_new is False:
+            logger.warning("No new rules found")
+            if len(rulesets) == n_nodes:
+                logger.info(
+                    "No new rules were found, despite all nodes having provided a new model" " : learning is over"
+                )
+                return "stop"
+            return "pass"
+
+        # new_rules.check_duplicated_rules(
+        #     new_rules.rules, name_or_index="name" if len(new_rules.features_names) > 0 else "index"
+        # )
+
+        del self.central_server.ruleset
+        self.central_server.ruleset = new_rules
         logger.info("... fit results aggregated")
         return "updated"
