@@ -79,26 +79,6 @@ class Node:
     ):
 
         self.public_configs = NodePublicConfig(path_public_configs)
-
-        if self.public_configs.fitter not in self.possible_fitters:
-            s = f"Fitter '{self.public_configs.fitter}' is not known. Can be one of:"
-            s = "\n".join([s] + list(self.possible_fitters.keys()))
-            raise ValueError(s)
-
-        if self.public_configs.updater not in self.possible_updaters:
-            s = f"Updater '{self.public_configs.updater}' is not known. Can be one of:"
-            s = "\n".join([s] + list(self.possible_updaters.keys()))
-            raise ValueError(s)
-
-        if self.public_configs.dataprep is not None:
-            if self.public_configs.dataprep not in self.possible_datapreps:
-                s = f"Dataprep '{self.public_configs.dataprep}' is not known. Can be one of:"
-                s = "\n".join([s] + list(self.possible_datapreps.keys()))
-                raise ValueError(s)
-            # function = self.public_configs.dataprep.split(".")[-1]
-            # module = self.public_configs.dataprep.replace(f".{function}", "")
-            # # self.dataprep = __import__(module, globals(), locals(), [function], 0)
-
         self.path_public_configs = self.public_configs.path  # Will be a TransparentPath
 
         if not len(list(self.public_configs.local_model_path.parent.ls(""))) == 0:
@@ -110,10 +90,28 @@ class Node:
         self.messenger = NodeMessenger(self.path_messages)
         self.data = NodeDataConfig(path_data)
         self.data.dataprep_kwargs = self.public_configs.dataprep_kwargs
-        self.fitter = self.possible_fitters[self.public_configs.fitter](self.public_configs, self.data)
-        self.updater = self.possible_updaters[self.public_configs.updater](self.data)
+
+        if self.public_configs.fitter not in self.possible_fitters:
+            function = self.public_configs.fitter.split(".")[-1]
+            module = self.public_configs.fitter.replace(f".{function}", "")
+            self.fitter = __import__(module, globals(), locals(), [function], 0)(self.public_configs, self.data)
+        else:
+            self.fitter = self.possible_fitters[self.public_configs.fitter](self.public_configs, self.data)
+
+        if self.public_configs.updater not in self.possible_updaters:
+            function = self.public_configs.updater.split(".")[-1]
+            module = self.public_configs.updater.replace(f".{function}", "")
+            self.updater = __import__(module, globals(), locals(), [function], 0)(self.data)
+        else:
+            self.updater = self.possible_updaters[self.public_configs.updater](self.data)
+
         if self.public_configs.dataprep is not None:
-            self.dataprep = self.possible_datapreps[self.public_configs.dataprep](self.data)
+            if self.public_configs.dataprep not in self.possible_datapreps:
+                function = self.public_configs.dataprep.split(".")[-1]
+                module = self.public_configs.dataprep.replace(f".{function}", "")
+                self.dataprep = __import__(module, globals(), locals(), [function], 0)(self.data)
+            else:
+                self.dataprep = self.possible_datapreps[self.public_configs.dataprep](self.data)
         else:
             self.dataprep = None
 

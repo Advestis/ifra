@@ -231,10 +231,11 @@ class CentralServer:
         self.ruleset = None
 
         if self.central_configs.aggregation not in self.possible_aggregations:
-            s = f"Aggregation '{self.central_configs.aggregation}' is not known. Can be one of:"
-            s = "\n".join([s] + list(self.possible_aggregations.keys()))
-            raise ValueError(s)
-        self.aggregation = self.possible_aggregations[self.central_configs.aggregation](self)
+            function = self.central_configs.aggregation.split(".")[-1]
+            module = self.central_configs.aggregation.replace(f".{function}", "")
+            self.aggregation = __import__(module, globals(), locals(), [function], 0)(self)
+        else:
+            self.aggregation = self.possible_aggregations[self.central_configs.aggregation](self)
 
     def aggregate(self, rulesets: List[RuleSet]) -> Tuple[str, Union[RuleSet, None]]:
         """Aggregates rulesets in `ifra.central_server` *ruleset* using
