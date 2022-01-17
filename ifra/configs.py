@@ -42,38 +42,27 @@ class Config:
     """Configuration keys that CAN figure in the json file"""
 
     # noinspection PyUnresolvedReferences
-    def __init__(self, path: Optional[Union[str, Path, TransparentPath]] = None, configs: Optional[dict] = None):
+    def __init__(self, path: Optional[Union[str, Path, TransparentPath]] = None):
         """
         Parameters
         ----------
         path: Optional[Union[str, Path, TransparentPath]]
             The path to the json file containing the configuration. Will be casted into a transparentpath if a str is
             given, so make sure that if you pass a str that should be local, you did not set a global file system.
-        configs: Optional[dict]
-            If path is not specified, you can give the dictionnary of configuration directly. No checks are done on the
-            keys then.
         """
-        self.path = None
-        self.configs = None
-        if path is not None and configs is not None:
-            raise ValueError("Only and only one of 'path' and 'configs' must be specified")
-        if path is None and configs is None:
-            raise ValueError("Only and only one of 'path' and 'configs' must be specified")
-        if path is not None:
-            self._init_with_path(path)
-        else:
-            self._init_with_configs(configs)
 
-    def _init_with_path(self, path: Union[str, Path, TransparentPath]):
         if type(path) == str:
             path = TransparentPath(path)
 
         if not path.suffix == ".json":
             raise ValueError("Config path must be a json")
 
+        if not path.is_file():
+            raise FileNotFoundError(f"No file found for node configuration {self.path}")
+
         lockfile = path.append(".locked")
         t = time()
-        while lockfile.isfile():
+        while lockfile.is_file():
             sleep(0.5)
             if time() - t > 5:
                 raise FileExistsError(f"File {lockfile} exists : could not lock on file {path}")
@@ -103,9 +92,6 @@ class Config:
         except Exception as e:
             lockfile.rm(absent="ignore")
             raise e
-
-    def _init_with_configs(self, configs: dict):
-        self.configs = configs
 
     def __getattr__(self, item):
         if item == "configs":
@@ -139,7 +125,7 @@ class Config:
 
         lockfile = self.path.append(".locked")
         t = time()
-        while lockfile.isfile():
+        while lockfile.is_file():
             sleep(0.5)
             if time() - t > 5:
                 raise FileExistsError(f"File {lockfile} exists : could not lock on file {self.path}")
@@ -226,12 +212,6 @@ class NodePublicConfig(Config):
     updater: str
         Update method to be used by the node to take the central model into account. Can be one of:\n
           * adaboost_updater (see `ifra.updaters.AdaboostUpdater`)\n
-    stop: bool
-        Set to True by `ifra.central_server.CentralServer` when the learning is over.
-    error: str
-        Will contain any error that `ifra.node.Node.watch` have raised
-    central_error: str
-        Will contain any error that `ifra.central_server.CentralServer.watch` have raised
     """
 
     EXPECTED_CONFIGS = [
@@ -252,20 +232,13 @@ class NodePublicConfig(Config):
         "fitter",
         "updater"
     ]
-    ADDITIONNAL_CONFIGS = ["stop", "error", "central_error"]
 
-    def __init__(self, path: Union[str, TransparentPath]):
+    def __init__(self, path: Union[str, Path, TransparentPath]):
         super().__init__(path)
         if isinstance(self.configs["local_model_path"], str):
             self.configs["local_model_path"] = TransparentPath(self.configs["local_model_path"])
         if isinstance(self.configs["central_model_path"], str):
             self.configs["central_model_path"] = TransparentPath(self.configs["central_model_path"])
-        if "stop" not in self.configs:
-            self.configs["stop"] = False
-        if "error" not in self.configs:
-            self.configs["error"] = None
-        if "central_error" not in self.configs:
-            self.configs["central_error"] = None
 
     def __eq__(self, other):
         if not isinstance(other, NodePublicConfig):
@@ -366,7 +339,7 @@ class NodeDataConfig(Config):
     """
 
     EXPECTED_CONFIGS = ["x", "y", "x_read_kwargs", "y_read_kwargs", "x_fs", "y_fs"]
-    ADDITIONNAL_CONFIGS = ["dataprep_kwargs"]
+    ADDITIONNAL_CONFIGS = {"dataprep_kwargs": {}}
 
     def __init__(self, path: Union[str, Path, TransparentPath]):
         super().__init__(path)

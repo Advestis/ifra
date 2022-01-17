@@ -9,7 +9,7 @@ max_cpus = min(4, os.cpu_count())
 
 def make_node(path_public, path_data):
     node = Node(path_public_configs=path_public, path_data=path_data)
-    node.watch(timeout=40)
+    node.watch(timeout=60)
 
 
 def test_iris(clean_real):
@@ -30,7 +30,7 @@ def test_iris(clean_real):
 
     central_config_path = "tests/data/real/central_configs.json"
     server = CentralServer(nodes_configs_paths=nodes_public_config, central_configs_path=central_config_path)
-    processes = [Process(target=server.watch, args=(25,))]
+    processes = [Process(target=server.watch, args=(40,))]
     processes[-1].start()
     sleep(2)
 

@@ -167,7 +167,7 @@ class CentralServer:
                 iteration = 0
                 name = TransparentPath(self.public_configs.output_path).stem
                 path = TransparentPath(self.public_configs.output_path).parent / f"{name}_{iteration}.csv"
-                while path.isfile():
+                while path.is_file():
                     iteration += 1
                     path = path.parent / f"{name}_{iteration}.csv"
                 self.ruleset.save(self.public_configs.output_path)

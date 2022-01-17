@@ -241,7 +241,7 @@ class Node:
         iteration = 0
         name = path.stem
         path = path.parent / f"{name}_{iteration}.dot"
-        while path.isfile():
+        while path.is_file():
             iteration += 1
             path = path.parent / f"{name}_{iteration}.dot"
 
@@ -292,7 +292,7 @@ class Node:
         iteration = 0
         name = path.stem
         path = path.parent / f"{name}_{iteration}.joblib"
-        while path.isfile():
+        while path.is_file():
             iteration += 1
             path = path.parent / f"{name}_{iteration}.joblib"
 
@@ -331,7 +331,7 @@ class Node:
         iteration = 0
         name = path.stem
         path = path.parent / f"{name}_{iteration}.csv"
-        while path.isfile():
+        while path.is_file():
             iteration += 1
             path = path.parent / f"{name}_{iteration}.csv"
 
@@ -348,7 +348,7 @@ class Node:
             iteration = 0
             name = name.replace(' ', '_')
             path_x = path.parent / f"{name}_{iteration}.dot"
-            while path_x.isfile():
+            while path_x.is_file():
                 iteration += 1
                 path_x = path_x.parent / f"{name}_{iteration}.dot"
             fig.savefig(path_x)
@@ -362,7 +362,7 @@ class Node:
 
         iteration = 0
         path_y = path.parent / f"classes_{iteration}.dot"
-        while path_y.isfile():
+        while path_y.is_file():
             iteration += 1
             path_y = path_y.parent / f"classes_{iteration}.dot"
         fig.savefig(path_y)

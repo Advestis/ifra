@@ -11,6 +11,7 @@ from transparentpath import TransparentPath
 import logging
 
 from .configs import NodePublicConfig, NodeDataConfig
+from .messenger import NodeMessenger
 from .fitters import DecisionTreeFitter
 from .updaters import AdaBoostUpdater
 from .datapreps import BinFeaturesDataPrep
@@ -32,6 +33,8 @@ class Node:
     path_public_configs: TransparentPath
         Path to the json file containing public configuration of the node. Needs to be kept in memory to potentially
         update the node's id once set by the central server.
+    messenger: NodeMessages
+        Interface for exchanging messages with central server. See `ifra.messenger.NodeMessages`
     dataprep: Union[None, Callable]
         The dataprep method to apply to the data before fitting. Optional, specified in the node's public configuration.
     datapreped: bool
@@ -103,6 +106,8 @@ class Node:
                 "Path where Node model should be saved is not empty. Make sure you cleaned all previous learning output"
             )
 
+        self.path_messages = self.path_public_configs.parent / "messages.json"
+        self.messenger = NodeMessenger(self.path_messages)
         self.data = NodeDataConfig(path_data)
         self.data.dataprep_kwargs = self.public_configs.dataprep_kwargs
         self.fitter = self.possible_fitters[self.public_configs.fitter](self.public_configs, self.data)
@@ -117,7 +122,7 @@ class Node:
         self.ruleset = None
         self.last_fetch = None
 
-    def fit(self) -> RuleSet:
+    def fit(self) -> None:
         """Plots the features and classes distribution in `ifra.node.Node`'s *data.x* and
         `ifra.node.Node`'s *data.y* parent directories if `ifra.configs.NodePublicConfig` *plot_data*
         is True.
@@ -130,14 +135,12 @@ class Node:
         *_copy_for_learning* to their names. Sets `ifra.node.Node` *copied* to True.
         Calls the the fitter corresponding to `ifra.node.Node` *public_configs.fitter* on the node's features and
         targets and save the resulting ruleset in `ifra.node.Node` *public_configs.local_model_path*.
-
-        Returns
-        -------
-        RuleSet
-            `node.Node` *ruleset*
         """
+
+        self.messenger.fitting = True
+
         if self.public_configs.plot_data:
-            if not (self.data.x.parent / "plots").isdir():
+            if not (self.data.x.parent / "plots").is_dir():
                 (self.data.x.parent / "plots").mkdir()
             self.plot_data_histogram(self.data.x.parent / "plots")
 
@@ -145,7 +148,7 @@ class Node:
             logger.info(f"Datapreping data of node {self.public_configs.id}...")
             self.dataprep.dataprep()
             if self.public_configs.plot_data:
-                if not (self.data.x.parent / "plots_datapreped").isdir():
+                if not (self.data.x.parent / "plots_datapreped").is_dir():
                     (self.data.x.parent / "plots_datapreped").mkdir()
                 self.plot_data_histogram(self.data.x.parent / "plots_datapreped")
             self.datapreped = True
@@ -165,9 +168,11 @@ class Node:
         self.ruleset = self.fitter.fit()
         logger.info(f"Found {len(self.ruleset)} rules in node {self.public_configs.id}")
         self.ruleset_to_file()
+
+        self.messenger.fitting = False
+
         logger.info(f"... node {self.public_configs.id} fitted, results saved in"
                     f" {self.public_configs.local_model_path.parent}.")
-        return self.ruleset
 
     def update_from_central(self, ruleset: RuleSet) -> None:
         """Modifies the files pointed by `ifra.node.Node`'s *data.x* and `ifra.node.Node`'s *data.y* by
@@ -195,7 +200,7 @@ class Node:
         iteration = 0
         name = self.public_configs.local_model_path.stem
         path = self.public_configs.local_model_path.parent / f"{name}_{iteration}.csv"
-        while path.isfile():
+        while path.is_file():
             iteration += 1
             path = self.public_configs.local_model_path.parent / f"{name}_{iteration}.csv"
 
@@ -235,7 +240,7 @@ class Node:
             iteration = 0
             name = name.replace(' ', '_')
             path_x = path / f"{name}_{iteration}.pdf"
-            while path_x.isfile():
+            while path_x.is_file():
                 iteration += 1
                 path_x = path_x.parent / f"{name}_{iteration}.pdf"
             fig.savefig(path_x)
@@ -249,7 +254,7 @@ class Node:
 
         iteration = 0
         path_y = path / f"classes_{iteration}.pdf"
-        while path_y.isfile():
+        while path_y.is_file():
             iteration += 1
             path_y = path_y.parent / f"classes_{iteration}.pdf"
 
@@ -283,40 +288,34 @@ class Node:
                 self.new_data = True
 
             t = time()
-            started = False
             stop_message = True
             new_central_model = True  # start at true to trigger fit even if no central model is here at first iteration
+            logger.info(f"Starting node {self.public_configs.id}")
+            self.messenger.running = True
             while time() - t < timeout or timeout <= 0:
-                if not (self.path_public_configs.parent / "running").isfile():
-                    (self.path_public_configs.parent / "running").touch()
+
                 self.public_configs = NodePublicConfig(self.path_public_configs)
+                self.messenger.get_latest_messages()
                 if self.public_configs.id is None:
                     raise ValueError(
                         "Node id is not set, meaning central server is not running. Always start central server first."
                     )
-                if started is False:
-                    logger.info(f"Starting node {self.public_configs.id}")
-                    started = True
-                if self.public_configs.central_error is not None:
+                if self.messenger.central_error is not None:
                     logger.info(f"Central server crashed. Stopping node {self.public_configs.id}.")
                     stop_message = False
-                    del self.public_configs.configs["central_error"]
-                    self.public_configs.save()
                     break
-                if self.public_configs.stop:
+                if self.messenger.stop:
                     logger.info(f"'stop' flag is True. Stopping learning in node {self.public_configs.id}")
                     stop_message = False
-                    del self.public_configs.configs["stop"]
-                    self.public_configs.save()
                     break
 
                 if self.last_fetch is None:
-                    if self.public_configs.central_model_path.isfile():
+                    if self.public_configs.central_model_path.is_file():
                         get_ruleset()
                         new_central_model = True
                 else:
                     if (
-                        self.public_configs.central_model_path.isfile()
+                        self.public_configs.central_model_path.is_file()
                         and self.public_configs.central_model_path.info()["mtime"] > self.last_fetch.timestamp()
                     ):
                         get_ruleset()
@@ -331,9 +330,8 @@ class Node:
                 logger.info(f"Timeout of {timeout} seconds reached, stopping learning in node"
                             f" {self.public_configs.id}.")
 
-            (self.path_public_configs.parent / "running").rm(absent="ignore")
+            self.messenger.running = False
         except Exception as e:
-            (self.path_public_configs.parent / "running").rm(absent="ignore")
-            self.public_configs.error = traceback.format_exc()
-            self.public_configs.save()
+            self.messenger.running = False
+            self.messenger.error = traceback.format_exc()
             raise e

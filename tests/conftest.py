@@ -1,11 +1,12 @@
 from pytest import fixture
 from transparentpath import Path
+from ifra.configs import NodePublicConfig
 
 
 @fixture()
 def clean_simulator():
     root = Path("tests/outputs/simulator", fs="local")
-    if not root.isdir():
+    if not root.is_dir():
         root.mkdir()
     dirs = [
         root / "node_0",
@@ -14,7 +15,7 @@ def clean_simulator():
         root / "node_3",
     ]
     for adir in dirs:
-        if not adir.isdir():
+        if not adir.is_dir():
             adir.mkdir()
         else:
             for f in adir.ls():
@@ -27,7 +28,7 @@ def clean_simulator():
 @fixture()
 def clean_real():
     output_root = Path("tests/outputs/real", fs="local")
-    if not output_root.isdir():
+    if not output_root.is_dir():
         output_root.mkdir()
     output_dirs = [
         output_root / "node_0",
@@ -37,7 +38,7 @@ def clean_real():
         output_root / "node_alone",
     ]
     for adir in output_dirs:
-        if not adir.isdir():
+        if not adir.is_dir():
             adir.mkdir()
         else:
             for f in adir.ls():
@@ -53,9 +54,9 @@ def clean_real():
         configs_root / "node_3",
     ]
     for afile in configs_files:
-        (afile / "public_configs.json").cp(afile / "public_configs_tmp.json")
         (afile / "public_configs.json.locked").rm(absent="ignore")
         (afile / "data_configs.json.locked").rm(absent="ignore")
+        (afile / "messages.json").rm(absent="ignore")
     (configs_root / "central_configs.json.locked").rm(absent="ignore")
 
     data_root = Path("tests/data/real", fs="local")
@@ -73,7 +74,7 @@ def clean_real():
     yield
 
     for afile in configs_files:
-        (afile / "public_configs_tmp.json").mv(afile / "public_configs.json")
         (afile / "public_configs.json.locked").rm(absent="ignore")
         (afile / "data_configs.json.locked").rm(absent="ignore")
+        (afile / "messages.json").rm(absent="ignore")
     (configs_root / "central_configs.json.locked").rm(absent="ignore")

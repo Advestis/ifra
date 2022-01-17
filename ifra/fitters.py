@@ -169,7 +169,7 @@ class DecisionTreeFitter(Fitter):
         name = self.public_configs.local_model_path.stem
         path = self.public_configs.local_model_path.parent / f"{name}_{iteration}.dot"
 
-        while path.isfile():
+        while path.is_file():
             iteration += 1
             path = self.public_configs.local_model_path.parent / f"{name}_{iteration}.dot"
 
@@ -200,7 +200,7 @@ class DecisionTreeFitter(Fitter):
         name = self.public_configs.local_model_path.stem
         path = self.public_configs.local_model_path.parent / f"{name}_{iteration}.joblib"
 
-        while path.isfile():
+        while path.is_file():
             iteration += 1
             path = self.public_configs.local_model_path.parent / f"{name}_{iteration}.joblib"
 

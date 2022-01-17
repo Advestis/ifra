@@ -24,7 +24,7 @@ def setup_logger(default_path="logging.json", default_level=logging.INFO, env_ke
     if value:
         path = value
     path = Path(path, fs=fs, **kwargs)
-    if path.isfile():
+    if path.is_file():
         config = path.read()
         logging.config.dictConfig(config)
     else:

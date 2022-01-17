@@ -92,13 +92,13 @@ class AdaBoostAggregation(Aggregation):
         else:
             new_rules = RuleSet(rules_list=self.central_server.ruleset.rules, remember_activation=False)
 
-        found_new = False
+        found_new = 0
         for r in occurences:
             if r not in new_rules and occurences[r] == max_occurences:
-                found_new = True
+                found_new += 1
                 new_rules.append(r, update_activation=False)
 
-        if found_new is False:
+        if found_new == 0:
             logger.warning("No new rules found")
             if len(rulesets) == n_nodes:
                 logger.info(
@@ -106,6 +106,8 @@ class AdaBoostAggregation(Aggregation):
                 )
                 return "stop"
             return "pass"
+        else:
+            logger.info(f"Aggregated {found_new} new rules")
 
         # new_rules.check_duplicated_rules(
         #     new_rules.rules, name_or_index="name" if len(new_rules.features_names) > 0 else "index"
@@ -113,5 +115,4 @@ class AdaBoostAggregation(Aggregation):
 
         del self.central_server.ruleset
         self.central_server.ruleset = new_rules
-        logger.info("... fit results aggregated")
         return "updated"
