@@ -1,7 +1,7 @@
 ,features_names,features_indexes,bmins,bmaxs,prediction,coverage,criterion
-R_0(1),['petal length in cm'],[2],[0],[3.5],Iris-setosa,0.7857142857142857,None
-R_1(1),['petal length in cm'],[2],[0],[2.5],Iris-setosa,0.5714285714285714,None
-R_2(1),['petal length in cm'],[2],[2.5],[4],Iris-setosa,0.42857142857142855,None
-R_3(2),"['sepal width in cm', 'petal length in cm']","[1, 2]","[0, 2.5]","[1.5, 4]",Iris-versicolor,0.2857142857142857,None
-R_4(2),"['sepal width in cm', 'petal length in cm']","[1, 2]","[1.5, 2.5]","[4, 4]",Iris-versicolor,0.14285714285714285,None
-R_5(1),['petal length in cm'],[2],[3.5],[4],Iris-setosa,0.21428571428571427,None
+R_0(1),['sepal length in cm'],[0],[0],[3.5],Iris-setosa,0.7857142857142857,None
+R_1(2),"['sepal length in cm', 'petal length in cm']","[0, 2]","[0, 0]","[3.5, 2.5]",Iris-setosa,0.5714285714285714,None
+R_2(2),"['sepal length in cm', 'petal length in cm']","[0, 2]","[0, 2.5]","[3.5, 4]",Iris-setosa,0.21428571428571427,None
+R_3(3),"['sepal length in cm', 'sepal width in cm', 'petal length in cm']","[0, 1, 2]","[0, 0, 2.5]","[3.5, 1.5, 4]",Iris-versicolor,0.14285714285714285,None
+R_4(3),"['sepal length in cm', 'sepal width in cm', 'petal length in cm']","[0, 1, 2]","[0, 1.5, 2.5]","[3.5, 4, 4]",Iris-versicolor,0.07142857142857142,None
+R_5(1),['sepal length in cm'],[0],[3.5],[4],Iris-setosa,0.21428571428571427,None

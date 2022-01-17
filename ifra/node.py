@@ -209,7 +209,8 @@ class Node:
                 path_table,
                 path.read(index_col=0).apply(
                     lambda x: x.round(3) if x.dtype == float else x
-                )
+                ),
+                paperwidth=30
             ).compile(clean_tex=True)
         except ValueError:
             logger.warning("Failed to produce tablewriter. Is LaTeX installed ?")

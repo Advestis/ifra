@@ -1,18 +1,1 @@
-{
-  "features_names": ["sepal length in cm", "sepal width in cm", "petal length in cm", "petal width in cm"],
-  "classes_names": ["Iris-setosa", "Iris-versicolor", "Iris-virginica"],
-  "x_mins": "",
-  "x_maxs": "",
-  "max_depth": 3,
-  "remember_activation": false,
-  "stack_activation": false,
-  "plot_data": true,
-  "get_leaf": false,
-  "local_model_path": "tests/outputs/real/node_2/ruleset.csv",
-  "central_model_path": "tests/outputs/real/ruleset.csv",
-  "dataprep": "binfeatures_dataprep",
-  "dataprep_kwargs": {"nbins":  5},
-  "id": "",
-  "fitter": "decisiontree_fitter",
-  "updater": "adaboost_updater"
-}
+{"features_names": ["sepal length in cm", "sepal width in cm", "petal length in cm", "petal width in cm"], "classes_names": ["Iris-setosa", "Iris-versicolor", "Iris-virginica"], "x_mins": "", "x_maxs": "", "max_depth": 3, "remember_activation": false, "stack_activation": false, "plot_data": true, "get_leaf": false, "local_model_path": "/home/pcotte/Documents/git/ifra/tests/outputs/real/node_2/ruleset.csv", "central_model_path": "/home/pcotte/Documents/git/ifra/tests/outputs/real/ruleset.csv", "dataprep": "binfeatures_dataprep", "dataprep_kwargs": {"nbins": 5}, "id": 2, "fitter": "decisiontree_fitter", "updater": "adaboost_updater", "stop": false, "error": "", "central_error": ""}
