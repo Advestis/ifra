@@ -6,6 +6,7 @@ from time import time, sleep
 from typing import Union, Optional
 
 from ruleskit import RuleSet
+from tablewriter import TableWriter
 from transparentpath import TransparentPath
 import logging
 
@@ -99,7 +100,7 @@ class Node:
 
         if not len(list(self.public_configs.local_model_path.parent.ls(""))) == 0:
             raise ValueError(
-                "Path were Node model should be saved is not empty. Make sure you cleaned all previous learning output"
+                "Path where Node model should be saved is not empty. Make sure you cleaned all previous learning output"
             )
 
         self.data = NodeDataConfig(path_data)
@@ -111,7 +112,6 @@ class Node:
         else:
             self.dataprep = None
 
-        self.dataprep = None
         self.datapreped = False
         self.copied = False
         self.ruleset = None
@@ -137,12 +137,16 @@ class Node:
             `node.Node` *ruleset*
         """
         if self.public_configs.plot_data:
+            if not (self.data.x.parent / "plots").isdir():
+                (self.data.x.parent / "plots").mkdir()
             self.plot_data_histogram(self.data.x.parent / "plots")
 
         if self.dataprep is not None and not self.datapreped:
             logger.info(f"Datapreping data of node {self.public_configs.id}...")
             self.dataprep.dataprep()
             if self.public_configs.plot_data:
+                if not (self.data.x.parent / "plots_datapreped").isdir():
+                    (self.data.x.parent / "plots_datapreped").mkdir()
                 self.plot_data_histogram(self.data.x.parent / "plots_datapreped")
             self.datapreped = True
             logger.info(f"...datapreping done for node {self.public_configs.id}")
@@ -159,6 +163,7 @@ class Node:
 
         logger.info(f"Fitting node {self.public_configs.id} using {self.public_configs.fitter}...")
         self.ruleset = self.fitter.fit()
+        logger.info(f"Found {len(self.ruleset)} rules in node {self.public_configs.id}")
         self.ruleset_to_file()
         logger.info(f"... node {self.public_configs.id} fitted, results saved in"
                     f" {self.public_configs.local_model_path.parent}.")
@@ -181,6 +186,7 @@ class Node:
     def ruleset_to_file(self) -> None:
         """Saves `ifra.node.Node` *ruleset* to `ifra.configs.NodePublicConfig` *local_model_path*,
         overwritting any existing file here, and in another file in the same directory but with a unique name.
+        Will also produce a .pdf of the ruleset using TableWriter.
         Does not do anything if `ifra.node.Node` *ruleset* is None
         """
 
@@ -197,6 +203,14 @@ class Node:
         ruleset.save(path)
         ruleset.save(self.public_configs.local_model_path)
 
+        path_table = path.with_suffix(".pdf")
+        TableWriter(
+            path_table,
+            path.read(index_col=0).apply(
+                lambda x: x.round(3) if x.dtype == float else x
+            )
+        ).compile(clean_tex=True)
+
     def plot_data_histogram(self, path: TransparentPath) -> None:
         """Plots the distribution of the data located in `ifra.node.Node`'s *data.x* and
         `ifra.node.Node`'s *data.y* and save them in unique files.
@@ -204,8 +218,7 @@ class Node:
         Parameters
         ----------
         path: TransparentPath
-            Path to save the data. Should be a file. Will not be overwritten, a new file name will be created if it
-            already exists.
+            Path to save the data. Should be a directory.
         """
         x = self.data.x.read(**self.data.x_read_kwargs)
         for col, name in zip(x.columns, self.public_configs.features_names):
@@ -217,7 +230,7 @@ class Node:
 
             iteration = 0
             name = name.replace(' ', '_')
-            path_x = path.parent / f"{name}_{iteration}.pdf"
+            path_x = path / f"{name}_{iteration}.pdf"
             while path_x.isfile():
                 iteration += 1
                 path_x = path_x.parent / f"{name}_{iteration}.pdf"
@@ -231,7 +244,7 @@ class Node:
         )
 
         iteration = 0
-        path_y = path.parent / f"classes_{iteration}.pdf"
+        path_y = path / f"classes_{iteration}.pdf"
         while path_y.isfile():
             iteration += 1
             path_y = path_y.parent / f"classes_{iteration}.pdf"

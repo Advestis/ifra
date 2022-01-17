@@ -6,6 +6,7 @@ from time import time, sleep
 from typing import List, Union, Tuple, Optional
 
 from ruleskit import RuleSet
+from tablewriter import TableWriter
 from transparentpath import TransparentPath
 import logging
 
@@ -222,6 +223,33 @@ class CentralServer:
         """
         return self.aggregation.aggregate(rulesets)
 
+    def ruleset_to_file(self) -> None:
+        """Saves `ifra.node.Node` *ruleset* to `ifra.configs.CentralConfig` *output_path*,
+        overwritting any existing file here, and in another file in the same directory but with a unique name.
+        Will also produce a .pdf of the ruleset using TableWriter.
+        Does not do anything if `ifra.node.Node` *ruleset* is None
+        """
+        ruleset = self.ruleset
+
+        iteration = 0
+        name = self.central_configs.output_path.stem
+        path = self.central_configs.output_path.parent / f"{name}_{iteration}.csv"
+        while path.isfile():
+            iteration += 1
+            path = self.central_configs.output_path.parent / f"{name}_{iteration}.csv"
+
+        path = path.with_suffix(".csv")
+        ruleset.save(path)
+        ruleset.save(self.central_configs.output_path)
+
+        path_table = path.with_suffix(".pdf")
+        TableWriter(
+            path_table,
+            path.read(index_col=0).apply(
+                lambda x: x.round(3) if x.dtype == float else x
+            )
+        ).compile(clean_tex=True)
+
     def watch(self, timeout: int = 0, sleeptime: int = 5):
         """Monitors new changes in the nodes, every ''sleeptime'' seconds for ''timeout'' seconds, triggering
         aggregation and pushing central model to nodes when enough new node models are available.
@@ -243,6 +271,7 @@ class CentralServer:
             updated_nodes = []
             rulesets = []
             learning_over = False
+            iterations = 0
             while time() - t < timeout or timeout <= 0:
                 new_models = False
 
@@ -309,14 +338,9 @@ class CentralServer:
                         node.push_central_model(deepcopy(self.ruleset))
                     if self.ruleset is None:
                         raise ValueError("Should never happen !")
-                    iteration = 0
-                    name = self.central_configs.output_path.stem
-                    path = self.central_configs.output_path.parent / f"{name}_{iteration}.csv"
-                    while path.isfile():
-                        iteration += 1
-                        path = path.parent / f"{name}_{iteration}.csv"
-                    self.ruleset.save(self.central_configs.output_path)
-                    self.ruleset.save(path)
+                    iterations += 1
+                    self.ruleset_to_file()
+
                 sleep(sleeptime)
 
             if learning_over is False:
@@ -326,6 +350,7 @@ class CentralServer:
                     node.public_configs.save()
             if self.ruleset is None:
                 logger.warning("Learning failed to produce a central model. No output generated.")
+            logger.info(f"Made {iterations} complete iterations between central server and nodes.")
             logger.info(f"Results saved in {self.central_configs.output_path}")
         except Exception as e:
             for node in self.nodes:

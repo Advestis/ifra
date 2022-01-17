@@ -79,7 +79,7 @@ class DecisionTreeFitter(Fitter):
             self.public_configs.classes_names,
         )
         self.tree_to_graph()
-        self._tree_to_joblib()
+        self.tree_to_joblib()
         return self.ruleset
 
     # noinspection PyArgumentList
@@ -185,7 +185,7 @@ class DecisionTreeFitter(Fitter):
         # joblib.dump(self.tree, self.__trees_path / (Y_name + ".joblib"))
         os.system(f'dot -Tsvg "{path}" -o "{path.with_suffix(".svg")}"')
 
-    def _tree_to_joblib(
+    def tree_to_joblib(
         self,
     ):
         """Saves `ifra.fitters.DecisionTreeClassifier` *tree* to a .joblib file. Does not do anything if
