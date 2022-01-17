@@ -1,4 +1,5 @@
-from copy import deepcopy
+import traceback
+from copy import deepcopy, copy
 from datetime import datetime
 from pathlib import Path
 from time import time, sleep
@@ -60,12 +61,16 @@ class NodeGate:
             node_config_path = TransparentPath(node_config_path)
 
         self.id = NodeGate.instances
-        self.node_config_path = node_config_path
+        self.public_config_path = node_config_path
         self.public_configs = None
 
         self.ruleset = None
         self.last_fetch = None
         self.new_data = False
+
+        if (self.public_config_path.parent / "running").isfile():
+            raise FileExistsError(f"File 'running' found at {self.public_config_path.parent} : node was started"
+                                  f"before the central server. Do not do that.")
         NodeGate.instances += 1
 
     def interact(self):
@@ -93,14 +98,18 @@ class NodeGate:
             # If we are here, it means the node has not provided any configurations yet. Either because we interact for
             # the first time, or because last time we checked, there was no file at self.node_config_path. So need to
             # load the configuration, if available
-            if not self.node_config_path.isfile():
+            if not self.public_config_path.isfile():
                 return
-            self.public_configs = NodePublicConfig(self.node_config_path)
+
+            # Load the configuration and reset any previous error that was in it
+            self.public_configs = NodePublicConfig(self.public_config_path)
+            self.public_configs.error = None
+            self.public_configs.central_error = None
             if self.public_configs.id is None:
                 # If the node was not given an id by its local user, then the central server provides one, being
                 # this NodeGate's id number
                 self.public_configs.id = self.id
-                self.public_configs.save()
+            self.public_configs.save()
 
         if self.ruleset is None:
             # The node has not produced any model yet if self.ruleset is None. No need to bother with self.last fetch
@@ -211,9 +220,7 @@ class CentralServer:
               * "stop" otherwise.
             The second item is the aggregated ruleset if the first item is "updated", None otherwise
         """
-        return self.possible_aggregations[self.aggregation](
-            rulesets, len(self.nodes), self.ruleset, self.central_configs.max_coverage
-        )
+        return self.aggregation.aggregate(rulesets)
 
     def watch(self, timeout: int = 0, sleeptime: int = 5):
         """Monitors new changes in the nodes, every ''sleeptime'' seconds for ''timeout'' seconds, triggering
@@ -229,75 +236,99 @@ class CentralServer:
         sleeptime: int
             How many seconds between each checks for new nodes models. Default value = 5.
         """
-        t = time()
-        updated_nodes = []
-        rulesets = []
-        learning_over = False
-        while time() - t < timeout or timeout <= 0:
-            new_models = False
+        # noinspection PyBroadException
+        try:
+            logger.info("Starting central server")
+            t = time()
+            updated_nodes = []
+            rulesets = []
+            learning_over = False
+            while time() - t < timeout or timeout <= 0:
+                new_models = False
 
-            for node in self.nodes:
-                if node in updated_nodes:
-                    continue
-                node.interact()  # Node fetches its latest data from GCP
+                if len(self.nodes) == 0:
+                    raise ValueError("No nodes to learning on !")
 
-                if node.public_configs is not None:
-                    if self.reference_node_config is None:
-                        self.reference_node_config = deepcopy(node.public_configs)
-                    # Nodes with configurations different from central's are ignored
-                    elif node.public_configs != self.reference_node_config:
-                        logger.warning(
-                            f"Node {node.id}'s configuration is not compatible with previous"
-                            " configuration. Ignoring."
-                        )
+                for node in copy(self.nodes):
+                    if node in updated_nodes:
+                        sleep(sleeptime)
                         continue
-                # Nodes with no available configurations are ignored
-                else:
-                    logger.warning(f"Node {node.id}'s has no configurations. Ignoring.")
-                    continue
+                    node.interact()  # Node fetches its latest data from GCP
 
-                if node.new_data:
-                    updated_nodes.append(node)
-                    rulesets.append(node.ruleset)
-                    if len(updated_nodes) >= self.central_configs.min_number_of_new_models:
-                        new_models = True
+                    if node.public_configs is not None:
+                        if node.public_configs.error is not None:
+                            logger.info(f"Removing crashed node {node.public_configs.id} from learning")
+                            self.nodes.remove(node)
+                            continue
+                        if self.reference_node_config is None:
+                            self.reference_node_config = deepcopy(node.public_configs)
+                        # Nodes with configurations different from central's are ignored
+                        elif node.public_configs != self.reference_node_config:
+                            s = "\n"
+                            for key in node.public_configs.configs:
+                                if node.public_configs.configs[key] != self.reference_node_config.configs[key]:
+                                    s = f"{s}{key}: {node.public_configs.configs[key]}" \
+                                        f" != {self.reference_node_config.configs[key]}\n"
+                            logger.warning(
+                                f"Node {node.id}'s configuration is not compatible with previous"
+                                f" configuration. Differences are: {s}"
+                            )
+                            sleep(sleeptime)
+                            continue
+                    # Nodes with no available configurations are ignored
+                    else:
+                        logger.warning(f"Node {node.id}'s has no configurations. Ignoring.")
+                        sleep(sleeptime)
+                        continue
 
-            if new_models:
-                logger.info("Found enough new nodes nodels.")
-                what_now = self.aggregate(rulesets)
-                if what_now == "stop":
-                    learning_over = True
+                    if node.new_data:
+                        updated_nodes.append(node)
+                        rulesets.append(node.ruleset)
+                        if len(updated_nodes) >= self.central_configs.min_number_of_new_models:
+                            new_models = True
+
+                if new_models:
+                    logger.info("Found enough new nodes nodels.")
+                    what_now = self.aggregate(rulesets)
+                    if what_now == "stop":
+                        learning_over = True
+                        for node in self.nodes:
+                            node.public_configs.stop = True
+                            node.public_configs.save()
+                        break
+                    elif what_now == "pass":
+                        # New model did not provide additionnal information. Keep the current rulesets, but do not
+                        # trigger aggregation anymore until another node provides a model
+                        sleep(sleeptime)
+                        continue
+                    # Aggregation successfully updated central model. Forget the node's current model and push the
+                    # new model to them.
+                    rulesets = []
+                    updated_nodes = []
                     for node in self.nodes:
-                        node.public_configs.stop = True
-                        node.public_configs.save()
-                    break
-                elif what_now == "pass":
-                    # New model did not provide additionnal information. Keep the current rulesets, but do not trigger
-                    # aggregation anymore until another node provides a model
-                    continue
-                # Aggregation successfully updated central model. Forget the node's current model and push the new model
-                # to them.
-                rulesets = []
-                updated_nodes = []
-                for node in self.nodes:
-                    node.push_central_model(deepcopy(self.ruleset))
-                if self.ruleset is None:
-                    raise ValueError("Should never happen !")
-                iteration = 0
-                name = self.central_configs.output_path.stem
-                path = self.central_configs.output_path.parent / f"{name}_{iteration}.csv"
-                while path.isfile():
-                    iteration += 1
-                    path = path.parent / f"{name}_{iteration}.csv"
-                self.ruleset.save(self.central_configs.output_path)
-                self.ruleset.save(path)
-            sleep(sleeptime)
+                        node.push_central_model(deepcopy(self.ruleset))
+                    if self.ruleset is None:
+                        raise ValueError("Should never happen !")
+                    iteration = 0
+                    name = self.central_configs.output_path.stem
+                    path = self.central_configs.output_path.parent / f"{name}_{iteration}.csv"
+                    while path.isfile():
+                        iteration += 1
+                        path = path.parent / f"{name}_{iteration}.csv"
+                    self.ruleset.save(self.central_configs.output_path)
+                    self.ruleset.save(path)
+                sleep(sleeptime)
 
-        if learning_over is False:
-            logger.info(f"Timeout of {timeout} seconds reached, stopping learning.")
+            if learning_over is False:
+                logger.info(f"Timeout of {timeout} seconds reached, stopping learning.")
+                for node in self.nodes:
+                    node.public_configs.stop = True
+                    node.public_configs.save()
+            if self.ruleset is None:
+                logger.warning("Learning failed to produce a central model. No output generated.")
+            logger.info(f"Results saved in {self.central_configs.output_path}")
+        except Exception as e:
             for node in self.nodes:
-                node.public_configs.stop = True
+                node.public_configs.central_error = traceback.format_exc()
                 node.public_configs.save()
-        if self.ruleset is None:
-            logger.warning("Learning failed to produce a central model. No output generated.")
-        logger.info(f"Results saved in {self.central_configs.output_path}")
+            raise e

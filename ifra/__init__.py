@@ -1,3 +1,4 @@
+# noinspection PyUnresolvedReferences
 """Interpretable Federated Rule Algorithm
 
 **Federated Learning** allows several sources (*nodes*) of data to contribute to a single model without sharing their
@@ -108,6 +109,7 @@ from .datapreps import DataPrep
 from .updaters import Updater
 from .fitters import Fitter
 from .aggregations import Aggregation
+from .setup_logger import setup_logger
 
 try:
     from ._version import __version__

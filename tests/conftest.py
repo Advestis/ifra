@@ -60,6 +60,19 @@ def clean_real():
     ]
     for afile, newfile in zip(configs_files, tmp_configs_files):
         afile.cp(newfile)
+
+        data_root = Path("tests/data/real", fs="local")
+        data_dirs = [
+            data_root / "node_0",
+            data_root / "node_1",
+            data_root / "node_2",
+            data_root / "node_3",
+        ]
+        for data_dir in data_dirs:
+            for pdffile in data_dir.glob("*.pdf"):
+                pdffile.rm()
+
     yield
+
     for afile, newfile in zip(configs_files, tmp_configs_files):
         newfile.mv(afile)

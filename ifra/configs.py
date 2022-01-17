@@ -1,6 +1,7 @@
-from copy import copy
+from copy import copy, deepcopy
 from pathlib import Path
-from typing import Union
+from typing import Union, Optional
+from json import load
 
 from transparentpath import TransparentPath
 
@@ -40,15 +41,29 @@ class Config:
     """Configuration keys that CAN figure in the json file"""
 
     # noinspection PyUnresolvedReferences
-    def __init__(self, path: Union[str, Path, TransparentPath]):
+    def __init__(self, path: Optional[Union[str, Path, TransparentPath]] = None, configs: Optional[dict] = None):
         """
         Parameters
         ----------
-        path: Union[str, Path, TransparentPath]
+        path: Optional[Union[str, Path, TransparentPath]]
             The path to the json file containing the configuration. Will be casted into a transparentpath if a str is
             given, so make sure that if you pass a str that should be local, you did not set a global file system.
+        configs: Optional[dict]
+            If path is not specified, you can give the dictionnary of configuration directly. No checks are done on the
+            keys then.
         """
+        self.path = None
+        self.configs = None
+        if path is not None and configs is not None:
+            raise ValueError("Only and only one of 'path' and 'configs' must be specified")
+        if path is None and configs is None:
+            raise ValueError("Only and only one of 'path' and 'configs' must be specified")
+        if path is not None:
+            self._init_with_path(path)
+        else:
+            self._init_with_configs(configs)
 
+    def _init_with_path(self, path: Union[str, Path, TransparentPath]):
         if type(path) == str:
             path = TransparentPath(path)
 
@@ -74,6 +89,9 @@ class Config:
             if self.configs[key] == "":
                 self.configs[key] = None
 
+    def _init_with_configs(self, configs: dict):
+        self.configs = configs
+
     def __getattr__(self, item):
         if item == "configs":
             raise ValueError("Config object's 'configs' not set")
@@ -90,6 +108,13 @@ class Config:
         if item not in self.configs and item not in self.EXPECTED_CONFIGS and item not in self.ADDITIONNAL_CONFIGS:
             raise ValueError(f"Configuration named '{item}' is not allowed")
         self.configs[item] = value
+
+    def __deepcopy__(self, memo):
+        cls = self.__class__
+        result = cls.__new__(cls)
+        memo[id(self)] = result
+        setattr(result, "configs", deepcopy(self.configs, memo))
+        return result
 
     def save(self) -> None:
         """Saves the current configuration into the file it used to load. This allows the user to change the
@@ -175,6 +200,10 @@ class NodePublicConfig(Config):
           * adaboost_updater (see `ifra.updaters.AdaboostUpdater`)\n
     stop: bool
         Set to True by `ifra.central_server.CentralServer` when the learning is over.
+    error: str
+        Will contain any error that `ifra.node.Node.watch` have raised
+    central_error: str
+        Will contain any error that `ifra.central_server.CentralServer.watch` have raised
     """
 
     EXPECTED_CONFIGS = [
@@ -195,7 +224,7 @@ class NodePublicConfig(Config):
         "fitter",
         "updater"
     ]
-    ADDITIONNAL_CONFIGS = ["stop"]
+    ADDITIONNAL_CONFIGS = ["stop", "error", "central_error"]
 
     def __init__(self, path: Union[str, TransparentPath]):
         super().__init__(path)
@@ -205,14 +234,19 @@ class NodePublicConfig(Config):
             self.configs["central_model_path"] = TransparentPath(self.configs["central_model_path"])
         if "stop" not in self.configs:
             self.configs["stop"] = False
+        if "error" not in self.configs:
+            self.configs["error"] = None
+        if "central_error" not in self.configs:
+            self.configs["central_error"] = None
 
     def __eq__(self, other):
         if not isinstance(other, NodePublicConfig):
             return False
         for key in NodePublicConfig.EXPECTED_CONFIGS:
-            if key == "local_model_path" or key == "central_model_path":  # Those parameters can change without problem
+            # Those parameters can change without problem
+            if key == "local_model_path" or key == "central_model_path" or key == "id":
                 continue
-            if self[key] != other[key]:
+            if self.configs[key] != other.configs[key]:
                 return False
         return True
 

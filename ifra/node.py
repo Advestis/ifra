@@ -1,3 +1,4 @@
+import traceback
 from datetime import datetime
 from pathlib import Path
 from time import time, sleep
@@ -174,7 +175,7 @@ class Node:
         """
         logger.info(f"Updating node {self.public_configs.id}...")
         # Compute activation of the selected rules
-        self.updater(ruleset)
+        self.updater.update(ruleset)
         logger.info(f"... node {self.public_configs.id} updated.")
 
     def ruleset_to_file(self) -> None:
@@ -237,7 +238,7 @@ class Node:
 
         fig.savefig(path_y)
 
-    def watch(self, timeout:int = 0, sleeptime: int = 5) -> None:
+    def watch(self, timeout: int = 0, sleeptime: int = 5) -> None:
         """Monitors new changes in the central server, every *sleeptime* seconds for *timeout* seconds, triggering
         node fit when a new model is found, or if the function just started. Sets
        ` ifra.configs.NodePublicConfig` *id* by re-reading the configuration file if it is None.
@@ -253,47 +254,70 @@ class Node:
             How many seconds between each checks for new central model. Default value = 5
         """
 
-        def get_ruleset() -> None:
-            """Fetch the central server's latest model's RuleSet.
-            `ifra.node.Node.last_fetch` will be set to now and `ifra.node.Node.new_data` to True."""
-            central_ruleset = RuleSet()
-            central_ruleset.load(self.public_configs.central_model_path)
-            self.last_fetch = datetime.now()
-            self.update_from_central(central_ruleset)
-            logger.info(f"Fetched new central ruleset in node {self.public_configs.id} at {self.last_fetch}")
-            self.new_data = True
+        # noinspection PyBroadException
+        try:
+            def get_ruleset() -> None:
+                """Fetch the central server's latest model's RuleSet.
+                `ifra.node.Node.last_fetch` will be set to now and `ifra.node.Node.new_data` to True."""
+                central_ruleset = RuleSet()
+                central_ruleset.load(self.public_configs.central_model_path)
+                self.last_fetch = datetime.now()
+                self.update_from_central(central_ruleset)
+                logger.info(f"Fetched new central ruleset in node {self.public_configs.id} at {self.last_fetch}")
+                self.new_data = True
 
-        t = time()
-        new_central_model = True  # start at true to trigger fit even if no central model is here at first iteration
-        while time() - t < timeout or timeout <= 0:
-            self.public_configs = NodePublicConfig(self.path_public_configs)
-            if self.public_configs.stop:
-                logger.info(f"Stopping learning in node {self.public_configs.id}")
-                del self.public_configs.stop
-                self.public_configs.save()
-                break
-            if self.public_configs.id is None:
-                logger.warning(
-                    "Node id is not set, meaning central server is not running. Waiting for central server to start."
-                )
-                continue
+            t = time()
+            started = False
+            stop_message = True
+            new_central_model = True  # start at true to trigger fit even if no central model is here at first iteration
+            while time() - t < timeout or timeout <= 0:
+                if not (self.path_public_configs.parent / "running").isfile():
+                    (self.path_public_configs.parent / "running").touch()
+                self.public_configs = NodePublicConfig(self.path_public_configs)
+                if self.public_configs.id is None:
+                    raise ValueError(
+                        "Node id is not set, meaning central server is not running. Always start central server first."
+                    )
+                if started is False:
+                    logger.info(f"Starting node {self.public_configs.id}")
+                    started = True
+                if self.public_configs.central_error is not None:
+                    logger.info(f"Central server crashed. Stopping node {self.public_configs.id}.")
+                    stop_message = False
+                    del self.public_configs.configs["central_error"]
+                    self.public_configs.save()
+                    break
+                if self.public_configs.stop:
+                    logger.info(f"'stop' flag is True. Stopping learning in node {self.public_configs.id}")
+                    stop_message = False
+                    del self.public_configs.configs["stop"]
+                    self.public_configs.save()
+                    break
 
-            if self.last_fetch is None:
-                if self.public_configs.central_model_path.isfile():
-                    get_ruleset()
-                    new_central_model = True
-            else:
-                if (
-                    self.public_configs.central_model_path.isfile()
-                    and self.public_configs.central_model_path.info()["mtime"] > self.last_fetch.timestamp()
-                ):
-                    get_ruleset()
-                    new_central_model = True
+                if self.last_fetch is None:
+                    if self.public_configs.central_model_path.isfile():
+                        get_ruleset()
+                        new_central_model = True
+                else:
+                    if (
+                        self.public_configs.central_model_path.isfile()
+                        and self.public_configs.central_model_path.info()["mtime"] > self.last_fetch.timestamp()
+                    ):
+                        get_ruleset()
+                        new_central_model = True
 
-            if new_central_model:
-                self.fit()
-                new_central_model = False
-            sleep(sleeptime)
+                if new_central_model:
+                    self.fit()
+                    new_central_model = False
+                sleep(sleeptime)
 
-        if not self.public_configs.stop:
-            logger.info(f"Timeout of {timeout} seconds reached, stopping learning in node {self.public_configs.id}.")
+            if stop_message:
+                logger.info(f"Timeout of {timeout} seconds reached, stopping learning in node"
+                            f" {self.public_configs.id}.")
+
+            (self.path_public_configs.parent / "running").rm(absent="ignore")
+        except Exception as e:
+            (self.path_public_configs.parent / "running").rm(absent="ignore")
+            self.public_configs.error = traceback.format_exc()
+            self.public_configs.save()
+            raise e

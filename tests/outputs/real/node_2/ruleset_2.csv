@@ -1,0 +1,7 @@
+,features_names,features_indexes,bmins,bmaxs,prediction,coverage,criterion
+R_0(1),['petal length in cm'],[2],[1.0],[2.599999964237213],Iris-versicolor,0.2619047619047619,None
+R_1(1),['petal length in cm'],[2],[2.599999964237213],[6.9],Iris-versicolor,0.7380952380952381,None
+R_2(2),"['petal length in cm', 'petal width in cm']","[2, 3]","[2.599999964237213, 0.1]","[6.9, 1.699999988079071]",Iris-versicolor,0.47619047619047616,None
+R_3(3),"['sepal width in cm', 'petal length in cm', 'petal width in cm']","[1, 2, 3]","[2.2, 2.599999964237213, 0.1]","[2.25, 6.9, 1.699999988079071]",Iris-versicolor,0.047619047619047616,None
+R_4(3),"['sepal width in cm', 'petal length in cm', 'petal width in cm']","[1, 2, 3]","[2.25, 2.599999964237213, 0.1]","[4.1, 6.9, 1.699999988079071]",Iris-versicolor,0.42857142857142855,None
+R_5(2),"['petal length in cm', 'petal width in cm']","[2, 3]","[2.599999964237213, 1.699999988079071]","[6.9, 2.3]",Iris-versicolor,0.2619047619047619,None

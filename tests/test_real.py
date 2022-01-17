@@ -26,13 +26,13 @@ def test_iris(clean_real):
         "tests/data/real/node_3/path_configs.json",
     ]
 
-    processes = []
+    central_config_path = "tests/data/real/central_config.json"
+    server = CentralServer(nodes_configs_paths=nodes_public_config, central_configs_path=central_config_path)
+    processes = [Process(target=server.watch, args=(30,))]
+    processes[-1].start()
+
     for public, data in zip(nodes_public_config, nodes_data_config):
         processes.append(Process(target=make_node, args=(public, data)))
         processes[-1].start()
-
-    central_config_path = "tests/data/real/central_config.json"
-    server = CentralServer(nodes_configs_paths=nodes_public_config, central_configs_path=central_config_path)
-    server.watch(timeout=30)
 
     [p.join() for p in processes]
