@@ -136,7 +136,7 @@ class DecisionTreeFitter(Fitter):
         elif not isinstance(x_maxs, np.ndarray):
             x_maxs = np.array(x_maxs)
 
-        self.tree = tree.DecisionTreeFitter(max_depth=max_depth).fit(x, y)
+        self.tree = tree.DecisionTreeClassifier(max_depth=max_depth).fit(x, y)
         self.ruleset = extract_rules_from_tree(
             self.tree,
             xmins=x_mins,
