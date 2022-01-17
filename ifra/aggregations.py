@@ -17,15 +17,15 @@ class Aggregation:
             `ifra.central_server.CentralServer` object
         """
         self.central_server = central_server
-    
+
     def aggregate(self, rulesets: List[RuleSet]) -> str:
         """To be implemented in daughter class. Must modify inplace `ifra.central_server.CentralServer` *ruleset*.
-        
+
         Parameters
         ----------
         rulesets: List[RuleSet]
             New rulesets provided by the nodes.
-        
+
         Returns
         -------
         str\n
@@ -49,7 +49,7 @@ class AdaBoostAggregation(Aggregation):
     If among the rules extracted from the nodes, none are new compared to the current state of the model, nodes are
     not updated. If no new rules are found but each nodes had new data, learning is finished.
     """
-    
+
     def aggregate(self, rulesets: List[RuleSet]) -> str:
         logger.info("Aggregating fit results using AdaBoost method...")
         all_rules = []
@@ -64,11 +64,23 @@ class AdaBoostAggregation(Aggregation):
                 logger.info("No new rules were found, despite all nodes having provided a new model : learning is over")
                 return "stop"
             return "pass"
-        occurences = {r: all_rules.count(r) for r in set(all_rules)
-                      if r.coverage < self.central_server.central_configs.max_coverage}
+
+        if self.central_server.ruleset is None:
+            occurences = {
+                r: all_rules.count(r)
+                for r in set(all_rules)
+                if r.coverage < self.central_server.central_configs.max_coverage
+            }
+        else:
+            occurences = {
+                r: all_rules.count(r)
+                for r in set(all_rules)
+                if r.coverage < self.central_server.central_configs.max_coverage
+                and r not in self.central_server.ruleset
+            }
 
         if len(occurences) == 0:
-            logger.warning("No rules matched coverage criterion")
+            logger.warning("No new rules matched coverage criterion")
             if len(rulesets) == n_nodes:
                 logger.info("No new rules were found, despite all nodes having provided a new model : learning is over")
                 return "stop"

@@ -152,6 +152,7 @@ class DecisionTreeFitter(Fitter):
             # Compute each rule's activation vector, and the ruleset's if remember_activation, and will stack the
             # rules' if stack_activation is True
             self.ruleset.calc_activation(x)
+            # self.ruleset.check_duplicated_rules(self.ruleset.rules, name_or_index="name")
 
     def tree_to_graph(
         self,

@@ -255,7 +255,7 @@ class Node:
 
         fig.savefig(path_y)
 
-    def watch(self, timeout: int = 0, sleeptime: int = 5) -> None:
+    def watch(self, timeout: int = 0, sleeptime: int = 1) -> None:
         """Monitors new changes in the central server, every *sleeptime* seconds for *timeout* seconds, triggering
         node fit when a new model is found, or if the function just started. Sets
        ` ifra.configs.NodePublicConfig` *id* by re-reading the configuration file if it is None.

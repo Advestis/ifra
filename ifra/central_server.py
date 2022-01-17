@@ -269,6 +269,7 @@ class CentralServer:
             How many seconds between each checks for new nodes models. Default value = 5.
         """
         try:
+            logger.info("")
             logger.info("Starting central server")
             t = time()
             updated_nodes = []
@@ -279,7 +280,7 @@ class CentralServer:
                 new_models = False
 
                 if len(self.nodes) == 0:
-                    raise ValueError("No nodes to learning on !")
+                    raise ValueError("No nodes to learn on !")
 
                 for node in copy(self.nodes):
                     if node in updated_nodes:
@@ -320,7 +321,7 @@ class CentralServer:
                             new_models = True
 
                 if new_models:
-                    logger.info("Found enough new nodes nodels.")
+                    logger.info(f"Found enough ({len(updated_nodes)}) new nodes nodels.")
                     what_now = self.aggregate(rulesets)
                     if what_now == "stop":
                         learning_over = True

@@ -38,4 +38,8 @@ def test_iris(clean_real):
         processes.append(Process(target=make_node, args=(public, data)))
         processes[-1].start()
 
-    [p.join() for p in processes]
+    while len(processes) > 0:
+        for proc in processes:
+            if proc.exitcode is not None:
+                processes.remove(proc)
+                assert proc.exitcode == 0
