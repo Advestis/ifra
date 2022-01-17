@@ -1,7 +1,0 @@
-,features_names,features_indexes,bmins,bmaxs,prediction,coverage,criterion
-R_0(1),['petal width in cm'],[3],[0.1],[0.6500000059604645],Iris-setosa,0.3684210526315789,None
-R_1(1),['petal width in cm'],[3],[0.6500000059604645],[2.5],Iris-setosa,0.631578947368421,None
-R_2(2),"['petal length in cm', 'petal width in cm']","[2, 3]","[1.2, 0.6500000059604645]","[5.049999952316284, 2.5]",Iris-virginica,0.3157894736842105,None
-R_3(3),"['sepal length in cm', 'petal length in cm', 'petal width in cm']","[0, 2, 3]","[4.4, 1.2, 0.6500000059604645]","[4.950000047683716, 5.049999952316284, 2.5]",Iris-versicolor,0.02631578947368421,None
-R_4(3),"['sepal length in cm', 'petal length in cm', 'petal width in cm']","[0, 2, 3]","[4.950000047683716, 1.2, 0.6500000059604645]","[7.2, 5.049999952316284, 2.5]",Iris-versicolor,0.2894736842105263,None
-R_5(2),"['petal length in cm', 'petal width in cm']","[2, 3]","[5.049999952316284, 0.6500000059604645]","[6.0, 2.5]",Iris-virginica,0.3157894736842105,None

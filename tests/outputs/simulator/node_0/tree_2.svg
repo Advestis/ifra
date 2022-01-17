@@ -12,19 +12,19 @@
 <!-- 0 -->
 <g id="node1" class="node">
 <title>0</title>
-<path fill="#ffffff" stroke="#000000" d="M169,-157C169,-157 38,-157 38,-157 32,-157 26,-151 26,-145 26,-145 26,-101 26,-101 26,-95 32,-89 38,-89 38,-89 169,-89 169,-89 175,-89 181,-95 181,-101 181,-101 181,-145 181,-145 181,-151 175,-157 169,-157"/>
-<text text-anchor="start" x="34" y="-141.8" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#000000">sepal width in cm ≤ 2.0</text>
-<text text-anchor="start" x="75.5" y="-126.8" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#000000">gini = 0.5</text>
-<text text-anchor="start" x="66" y="-111.8" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#000000">samples = 4</text>
-<text text-anchor="start" x="64" y="-96.8" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#000000">value = [2, 2]</text>
+<path fill="#f2c09c" stroke="#000000" d="M167.5,-157C167.5,-157 39.5,-157 39.5,-157 33.5,-157 27.5,-151 27.5,-145 27.5,-145 27.5,-101 27.5,-101 27.5,-95 33.5,-89 39.5,-89 39.5,-89 167.5,-89 167.5,-89 173.5,-89 179.5,-95 179.5,-101 179.5,-101 179.5,-145 179.5,-145 179.5,-151 173.5,-157 167.5,-157"/>
+<text text-anchor="start" x="35.5" y="-141.8" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#000000">petal width in cm ≤ 1.5</text>
+<text text-anchor="start" x="68" y="-126.8" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#000000">gini = 0.444</text>
+<text text-anchor="start" x="66" y="-111.8" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#000000">samples = 6</text>
+<text text-anchor="start" x="64" y="-96.8" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#000000">value = [4, 2]</text>
 </g>
 <!-- 1 -->
 <g id="node2" class="node">
 <title>1</title>
-<path fill="#399de5" stroke="#000000" d="M83,-53C83,-53 12,-53 12,-53 6,-53 0,-47 0,-41 0,-41 0,-12 0,-12 0,-6 6,0 12,0 12,0 83,0 83,0 89,0 95,-6 95,-12 95,-12 95,-41 95,-41 95,-47 89,-53 83,-53"/>
+<path fill="#e58139" stroke="#000000" d="M83,-53C83,-53 12,-53 12,-53 6,-53 0,-47 0,-41 0,-41 0,-12 0,-12 0,-6 6,0 12,0 12,0 83,0 83,0 89,0 95,-6 95,-12 95,-12 95,-41 95,-41 95,-47 89,-53 83,-53"/>
 <text text-anchor="start" x="19.5" y="-37.8" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#000000">gini = 0.0</text>
-<text text-anchor="start" x="10" y="-22.8" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#000000">samples = 2</text>
-<text text-anchor="start" x="8" y="-7.8" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#000000">value = [0, 2]</text>
+<text text-anchor="start" x="10" y="-22.8" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#000000">samples = 4</text>
+<text text-anchor="start" x="8" y="-7.8" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#000000">value = [4, 0]</text>
 </g>
 <!-- 0&#45;&gt;1 -->
 <g id="edge1" class="edge">
@@ -36,10 +36,10 @@
 <!-- 2 -->
 <g id="node3" class="node">
 <title>2</title>
-<path fill="#e58139" stroke="#000000" d="M196,-53C196,-53 125,-53 125,-53 119,-53 113,-47 113,-41 113,-41 113,-12 113,-12 113,-6 119,0 125,0 125,0 196,0 196,0 202,0 208,-6 208,-12 208,-12 208,-41 208,-41 208,-47 202,-53 196,-53"/>
+<path fill="#399de5" stroke="#000000" d="M196,-53C196,-53 125,-53 125,-53 119,-53 113,-47 113,-41 113,-41 113,-12 113,-12 113,-6 119,0 125,0 125,0 196,0 196,0 202,0 208,-6 208,-12 208,-12 208,-41 208,-41 208,-47 202,-53 196,-53"/>
 <text text-anchor="start" x="132.5" y="-37.8" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#000000">gini = 0.0</text>
 <text text-anchor="start" x="123" y="-22.8" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#000000">samples = 2</text>
-<text text-anchor="start" x="121" y="-7.8" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#000000">value = [2, 0]</text>
+<text text-anchor="start" x="121" y="-7.8" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#000000">value = [0, 2]</text>
 </g>
 <!-- 0&#45;&gt;2 -->
 <g id="edge2" class="edge">

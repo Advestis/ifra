@@ -1,3 +1,5 @@
+from time import sleep
+
 from ifra import CentralServer, Node
 from multiprocessing import Process
 import os
@@ -20,16 +22,17 @@ def test_iris(clean_real):
     ]
 
     nodes_data_config = [
-        "tests/data/real/node_0/path_configs.json",
-        "tests/data/real/node_1/path_configs.json",
-        "tests/data/real/node_2/path_configs.json",
-        "tests/data/real/node_3/path_configs.json",
+        "tests/data/real/node_0/data_configs.json",
+        "tests/data/real/node_1/data_configs.json",
+        "tests/data/real/node_2/data_configs.json",
+        "tests/data/real/node_3/data_configs.json",
     ]
 
-    central_config_path = "tests/data/real/central_config.json"
+    central_config_path = "tests/data/real/central_configs.json"
     server = CentralServer(nodes_configs_paths=nodes_public_config, central_configs_path=central_config_path)
     processes = [Process(target=server.watch, args=(25,))]
     processes[-1].start()
+    sleep(2)
 
     for public, data in zip(nodes_public_config, nodes_data_config):
         processes.append(Process(target=make_node, args=(public, data)))

@@ -1,5 +1,6 @@
 from copy import copy, deepcopy
 from pathlib import Path
+from time import sleep, time
 from typing import Union, Optional
 from json import load
 
@@ -70,24 +71,38 @@ class Config:
         if not path.suffix == ".json":
             raise ValueError("Config path must be a json")
 
-        if hasattr(path, "read"):
-            self.configs = path.read()
-        else:
-            with open(path) as opath:
-                self.configs = load(opath)
+        lockfile = path.append(".locked")
+        t = time()
+        while lockfile.isfile():
+            sleep(0.5)
+            if time() - t > 5:
+                raise FileExistsError(f"File {lockfile} exists : could not lock on file {path}")
+        lockfile.touch()
 
-        self.path = path
+        try:
+            if hasattr(path, "read"):
+                self.configs = path.read()
+            else:
+                with open(path) as opath:
+                    self.configs = load(opath)
 
-        for key in self.EXPECTED_CONFIGS:
-            if key not in self.configs:
-                raise IndexError(f"Missing required config {key}")
-        for key in self.configs:
-            if key not in self.EXPECTED_CONFIGS and key not in self.ADDITIONNAL_CONFIGS:
-                raise IndexError(f"Unexpected config {key}")
+            self.path = path
 
-        for key in self.configs:
-            if self.configs[key] == "":
-                self.configs[key] = None
+            for key in self.EXPECTED_CONFIGS:
+                if key not in self.configs:
+                    raise IndexError(f"Missing required config {key}")
+            for key in self.configs:
+                if key not in self.EXPECTED_CONFIGS and key not in self.ADDITIONNAL_CONFIGS:
+                    raise IndexError(f"Unexpected config {key}")
+
+            for key in self.configs:
+                if self.configs[key] == "":
+                    self.configs[key] = None
+
+            lockfile.rm(absent="ignore")
+        except Exception as e:
+            lockfile.rm(absent="ignore")
+            raise e
 
     def _init_with_configs(self, configs: dict):
         self.configs = configs
@@ -122,13 +137,26 @@ class Config:
         `Config.EXPECTED_CONFIGS`"""
         to_save = copy(self.configs)
 
-        for key in to_save:
-            if key not in self.EXPECTED_CONFIGS and key not in self.ADDITIONNAL_CONFIGS:
-                raise ValueError(f"Forbidden configuration '{key}'")
-            if to_save[key] is None:
-                to_save[key] = ""
+        lockfile = self.path.append(".locked")
+        t = time()
+        while lockfile.isfile():
+            sleep(0.5)
+            if time() - t > 5:
+                raise FileExistsError(f"File {lockfile} exists : could not lock on file {self.path}")
+        lockfile.touch()
 
-        self.path.write(to_save)
+        try:
+            for key in to_save:
+                if key not in self.EXPECTED_CONFIGS and key not in self.ADDITIONNAL_CONFIGS:
+                    raise ValueError(f"Forbidden configuration '{key}'")
+                if to_save[key] is None:
+                    to_save[key] = ""
+
+            self.path.write(to_save)
+            lockfile.rm(absent="ignore")
+        except Exception as e:
+            lockfile.rm(absent="ignore")
+            raise e
 
 
 class NodePublicConfig(Config):

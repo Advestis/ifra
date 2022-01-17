@@ -35,7 +35,7 @@ def test_iris(clean_simulator):
     nodes = [
         Node(
             public_configs_path="tests/data/simulator/learning_simulator.json",
-            path_configs_path=f"tests/data/simulator/node_{i}/path_configs.json",
+            data_configs_path=f"tests/data/simulator/node_{i}/path_configs.json",
             dataprep_method=dataprep_method,
         )
         for i in range(4)
@@ -48,7 +48,7 @@ def test_iris(clean_simulator):
 #     nodes = [
 #         Node(
 #             public_configs_path="tests/data/learning_simulator.json",
-#             path_configs_path="tests/data/node_alone/path_configs.json",
+#             data_configs_path="tests/data/node_alone/path_configs.json",
 #             dataprep_method=dataprep_method,
 #         )
 #     ]

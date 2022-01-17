@@ -47,19 +47,16 @@ def clean_real():
 
     configs_root = Path("tests/data/real", fs="local")
     configs_files = [
-        configs_root / "node_0" / "public_configs.json",
-        configs_root / "node_1" / "public_configs.json",
-        configs_root / "node_2" / "public_configs.json",
-        configs_root / "node_3" / "public_configs.json",
+        configs_root / "node_0",
+        configs_root / "node_1",
+        configs_root / "node_2",
+        configs_root / "node_3",
     ]
-    tmp_configs_files = [
-        configs_root / "node_0" / "public_configs_tmp.json",
-        configs_root / "node_1" / "public_configs_tmp.json",
-        configs_root / "node_2" / "public_configs_tmp.json",
-        configs_root / "node_3" / "public_configs_tmp.json",
-    ]
-    for afile, newfile in zip(configs_files, tmp_configs_files):
-        afile.cp(newfile)
+    for afile in configs_files:
+        (afile / "public_configs.json").cp(afile / "public_configs_tmp.json")
+        (afile / "public_configs.json.locked").rm(absent="ignore")
+        (afile / "data_configs.json.locked").rm(absent="ignore")
+    (configs_root / "central_configs.json.locked").rm(absent="ignore")
 
     data_root = Path("tests/data/real", fs="local")
     data_dirs = [
@@ -75,5 +72,8 @@ def clean_real():
 
     yield
 
-    for afile, newfile in zip(configs_files, tmp_configs_files):
-        newfile.mv(afile)
+    for afile in configs_files:
+        (afile / "public_configs_tmp.json").mv(afile / "public_configs.json")
+        (afile / "public_configs.json.locked").rm(absent="ignore")
+        (afile / "data_configs.json.locked").rm(absent="ignore")
+    (configs_root / "central_configs.json.locked").rm(absent="ignore")

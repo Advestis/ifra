@@ -127,7 +127,7 @@ class Node:
         self,
         public_configs_path: Optional[Union[str, Path, TransparentPath]] = None,
         public_configs: Optional[LearningConfig] = None,
-        path_configs_path: Optional[Union[str, Path, TransparentPath]] = None,
+        data_configs_path: Optional[Union[str, Path, TransparentPath]] = None,
         dataprep_method: Callable = None
     ):
 
@@ -139,8 +139,8 @@ class Node:
         self.id = len(Node.instances)
         self.tree = None
         self.ruleset = None
-        if path_configs_path is None:
-            path_configs_path = TransparentPath("path_configs.json")
+        if data_configs_path is None:
+            data_configs_path = TransparentPath("path_configs.json")
 
         if public_configs_path is not None:
             self.public_configs = LearningConfig(public_configs_path)
@@ -149,40 +149,40 @@ class Node:
         self.dataprep_method = dataprep_method
         self.datapreped = False
         self.copied = False
-        self.__paths = NodeDataConfig(path_configs_path)
-        self.__fitter = Fitter(self.public_configs, self.__paths)
+        self.__data = NodeDataConfig(data_configs_path)
+        self.__fitter = Fitter(self.public_configs, self.__data)
         Node.instances.append(self)
 
     def fit(self):
         if self.public_configs.plot_data:
-            self.plot_data_histogram(self.__paths.x.parent / "plots")
+            self.plot_data_histogram(self.__data.x.parent / "plots")
         if self.dataprep_method is not None and not self.datapreped:
             logger.info(f"Datapreping data of node {self.id}...")
             x, y = self.dataprep_method(
-                self.__paths.x.read(**self.__paths.x_read_kwargs),
-                self.__paths.y.read(**self.__paths.y_read_kwargs)
+                self.__data.x.read(**self.__data.x_read_kwargs),
+                self.__data.y.read(**self.__data.y_read_kwargs)
             )
-            x_suffix = self.__paths.x.suffix
-            y_suffix = self.__paths.y.suffix
-            x_datapreped_path = self.__paths.x.with_suffix("").append("_datapreped").with_suffix(x_suffix)
-            y_datapreped_path = self.__paths.y.with_suffix("").append("_datapreped").with_suffix(y_suffix)
+            x_suffix = self.__data.x.suffix
+            y_suffix = self.__data.y.suffix
+            x_datapreped_path = self.__data.x.with_suffix("").append("_datapreped").with_suffix(x_suffix)
+            y_datapreped_path = self.__data.y.with_suffix("").append("_datapreped").with_suffix(y_suffix)
             x_datapreped_path.write(x)
             y_datapreped_path.write(y)
             self.__fitter.paths.x = x_datapreped_path
             self.__fitter.paths.y = y_datapreped_path
             if self.public_configs.plot_data:
-                self.plot_data_histogram(self.__paths.x.parent / "plots_datapreped")
+                self.plot_data_histogram(self.__data.x.parent / "plots_datapreped")
             self.datapreped = True
             logger.info(f"...datapreping done for node {self.id}")
 
         if not self.copied:
             # Copy x and y in a different file, for it will be changed after each iterations by the update from central
-            x_suffix = self.__paths.x.suffix
-            self.__paths.x.cp(self.__paths.x.with_suffix("").append("_copy_for_learning").with_suffix(x_suffix))
-            self.__paths.x = self.__paths.x.with_suffix("").append("_copy_for_learning").with_suffix(x_suffix)
-            y_suffix = self.__paths.y.suffix
-            self.__paths.y.cp(self.__paths.y.with_suffix("").append("_copy_for_learning").with_suffix(y_suffix))
-            self.__paths.y = self.__paths.y.with_suffix("").append("_copy_for_learning").with_suffix(y_suffix)
+            x_suffix = self.__data.x.suffix
+            self.__data.x.cp(self.__data.x.with_suffix("").append("_copy_for_learning").with_suffix(x_suffix))
+            self.__data.x = self.__data.x.with_suffix("").append("_copy_for_learning").with_suffix(x_suffix)
+            y_suffix = self.__data.y.suffix
+            self.__data.y.cp(self.__data.y.with_suffix("").append("_copy_for_learning").with_suffix(y_suffix))
+            self.__data.y = self.__data.y.with_suffix("").append("_copy_for_learning").with_suffix(y_suffix)
             self.copied = True
 
         logger.info(f"Fitting node {self.id}...")
@@ -195,14 +195,14 @@ class Node:
         iterations"""
         logger.info(f"Updating node {self.id}...")
         # Compute activation of the selected rules
-        x = self.__paths.x.read(**self.__paths.x_read_kwargs)
-        y = self.__paths.y.read(**self.__paths.y_read_kwargs)
+        x = self.__data.x.read(**self.__data.x_read_kwargs)
+        y = self.__data.y.read(**self.__data.y_read_kwargs)
         ruleset.remember_activation = True
         ruleset.calc_activation(x.values)
         x = x[ruleset.activation == 0]
         y = y[ruleset.activation == 0]
-        self.__paths.x.write(x)
-        self.__paths.y.write(y)
+        self.__data.x.write(x)
+        self.__data.y.write(y)
         logger.info(f"... node {self.id} updated.")
 
     @classmethod
@@ -338,7 +338,7 @@ class Node:
         ruleset.save(path)
 
     def plot_data_histogram(self, path):
-        x = self.__paths.x.read(**self.__paths.x_read_kwargs)
+        x = self.__data.x.read(**self.__data.x_read_kwargs)
         for col, name in zip(x.columns, self.public_configs.features_names):
             fig = plot_histogram(
                 data=x[col],
@@ -353,7 +353,7 @@ class Node:
                 path_x = path_x.parent / f"{name}_{iteration}.dot"
             fig.savefig(path_x)
 
-        y = self.__paths.y.read(**self.__paths.y_read_kwargs)
+        y = self.__data.y.read(**self.__data.y_read_kwargs)
         fig = plot_histogram(
             data=y.squeeze(),
             xlabel="Class",

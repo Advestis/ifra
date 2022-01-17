@@ -1,5 +1,0 @@
-,features_names,features_indexes,bmins,bmaxs,prediction,coverage,criterion
-R_0(1),['petal width in cm'],[3],[0.2],[0.8000000268220901],Iris-setosa,0.6428571428571429,None
-R_1(1),['petal width in cm'],[3],[0.8000000268220901],[2.4],Iris-setosa,0.35714285714285715,None
-R_2(1),['petal width in cm'],[3],[0.8000000268220901],[1.649999976158142],Iris-virginica,0.14285714285714285,None
-R_3(1),['petal width in cm'],[3],[1.649999976158142],[2.4],Iris-virginica,0.21428571428571427,None

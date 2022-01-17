@@ -86,7 +86,7 @@ Example of step 3: you could create a central configuration json file contaning:
 Example of step 4:
 >>> from ifra import Node
 >>> public_config_path = "tests/real/node_0/public_configs.json"
->>> data_config_path = "tests/real/node_0/path_configs.json"
+>>> data_config_path = "tests/real/node_0/data_configs.json"
 >>> thenode = Node(path_public_configs=public_config_path, path_data=data_config_path)
 >>> thenode.watch()
 

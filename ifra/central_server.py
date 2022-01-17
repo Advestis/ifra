@@ -264,7 +264,6 @@ class CentralServer:
         sleeptime: int
             How many seconds between each checks for new nodes models. Default value = 5.
         """
-        # noinspection PyBroadException
         try:
             logger.info("Starting central server")
             t = time()

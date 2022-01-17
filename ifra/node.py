@@ -267,7 +267,6 @@ class Node:
             How many seconds between each checks for new central model. Default value = 5
         """
 
-        # noinspection PyBroadException
         try:
             def get_ruleset() -> None:
                 """Fetch the central server's latest model's RuleSet.
