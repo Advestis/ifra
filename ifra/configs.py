@@ -336,7 +336,7 @@ class NodeDataConfig(Config):
     a dataframe (a single column in the case of the target file).
     The features file should contain one column for EACH FEATURE USED IN THE LEARNING, even if not all of them have data
     in this node. The order of the columns should match the order in
-    `ifra.central_server.NodePublicConfig`'s features_names`.
+    `ifra.central_server.NodeGate.NodePublicConfig`'s features_names`.
 
     Attributes
     ----------

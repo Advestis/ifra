@@ -32,7 +32,7 @@ class Fitter:
 
 class DecisionTreeFitter(Fitter):
 
-    """Overloads the Fitter class. Fits a DecisionTreeClassifier on some data.
+    """Overloads the Fitter class. Fits a DecisionTreeFitter on some data.
 
     Can be used by giving *decisiontree_fitter* as *fitter* configuration when creating a `ifra.node.Node`
 
@@ -44,7 +44,7 @@ class DecisionTreeFitter(Fitter):
         The data paths configuration of the node using this fitter
     ruleset: Union[None, RuleSet]
         Fitted ruleset, or None if fit not done yet
-    tree: Union[None, DecisionTreeClassifier]
+    tree: Union[None, DecisionTreeFitter]
         Fitted tree, or None if fit not done yet
     """
 
@@ -57,16 +57,16 @@ class DecisionTreeFitter(Fitter):
         self.tree = None
 
     def fit(self) -> RuleSet:
-        """Fits the decision tree on the data pointed by `ifra.fitters.DecisionTreeClassifier` *paths.x* and
-        `ifra.fitters.DecisionTreeClassifier` *paths.y*, sets
-        `ifra.fitters.DecisionTreeClassifier`*tree* saves it as a .dot, .svg and .joblib file in the same place
+        """Fits the decision tree on the data pointed by `ifra.fitters.DecisionTreeFitter` *paths.x* and
+        `ifra.fitters.DecisionTreeFitter` *paths.y*, sets
+        `ifra.fitters.DecisionTreeFitter`*tree* saves it as a .dot, .svg and .joblib file in the same place
         the node will save its ruleset. Those files will be unique for each time the fit function is called.
-        Also sets `ifra.fitters.DecisionTreeClassifier` *ruleset* and returns it.
+        Also sets `ifra.fitters.DecisionTreeFitter` *ruleset* and returns it.
 
         Returns
         -------
         RuleSet
-            `ifra.fitters.DecisionTreeClassifier` *ruleset*
+            `ifra.fitters.DecisionTreeFitter` *ruleset*
         """
         self.make_fit(
             self.paths.x.read(**self.paths.x_read_kwargs).values,
@@ -97,8 +97,8 @@ class DecisionTreeFitter(Fitter):
         stack_activation: bool = False,
     ):
         """Fits x and y using a decision tree cassifier, setting
-         `ifra.fitters.DecisionTreeClassifier` *tree* and
-         `ifra.fitters.DecisionTreeClassifier` *ruleset*
+         `ifra.fitters.DecisionTreeFitter` *tree* and
+         `ifra.fitters.DecisionTreeFitter` *ruleset*
 
         x array must contain one column for each feature that can exist across all nodes. Some columns can contain
         only NaNs.
@@ -136,7 +136,7 @@ class DecisionTreeFitter(Fitter):
         elif not isinstance(x_maxs, np.ndarray):
             x_maxs = np.array(x_maxs)
 
-        self.tree = tree.DecisionTreeClassifier(max_depth=max_depth).fit(x, y)
+        self.tree = tree.DecisionTreeFitter(max_depth=max_depth).fit(x, y)
         self.ruleset = extract_rules_from_tree(
             self.tree,
             xmins=x_mins,
@@ -156,8 +156,8 @@ class DecisionTreeFitter(Fitter):
     def tree_to_graph(
         self,
     ):
-        """Saves `ifra.fitters.DecisionTreeClassifier` *tree* to a .dot file and a .svg file at the same place
-         the node will save its ruleset. Does not do anything if `ifra.fitters.DecisionTreeClassifier` *tree*
+        """Saves `ifra.fitters.DecisionTreeFitter` *tree* to a .dot file and a .svg file at the same place
+         the node will save its ruleset. Does not do anything if `ifra.fitters.DecisionTreeFitter` *tree*
         is None.
 
         Will create a unique file by looking at existing files and appending a unique integer to the name.
@@ -188,8 +188,8 @@ class DecisionTreeFitter(Fitter):
     def tree_to_joblib(
         self,
     ):
-        """Saves `ifra.fitters.DecisionTreeClassifier` *tree* to a .joblib file. Does not do anything if
-        `ifra.fitters.DecisionTreeClassifier` *tree* is None
+        """Saves `ifra.fitters.DecisionTreeFitter` *tree* to a .joblib file. Does not do anything if
+        `ifra.fitters.DecisionTreeFitter` *tree* is None
 
         Will create a unique file by looking at existing files and appending a unique integer to the name.
         """

@@ -11,7 +11,7 @@ class Updater:
     Attributes
     ----------
     data: NodeDataConfig
-        `ifra.node.Node` *\_\_data*
+        `ifra.node.Node` *data*
     """
     def __init__(self, data: NodeDataConfig):
         self.data = data
