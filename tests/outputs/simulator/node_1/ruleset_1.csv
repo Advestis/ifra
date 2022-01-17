@@ -1,3 +1,0 @@
-,features_names,features_indexes,bmins,bmaxs,prediction,coverage,criterion
-R_0(1),['petal width in cm'],[3],[2],[2.5],Iris-setosa,0.9090909090909091,None
-R_1(1),['petal width in cm'],[3],[2.5],[3],Iris-setosa,0.09090909090909091,None

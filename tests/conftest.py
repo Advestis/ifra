@@ -1,28 +1,5 @@
 from pytest import fixture
 from transparentpath import Path
-from ifra.configs import NodePublicConfig
-
-
-@fixture()
-def clean_simulator():
-    root = Path("tests/outputs/simulator", fs="local")
-    if not root.is_dir():
-        root.mkdir()
-    dirs = [
-        root / "node_0",
-        root / "node_1",
-        root / "node_2",
-        root / "node_3",
-    ]
-    for adir in dirs:
-        if not adir.is_dir():
-            adir.mkdir()
-        else:
-            for f in adir.ls():
-                f.rm(ignore_kind=True)
-    for f in root.glob("ruleset*"):
-        f.rm()
-    yield
 
 
 @fixture()

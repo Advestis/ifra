@@ -1,8 +1,0 @@
-{
-  "x": "tests/data/simulator/node_1/x.csv",
-  "y": "tests/data/simulator/node_1/y.csv",
-  "x_read_kwargs": {"index_col": 0},
-  "y_read_kwargs": {"index_col": 0},
-  "x_fs": "local",
-  "y_fs": "local"
-}
