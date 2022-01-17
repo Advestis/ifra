@@ -203,13 +203,16 @@ class Node:
         ruleset.save(path)
         ruleset.save(self.public_configs.local_model_path)
 
-        path_table = path.with_suffix(".pdf")
-        TableWriter(
-            path_table,
-            path.read(index_col=0).apply(
-                lambda x: x.round(3) if x.dtype == float else x
-            )
-        ).compile(clean_tex=True)
+        try:
+            path_table = path.with_suffix(".pdf")
+            TableWriter(
+                path_table,
+                path.read(index_col=0).apply(
+                    lambda x: x.round(3) if x.dtype == float else x
+                )
+            ).compile(clean_tex=True)
+        except ValueError:
+            logger.warning("Failed to produce tablewriter. Is LaTeX installed ?")
 
     def plot_data_histogram(self, path: TransparentPath) -> None:
         """Plots the distribution of the data located in `ifra.node.Node`'s *data.x* and

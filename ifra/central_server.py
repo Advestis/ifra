@@ -242,13 +242,16 @@ class CentralServer:
         ruleset.save(path)
         ruleset.save(self.central_configs.output_path)
 
-        path_table = path.with_suffix(".pdf")
-        TableWriter(
-            path_table,
-            path.read(index_col=0).apply(
-                lambda x: x.round(3) if x.dtype == float else x
-            )
-        ).compile(clean_tex=True)
+        try:
+            path_table = path.with_suffix(".pdf")
+            TableWriter(
+                path_table,
+                path.read(index_col=0).apply(
+                    lambda x: x.round(3) if x.dtype == float else x
+                )
+            ).compile(clean_tex=True)
+        except ValueError:
+            logger.warning("Failed to produce tablewriter. Is LaTeX installed ?")
 
     def watch(self, timeout: int = 0, sleeptime: int = 5):
         """Monitors new changes in the nodes, every ''sleeptime'' seconds for ''timeout'' seconds, triggering
