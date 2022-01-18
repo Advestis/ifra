@@ -56,8 +56,8 @@ Example of step 1: you could create nodes public configuration json files contan
 >>>   "stack_activation": false,
 >>>   "plot_data": true,
 >>>   "get_leaf": false,
->>>   "local_model_path": "tests/outputs/real/node_0/ruleset.csv",
->>>   "central_model_path": "tests/outputs/real/ruleset.csv",
+>>>   "local_model_path": "tests/outputs/node_0/ruleset.csv",
+>>>   "central_model_path": "tests/outputs/ruleset.csv",
 >>>   "dataprep": "binfeatures_dataprep",
 >>>   "id": "",
 >>>   "fitter": "decisiontree_fitter",
@@ -66,8 +66,8 @@ Example of step 1: you could create nodes public configuration json files contan
 
 Example of step 2: you could create nodes data configuration json files contaning:
 >>> {
->>>   "x": "tests/data/real/node_0/x.csv",
->>>   "y": "tests/data/real/node_0/y.csv",
+>>>   "x": "tests/data/node_0/x.csv",
+>>>   "y": "tests/data/node_0/y.csv",
 >>>   "x_read_kwargs": {"index_col": 0},
 >>>   "y_read_kwargs": {"index_col": 0},
 >>>   "x_fs": "local",
@@ -77,7 +77,7 @@ Example of step 2: you could create nodes data configuration json files contanin
 Example of step 3: you could create a central configuration json file contaning:
 >>> {
 >>>   "max_coverage": 0.25,
->>>   "output_path": "tests/outputs/real/ruleset.csv",
+>>>   "output_path": "tests/outputs/ruleset.csv",
 >>>   "output_path_fs": "local",
 >>>   "min_number_of_new_models": 2,
 >>>   "aggregation": "adaboost_aggregation"
@@ -85,20 +85,20 @@ Example of step 3: you could create a central configuration json file contaning:
 
 Example of step 4:
 >>> from ifra import Node
->>> public_config_path = "tests/real/node_0/public_configs.json"
->>> data_config_path = "tests/real/node_0/data_configs.json"
+>>> public_config_path = "tests/node_0/public_configs.json"
+>>> data_config_path = "tests/node_0/data_configs.json"
 >>> thenode = Node(path_public_configs=public_config_path, path_data=data_config_path)
 >>> thenode.watch()
 
 Example of step 5:
 >>> from ifra import CentralServer
 >>> nodes_public_config = [
->>>   "tests/real/node_0/public_configs.json",
->>>   "tests/real/node_1/public_configs.json",
->>>   "tests/real/node_2/public_configs.json",
->>>   "tests/real/node_3/public_configs.json"
+>>>   "tests/node_0/public_configs.json",
+>>>   "tests/node_1/public_configs.json",
+>>>   "tests/node_2/public_configs.json",
+>>>   "tests/node_3/public_configs.json"
 >>> ]
->>> central_config_path = "tests/real/central_configs.json"
+>>> central_config_path = "tests/central_configs.json"
 >>> server = CentralServer(nodes_configs_paths=nodes_public_config, central_configs_path=central_config_path)
 >>> server.watch()
 """

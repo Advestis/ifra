@@ -223,6 +223,9 @@ class CentralServer:
             if node.ok:
                 self.nodes.append(node)
 
+        if self.central_configs.min_number_of_new_models < 2:
+            raise ValueError("Minimum number of new nodes to trigger aggregation must be 2 or more")
+
         if len(self.nodes) < self.central_configs.min_number_of_new_models:
             raise ValueError(f"The minimum number of nodes to trigger aggregation "
                              f"({self.central_configs.min_number_of_new_models}) is greater than the number of"
@@ -233,7 +236,7 @@ class CentralServer:
         if self.central_configs.aggregation not in self.possible_aggregations:
             function = self.central_configs.aggregation.split(".")[-1]
             module = self.central_configs.aggregation.replace(f".{function}", "")
-            self.aggregation = __import__(module, globals(), locals(), [function], 0)(self)
+            self.aggregation = getattr(__import__(module, globals(), locals(), [function], 0), function)(self)
         else:
             self.aggregation = self.possible_aggregations[self.central_configs.aggregation](self)
 

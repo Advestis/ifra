@@ -72,6 +72,9 @@ class Node:
     """Possible string values and corresponding updaters object for *updater* attribute of
     `ifra.configs.NodePublicConfig`"""
 
+    timeout_central = 600
+    """How long the node is supposed to wait for the central server to start up"""
+
     def __init__(
         self,
         path_public_configs: Union[str, TransparentPath],
@@ -81,12 +84,29 @@ class Node:
         self.public_configs = NodePublicConfig(path_public_configs)
         self.path_public_configs = self.public_configs.path  # Will be a TransparentPath
 
-        if not len(list(self.public_configs.local_model_path.parent.ls(""))) == 0:
-            raise ValueError(
-                "Path where Node model should be saved is not empty. Make sure you cleaned all previous learning output"
-            )
+        if self.public_configs.local_model_path.parent.is_dir():
+            if not len(list(self.public_configs.local_model_path.parent.ls(""))) == 0:
+                raise ValueError(
+                    "Path where Node model should be saved is not empty. Make sure you cleaned all previous learning"
+                    " output"
+                )
+        else:
+            self.public_configs.local_model_path.parent.mkdir()
 
         self.path_messages = self.path_public_configs.parent / "messages.json"
+
+        first_message = True
+        t = time()
+        while not self.path_messages.is_file():
+            if first_message:
+                logger.info("Waiting for central server to start before creating node...")
+                first_message = False
+            sleep(1)
+            if time() - t > self.timeout_central:
+                raise TimeoutError(f"Central server did not start after {self.timeout_central} seconds.")
+        if first_message is False:
+            logger.info("...central server started. Resuming node creation.")
+
         self.messenger = NodeMessenger(self.path_messages)
         self.data = NodeDataConfig(path_data)
         self.data.dataprep_kwargs = self.public_configs.dataprep_kwargs
@@ -94,14 +114,16 @@ class Node:
         if self.public_configs.fitter not in self.possible_fitters:
             function = self.public_configs.fitter.split(".")[-1]
             module = self.public_configs.fitter.replace(f".{function}", "")
-            self.fitter = __import__(module, globals(), locals(), [function], 0)(self.public_configs, self.data)
+            self.fitter = getattr(
+                __import__(module, globals(), locals(), [function], 0), function
+            )(self.public_configs, self.data)
         else:
             self.fitter = self.possible_fitters[self.public_configs.fitter](self.public_configs, self.data)
 
         if self.public_configs.updater not in self.possible_updaters:
             function = self.public_configs.updater.split(".")[-1]
             module = self.public_configs.updater.replace(f".{function}", "")
-            self.updater = __import__(module, globals(), locals(), [function], 0)(self.data)
+            self.updater = getattr(__import__(module, globals(), locals(), [function], 0), function)(self.data)
         else:
             self.updater = self.possible_updaters[self.public_configs.updater](self.data)
 
@@ -109,7 +131,7 @@ class Node:
             if self.public_configs.dataprep not in self.possible_datapreps:
                 function = self.public_configs.dataprep.split(".")[-1]
                 module = self.public_configs.dataprep.replace(f".{function}", "")
-                self.dataprep = __import__(module, globals(), locals(), [function], 0)(self.data)
+                self.dataprep = getattr(__import__(module, globals(), locals(), [function], 0), function)(self.data)
             else:
                 self.dataprep = self.possible_datapreps[self.public_configs.dataprep](self.data)
         else:
@@ -137,40 +159,45 @@ class Node:
 
         self.messenger.fitting = True
 
-        if self.public_configs.plot_data:
-            if not (self.data.x.parent / "plots").is_dir():
-                (self.data.x.parent / "plots").mkdir()
-            self.plot_data_histogram(self.data.x.parent / "plots")
-
-        if self.dataprep is not None and not self.datapreped:
-            logger.info(f"Datapreping data of node {self.public_configs.id}...")
-            self.dataprep.dataprep()
+        try:
             if self.public_configs.plot_data:
-                if not (self.data.x.parent / "plots_datapreped").is_dir():
-                    (self.data.x.parent / "plots_datapreped").mkdir()
-                self.plot_data_histogram(self.data.x.parent / "plots_datapreped")
-            self.datapreped = True
-            logger.info(f"...datapreping done for node {self.public_configs.id}")
+                if not (self.data.x.parent / "plots").is_dir():
+                    (self.data.x.parent / "plots").mkdir()
+                self.plot_data_histogram(self.data.x.parent / "plots")
 
-        if not self.copied:
-            # Copy x and y in a different file, for it will be changed after each iterations by the update from central
-            x_suffix = self.data.x.suffix
-            self.data.x.cp(self.data.x.with_suffix("").append("_copy_for_learning").with_suffix(x_suffix))
-            self.data.x = self.data.x.with_suffix("").append("_copy_for_learning").with_suffix(x_suffix)
-            y_suffix = self.data.y.suffix
-            self.data.y.cp(self.data.y.with_suffix("").append("_copy_for_learning").with_suffix(y_suffix))
-            self.data.y = self.data.y.with_suffix("").append("_copy_for_learning").with_suffix(y_suffix)
-            self.copied = True
+            if self.dataprep is not None and not self.datapreped:
+                logger.info(f"Datapreping data of node {self.public_configs.id}...")
+                self.dataprep.dataprep()
+                if self.public_configs.plot_data:
+                    if not (self.data.x.parent / "plots_datapreped").is_dir():
+                        (self.data.x.parent / "plots_datapreped").mkdir()
+                    self.plot_data_histogram(self.data.x.parent / "plots_datapreped")
+                self.datapreped = True
+                logger.info(f"...datapreping done for node {self.public_configs.id}")
 
-        logger.info(f"Fitting node {self.public_configs.id} using {self.public_configs.fitter}...")
-        self.ruleset = self.fitter.fit()
-        logger.info(f"Found {len(self.ruleset)} rules in node {self.public_configs.id}")
-        self.ruleset_to_file()
+            if not self.copied:
+                # Copy x and y in a different file, for it will be changed after each iterations by the update from
+                # central
+                x_suffix = self.data.x.suffix
+                self.data.x.cp(self.data.x.with_suffix("").append("_copy_for_learning").with_suffix(x_suffix))
+                self.data.x = self.data.x.with_suffix("").append("_copy_for_learning").with_suffix(x_suffix)
+                y_suffix = self.data.y.suffix
+                self.data.y.cp(self.data.y.with_suffix("").append("_copy_for_learning").with_suffix(y_suffix))
+                self.data.y = self.data.y.with_suffix("").append("_copy_for_learning").with_suffix(y_suffix)
+                self.copied = True
 
-        self.messenger.fitting = False
+            logger.info(f"Fitting node {self.public_configs.id} using {self.public_configs.fitter}...")
+            self.ruleset = self.fitter.fit()
+            logger.info(f"Found {len(self.ruleset)} rules in node {self.public_configs.id}")
+            self.ruleset_to_file()
 
-        logger.info(f"... node {self.public_configs.id} fitted, results saved in"
+            self.messenger.fitting = False
+            logger.info(f"... node {self.public_configs.id} fitted, results saved in"
                     f" {self.public_configs.local_model_path.parent}.")
+        except Exception as e:
+            self.messenger.fitting = False
+            # Do not set messenger's error, done in self.watch
+            raise e
 
     def update_from_central(self, ruleset: RuleSet) -> None:
         """Modifies the files pointed by `ifra.node.Node`'s *data.x* and `ifra.node.Node`'s *data.y* by

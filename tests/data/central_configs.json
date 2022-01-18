@@ -1,6 +1,6 @@
 {
   "max_coverage": 0.25,
-  "output_path": "tests/outputs/real/ruleset.csv",
+  "output_path": "tests/outputs/ruleset.csv",
   "output_path_fs": "local",
   "min_number_of_new_models": 2,
   "aggregation": "adaboost_aggregation"

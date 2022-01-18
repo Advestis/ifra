@@ -1,0 +1,18 @@
+{
+    "features_names": ["sepal length in cm", "sepal width in cm", "petal length in cm", "petal width in cm"],
+    "classes_names": ["Iris-setosa", "Iris-versicolor", "Iris-virginica"],
+    "x_mins": "",
+    "x_maxs": "",
+    "max_depth": 3,
+    "remember_activation": false,
+    "stack_activation": false,
+    "plot_data": true,
+    "get_leaf": false,
+    "local_model_path": "/home/pcotte/Documents/git/ifra/tests/outputs/node_test/ruleset.csv",
+    "central_model_path": "/home/pcotte/Documents/git/ifra/tests/outputs/ruleset.csv",
+    "dataprep": "tests.alternates.dataprep.AlternateDataPrep",
+    "dataprep_kwargs": {"nbins": 5},
+    "id": 0,
+    "fitter": "tests.alternates.fitter.AlternateFitter",
+    "updater": "tests.alternates.updater.AlternateUpdater"
+}
