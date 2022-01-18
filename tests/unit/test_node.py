@@ -40,6 +40,7 @@ def test_init_and_watch_simple(clean):
     assert node.copied
     assert node.datapreped
     assert node.messenger.fitting is False
+    assert node.messenger.stop is True
     assert (node.data.x.parent / "x_datapreped.csv").is_file()
     assert (node.data.y.parent / "y_datapreped.csv").is_file()
     assert (node.data.x.parent / "x_datapreped_copy_for_learning.csv").is_file()

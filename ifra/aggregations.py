@@ -1,6 +1,7 @@
 from typing import List
-from ruleskit import RuleSet
+from ruleskit import RuleSet, RegressionRule, ClassificationRule
 import logging
+from collections import Counter
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +20,27 @@ class Aggregation:
         self.central_server = central_server
 
     def aggregate(self, rulesets: List[RuleSet]) -> str:
-        """To be implemented in daughter class. Must modify inplace `ifra.central_server.CentralServer` *ruleset*.
+        """Aggregates the node models into central model, then updates the central model's rules predictions
+
+        Parameters
+        ----------
+        rulesets: List[RuleSet]
+            New rulesets provided by the nodes.
+
+        Returns
+        -------
+        str\n
+          * "updated" if central model was updates\n
+          * "pass" if no new rules were found but learning should continue\n
+          * "stop" otherwise. Will stop learning.\n"""
+        result = self._aggregate(rulesets)
+        self.aggregate_predictions()
+        return result
+
+    def _aggregate(self, rulesets: List[RuleSet]) -> str:
+        """To be implemented in daughter class.
+
+         Must modify inplace `ifra.central_server.CentralServer` *ruleset*.
 
         Parameters
         ----------
@@ -32,6 +53,13 @@ class Aggregation:
           * "updated" if central model was updates\n
           * "pass" if no new rules were found but learning should continue\n
           * "stop" otherwise. Will stop learning.\n
+        """
+        pass
+
+    def aggregate_predictions(self) -> None:
+        """To be implemented in daughter class.
+
+         Must modify inplace the rules predictions in `ifra.central_server.CentralServer` *ruleset*
         """
         pass
 
@@ -50,7 +78,7 @@ class AdaBoostAggregation(Aggregation):
     not updated. If no new rules are found but each nodes had new data, learning is finished.
     """
 
-    def aggregate(self, rulesets: List[RuleSet]) -> str:
+    def _aggregate(self, rulesets: List[RuleSet]) -> str:
         logger.info("Aggregating fit results using AdaBoost method...")
         all_rules = []
         n_nodes = len(self.central_server.nodes)
@@ -116,3 +144,65 @@ class AdaBoostAggregation(Aggregation):
         del self.central_server.ruleset
         self.central_server.ruleset = new_rules
         return "updated"
+
+    def aggregate_predictions(self):
+        if self.central_server.ruleset.rule_type == ClassificationRule:
+            aggregate_classif_preds(self.central_server.ruleset)
+        elif self.central_server.ruleset.rule_type == RegressionRule:
+            aggregate_regr_preds(self.central_server.ruleset)
+        else:
+            raise TypeError(f"Unexpected ruleset's rule type {self.central_server.ruleset.rule_type}")
+
+
+def aggregate_classif_preds(ruleset: RuleSet):
+    """For now, the ruleset can contain rules with identical conditions but different predictions.
+    This method aims at solving that : for duplicated conditions, the corresponding rules will have their
+    predictions set to be the one of the most recurring prediction. If several predictions are equally frequent, the
+    rules corresponding to the duplicated conditions are discarder.
+
+    Parameters
+    ----------
+    ruleset: RuleSet
+        Modified in place
+    """
+    duplicated_conditions = {}
+    to_remove = []
+    conditions = [r.condition for r in ruleset]
+
+    if list(set(conditions)) == conditions:  # No duplicated conds -> no contradictory predictions -> do nothing
+        return
+
+    for i in range(len(ruleset)):
+        if conditions.count(conditions[i]) > 1:
+            if conditions[i] not in duplicated_conditions:
+                duplicated_conditions[conditions[i]] = [i]
+            else:
+                duplicated_conditions[conditions[i]].append(i)
+
+    for condition in duplicated_conditions:
+        preds = []
+        for i in duplicated_conditions[condition]:
+            preds.append(ruleset[i].prediction)
+        if len(set(preds)) == 1:  # Duplicated conditions predict the same : nothing to do
+            continue
+        counter = Counter(preds).most_common(2)
+        """Is a list of 2 tuples containing the 2 most frequent elements in *preds* with the number of times they
+         are present"""
+        if counter[0][1] == counter[1][1]:  # 2 or more different predictions are equally frequent : ignore rules
+            to_remove += duplicated_conditions[condition]
+            continue
+        good_pred = counter[0][0]
+        for i in duplicated_conditions[condition]:
+            # noinspection PyProtectedMember
+            ruleset[i]._prediction = good_pred
+
+    ruleset._rules = [ruleset[i] for i in range(len(ruleset)) if i not in to_remove]
+    ruleset.remember_activation = False
+    ruleset.stack_activation = False
+    ruleset._activation = None
+    ruleset.stacked_activations = None
+    ruleset._coverage = None
+
+
+def aggregate_regr_preds(self):
+    pass

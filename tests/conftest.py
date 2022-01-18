@@ -56,6 +56,7 @@ def clean():
     (data_root / "node_test" / "x_copy_for_learning.csv").rm(absent="ignore")
     (data_root / "node_test" / "y_copy_for_learning.csv").rm(absent="ignore")
 
+    (data_root / "node_test" / "messages.json").rm(absent="ignore")
     NodeMessenger(data_root / "node_test" / "messages.json")
 
     yield
