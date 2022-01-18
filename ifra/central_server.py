@@ -63,6 +63,7 @@ class NodeGate:
             Directory were node's public configuration file can be found
         """
 
+        self.ok = False
         if type(public_config_path) == str:
             public_config_path = TransparentPath(public_config_path)
 
@@ -218,7 +219,7 @@ class CentralServer:
 
         self.central_configs = CentralConfig(central_configs_path)
         self.nodes = []
-        for path in nodes_configs_paths:
+        for path in set(nodes_configs_paths):  # cast into set in order not to create twice the same node
             node = NodeGate(path)
             if node.ok:
                 self.nodes.append(node)
