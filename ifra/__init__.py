@@ -11,8 +11,8 @@ those steps:\n
   account for their next learning phase\n
 Steps 2 to 4 are then repeated until either the user stops the algorithm or some threshold is reached.
 
-In IFRA, the model to train produces rules as learning output. Rules are managed by the `ruleskit` pacakge. The
-available learning models are:\n
+In IFRA, the model to train is supposed to produce rules as learning output. Rules are managed by the `ruleskit`
+pacakge. The available learning models are:\n
   * decisiontree_fitter (see `ifra.fitters.DecisionTreeFitter`)\n
 The user has the liberty to choose the aggregation method among:\n
   * adaboost_aggregation (see `ifra.aggregations.AdaBoostAggregation`)\n
@@ -25,7 +25,15 @@ dataprep method. The available datapreps are:\n
 
 In addition to the available objects listed above, the user can define its own by overloading the `ifra.fitters.Fitter`,
 `ifra.aggregations.Aggregation`, `ifra.updaters.Updater` and `ifra.datapreps.DataPrep` classes. Read their
-documentation to know how.
+documentation to know how. To use home-made objects, the user must specify them in the `ifra.config.NodePublicConfig`
+json file (for *fitter*, *updater* and *dataprep*) or in `ifra.config.CentralConfig` json file (for *aggregation*). To
+work, the line passed in the json for, let's say, the aggregation, must be like
+>>> {
+>>>    ...
+>>>    "aggregation": "some.importable.AggregationClass"
+>>>    ...
+>>> }
+where *some.importable.AggregationClass* can be imported from current working directory.
 
 To preserve data separation between each node and between the central server, IFRA assumes that each node has a
 dedicated GCS directory where it will send its model, and where it will look for the central model. GCS paths are
@@ -44,6 +52,11 @@ To use IFRA, you need to do 5 things:\n
   5. On the entity that should act as the central server, instantiate the `ifra.central_server.CentralServer` class by
   providing it with the list of all nodes configuration paths and its central configuration, then call its
   `ifra.central_server.CentralServer.watch` method.
+
+Step 4 and 5 can be done in any order. Nodes will wait for their central server to start before initiating. They do that
+by monitoring the existence of the "messages.json" file that the central server will create alongside the node's public
+configuration json file. It should be deleted automatically when learning is over, but a crash in the code at the wrong
+moment might leave the file, beware of that.
 
 Example of step 1: you could create nodes public configuration json files contaning:
 >>> {

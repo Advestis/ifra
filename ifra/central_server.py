@@ -75,6 +75,9 @@ class NodeGate:
             return
         self.path_public_configs = self.public_configs.path
         self.path_messages = self.path_public_configs.parent / "messages.json"
+        if self.path_messages.is_file():
+            logger.warning(f"Deleting previous {self.path_messages} file in . It should be be here though !")
+            self.path_messages.rm()
         self.messenger = NodeMessenger(self.path_messages)
 
         if self.messenger.running:
@@ -335,8 +338,13 @@ class CentralServer:
                     if node.checked:
                         checked_nodes.append(node)
 
-                    if node.messenger.error is not None:
-                        logger.info(f"Removing crashed node {node.public_configs.id} from learning")
+                    if node.messenger.error is not None or node.messenger.stop is True:
+                        if node.messenger.error is not None:
+                            logger.info(f"Removing crashed node {node.public_configs.id} from learning")
+                        else:
+                            logger.info(f"Removing node {node.public_configs.id} from learning : its timeout"
+                                        " was reached and it stopped")
+                        node.messenger.rm()
                         self.nodes.remove(node)
                         continue
                     if self.reference_node_config is None:

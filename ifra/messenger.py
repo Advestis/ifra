@@ -177,3 +177,7 @@ class NodeMessenger:
         """Reset messages to their default values specified in `ifra.messenger.NodeMessenger.DEFAULT_MESSAGES`"""
         self.messages = copy(self.DEFAULT_MESSAGES)
         self.save()
+
+    def rm(self):
+        """Removes the NodeMessenger's json file."""
+        self.path.rm(absent="ignore")

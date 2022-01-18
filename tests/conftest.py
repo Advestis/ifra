@@ -1,5 +1,6 @@
 from pytest import fixture
 from transparentpath import Path
+from ifra.messenger import NodeMessenger
 
 
 @fixture()
@@ -7,6 +8,7 @@ def clean():
     output_root = Path("tests/outputs", fs="local")
     if not output_root.is_dir():
         output_root.mkdir()
+
     output_dirs = [
         output_root / "node_0",
         output_root / "node_1",
@@ -33,7 +35,6 @@ def clean():
     for afile in configs_files:
         (afile / "public_configs.json.locked").rm(absent="ignore")
         (afile / "data_configs.json.locked").rm(absent="ignore")
-        (afile / "messages.json").rm(absent="ignore")
     (configs_root / "central_configs.json.locked").rm(absent="ignore")
 
     data_root = Path("tests/data", fs="local")
@@ -55,12 +56,13 @@ def clean():
     (data_root / "node_test" / "x_copy_for_learning.csv").rm(absent="ignore")
     (data_root / "node_test" / "y_copy_for_learning.csv").rm(absent="ignore")
 
+    NodeMessenger(data_root / "node_test" / "messages.json")
+
     yield
 
     for afile in configs_files:
         (afile / "public_configs.json.locked").rm(absent="ignore")
         (afile / "data_configs.json.locked").rm(absent="ignore")
-        (afile / "messages.json").rm(absent="ignore")
     (configs_root / "central_configs.json.locked").rm(absent="ignore")
 
     (data_root / "node_test" / "x_datapreped.csv").rm(absent="ignore")

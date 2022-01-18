@@ -317,6 +317,8 @@ class Node:
             new_central_model = True  # start at true to trigger fit even if no central model is here at first iteration
             logger.info(f"Starting node {self.public_configs.id}")
             self.messenger.running = True
+            del_messenger = False
+
             while time() - t < timeout or timeout <= 0:
 
                 self.public_configs = NodePublicConfig(self.path_public_configs)
@@ -327,10 +329,12 @@ class Node:
                     )
                 if self.messenger.central_error is not None:
                     logger.info(f"Central server crashed. Stopping node {self.public_configs.id}.")
+                    del_messenger = True
                     stop_message = False
                     break
                 if self.messenger.stop:
                     logger.info(f"'stop' flag is True. Stopping learning in node {self.public_configs.id}")
+                    del_messenger = True
                     stop_message = False
                     break
 
@@ -356,6 +360,10 @@ class Node:
                             f" {self.public_configs.id}.")
 
             self.messenger.running = False
+            self.messenger.stop = True
+
+            if del_messenger:
+                self.messenger.rm()
         except Exception as e:
             self.messenger.running = False
             self.messenger.error = traceback.format_exc()
