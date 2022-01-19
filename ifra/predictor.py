@@ -1,3 +1,4 @@
+import numpy as np
 from ruleskit import RuleSet, ClassificationRule, RegressionRule
 import pandas as pd
 
@@ -35,8 +36,13 @@ class EquallyWeightedClassificator(ClassificationPredictor):
     """
 
     def predict(self, x: pd.DataFrame) -> pd.Series:
+        if len(self.ruleset) == 0:
+            return pd.Series(index=x.index)
         self.ruleset.calc_activation(x)
-        most_freq_pred = pd.concat([r.predict(x) for r in self.ruleset], axis=1).T.mode()
+        if isinstance(self.ruleset[0].prediction, str):
+            most_freq_pred = pd.concat([r.predict(x) for r in self.ruleset], axis=1).replace("nan", np.nan).T.mode()
+        else:
+            most_freq_pred = pd.concat([r.predict(x) for r in self.ruleset], axis=1).T.mode()
         most_freq_pred = most_freq_pred.loc[:, most_freq_pred.count() == 1].dropna().T.squeeze()
         return most_freq_pred.reindex(x.index)
 
@@ -49,7 +55,9 @@ class EquallyWeightedRegressor(RegressionPredictor):
     """
 
     def predict(self, x: pd.DataFrame) -> pd.Series:
-        return pd.concat([r.predict(x) for r in self.ruleset], axis=1).mean()
+        if len(self.ruleset) == 0:
+            return pd.Series(index=x.index)
+        return pd.concat([r.predict(x) for r in self.ruleset], axis=1).mean(axis=1)
 
 
 class CriterionWeightedRegressor(RegressionPredictor):
@@ -60,10 +68,14 @@ class CriterionWeightedRegressor(RegressionPredictor):
     """
 
     def predict(self, x: pd.DataFrame) -> pd.Series:
+        if len(self.ruleset) == 0:
+            return pd.Series(index=x.index)
         self.ruleset.calc_activation(x)
         predictions = pd.concat([r.predict(x) for r in self.ruleset], axis=1)
         criterions = pd.concat([r.criterion for r in self.ruleset], axis=1).dropna(how="all")
         if criterions.empty:
             raise ValueError("No rules had evaluated criterion : can not use CriterionWeightedRegressor")
+        # Put NaN where prediction is NaN so that not activated rules do not count in the weighting average
         predictions = predictions.reindex(criterions.index)
-        return (predictions * criterions).sum() / criterions.sum().reindex(x.index)
+        criterions = (~predictions.isna() * 1).replace(0, np.nan) * criterions
+        return ((predictions * criterions).sum() / criterions.sum()).reindex(x.index)
