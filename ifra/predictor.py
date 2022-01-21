@@ -26,14 +26,14 @@ class Predictor:
 
 class ClassificationPredictor(Predictor):
     def __init__(self, ruleset: RuleSet):
-        if not isinstance(ruleset.rule_type, ClassificationRule):
+        if ruleset.rule_type != ClassificationRule:
             raise TypeError("ClassificationPredictor can only be used on classification rules")
         super().__init__(ruleset)
 
 
 class RegressionPredictor(Predictor):
     def __init__(self, ruleset: RuleSet):
-        if not isinstance(ruleset.rule_type, RegressionRule):
+        if ruleset.rule_type != RegressionRule:
             raise TypeError("RegressionPredictor can only be used on regression rules")
         super().__init__(ruleset)
 
@@ -50,11 +50,47 @@ class EquallyWeightedClassificator(ClassificationPredictor):
             return pd.Series(index=x.index)
         self.ruleset.calc_activation(x)
         if isinstance(self.ruleset[0].prediction, str):
-            most_freq_pred = pd.concat([r.predict(x) for r in self.ruleset], axis=1).replace("nan", np.nan).T.mode()
+            most_freq_pred = pd.concat([r.predict(x) for r in self.ruleset], axis=1).fillna(value=np.nan).replace("nan", np.nan).T.mode()
         else:
             most_freq_pred = pd.concat([r.predict(x) for r in self.ruleset], axis=1).T.mode()
         most_freq_pred = most_freq_pred.loc[:, most_freq_pred.count() == 1].dropna().T.squeeze()
-        return most_freq_pred.reindex(x.index)
+        if isinstance(self.ruleset[0].prediction, str):
+            return most_freq_pred.reindex(x.index).fillna("nan")
+        else:
+            return most_freq_pred.reindex(x.index)
+
+
+class CriterionWeightedClassificator(ClassificationPredictor):
+    """
+    Predictor that can be used with classification rules. For a given observation, chooses the prediction having the
+    most "weight", the weight being the greatest criterion among all rules giving this prediction. If two predictions
+    have the same weight,  puts NaN in the prediction vector for this observation.
+    """
+
+    def predict(self, x: pd.DataFrame) -> pd.Series:
+        if len(self.ruleset) == 0:
+            return pd.Series(index=x.index)
+        self.ruleset.calc_activation(x)
+        if isinstance(self.ruleset[0].prediction, str):
+            predictions = pd.concat([r.predict(x) for r in self.ruleset], axis=1).fillna(value=np.nan).replace("nan", np.nan)
+        else:
+            predictions = pd.concat([r.predict(x) for r in self.ruleset], axis=1)
+
+        predictions.columns = pd.RangeIndex(0, len(predictions.columns))
+        criterions = pd.DataFrame([[r.criterion for _ in x.index] for r in self.ruleset], index=x.index).T.fillna(value=np.nan).dropna(how="all")
+        if criterions.empty:
+            raise ValueError("No rules had evaluated criterion : can not use CriterionWeightedRegressor")
+        # Put NaN where prediction is NaN so that not activated rules do not count in the weighting average
+        predictions = predictions.reindex(criterions.index)
+        criterions = (~predictions.isna() * 1).replace(0, np.nan) * criterions
+        mask = (criterions.T == criterions.max(axis=1)).T
+        predictions = predictions[mask]
+        most_freq_pred = predictions.T.mode()
+        most_freq_pred = most_freq_pred.loc[:, most_freq_pred.count() == 1].dropna().T.squeeze()
+        if isinstance(self.ruleset[0].prediction, str):
+            return most_freq_pred.reindex(x.index).fillna("nan")
+        else:
+            return most_freq_pred.reindex(x.index)
 
 
 class EquallyWeightedRegressor(RegressionPredictor):
@@ -82,7 +118,8 @@ class CriterionWeightedRegressor(RegressionPredictor):
             return pd.Series(index=x.index)
         self.ruleset.calc_activation(x)
         predictions = pd.concat([r.predict(x) for r in self.ruleset], axis=1)
-        criterions = pd.concat([r.criterion for r in self.ruleset], axis=1).dropna(how="all")
+        predictions.columns = pd.RangeIndex(0, len(predictions.columns))
+        criterions = pd.DataFrame([[r.criterion for _ in x.index] for r in self.ruleset], index=x.index).T.fillna(value=np.nan).dropna(how="all")
         if criterions.empty:
             raise ValueError("No rules had evaluated criterion : can not use CriterionWeightedRegressor")
         # Put NaN where prediction is NaN so that not activated rules do not count in the weighting average
