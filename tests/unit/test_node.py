@@ -48,7 +48,6 @@ def test_init_and_watch_simple(clean):
     assert (node.data.x_path.parent / "plots").is_dir()
     assert (node.data.x_path.parent / "plots_datapreped").is_dir()
     assert node.public_configs.local_model_path.is_file()
-    node.messenger.rm()
 
 
 def test_init_alternate_dataprep_updater_fitter():
@@ -56,4 +55,3 @@ def test_init_alternate_dataprep_updater_fitter():
     assert isinstance(node.dataprep, AlternateDataPrep)
     assert isinstance(node.updater, AlternateUpdater)
     assert isinstance(node.fitter, AlternateFitter)
-    node.messenger.rm()
