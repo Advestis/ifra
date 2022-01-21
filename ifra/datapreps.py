@@ -8,33 +8,38 @@ from .configs import NodeDataConfig
 
 
 class DataPrep:
+
     def __init__(self, data: NodeDataConfig, **kwargs):
         """
         Parameters
         ----------
         data: NodeDataConfig
             `ifra.node.Node`'s *data*
+        kwargs:
+            Any additionnal keyword argument that the overleading class accepts. Those arguments will become attributes.
         """
         self.data = data
+        for arg in kwargs:
+            setattr(self, arg, kwargs[arg])
 
     def dataprep(self):
-        """Writes the output of the dataprep in `ifra.node.Node`'s *data.x* and `ifra.node.Node`'s *data.y* parent
-        directories by appending *_datapreped* to the files names. Modifies `ifra.node.Node`'s *data.x* and
-        `ifra.node.Node`'s *data.y* to point to those files.
+        """Writes the output of the dataprep in `ifra.node.Node`'s *data.x_path* and `ifra.node.Node`'s *data.y_path*
+        parent directories by appending *_datapreped* to the files names. Modifies `ifra.node.Node`'s *data.x_path* and
+        `ifra.node.Node`'s *data.y_path* to point to those files.
         """
         x, y = self.dataprep_method(
-            self.data.x.read(**self.data.x_read_kwargs),
-            self.data.y.read(**self.data.y_read_kwargs)
+            self.data.x_path.read(**self.data.x_read_kwargs),
+            self.data.y_path.read(**self.data.y_read_kwargs)
         )
-        x_suffix = self.data.x.suffix
-        y_suffix = self.data.y.suffix
-        x_datapreped_path = self.data.x.with_suffix("").append("_datapreped").with_suffix(x_suffix)
-        y_datapreped_path = self.data.y.with_suffix("").append("_datapreped").with_suffix(y_suffix)
+        x_suffix = self.data.x_path.suffix
+        y_suffix = self.data.y_path.suffix
+        x_datapreped_path = self.data.x_path.with_suffix("").append("_datapreped").with_suffix(x_suffix)
+        y_datapreped_path = self.data.y_path.with_suffix("").append("_datapreped").with_suffix(y_suffix)
 
         x_datapreped_path.write(x)
         y_datapreped_path.write(y)
-        self.data.x = x_datapreped_path
-        self.data.y = y_datapreped_path
+        self.data.x_path = x_datapreped_path
+        self.data.y_path = y_datapreped_path
 
     def dataprep_method(self, x: pd.DataFrame, y: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
         """To be implemented in daughter class.
@@ -58,11 +63,8 @@ class BinFeaturesDataPrep(DataPrep):
         Number of bins to use
     """
 
-    def __init__(self, data: NodeDataConfig):
-        super().__init__(data)
-        if "nbins" not in data.dataprep_kwargs:
-            raise ValueError("If using BinFeaturesDataPrep, node's data config 'dataprep_kwargs' must specify 'nbins'")
-        self.nbins = self.data.dataprep_kwargs["nbins"]
+    def __init__(self, data: NodeDataConfig, nbins):
+        super().__init__(data, nbins=nbins)
 
     def dataprep_method(self, x, y):
 
@@ -81,6 +83,7 @@ class BinFeaturesDataPrep(DataPrep):
             return bins
 
         def dicretize(x_series):
+            # noinspection PyUnresolvedReferences
             bins = get_bins(x_series, self.nbins)
             mask = np.isnan(x_series)
             discrete_x = x_series.apply(lambda var: bisect(bins, var))

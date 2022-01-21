@@ -75,17 +75,24 @@ class NodeGate:
             return
         self.path_public_configs = self.public_configs.path
         self.path_messages = self.path_public_configs.parent / "messages.json"
-        if self.path_messages.is_file():
-            logger.warning(f"Deleting previous {self.path_messages} file in . It should be be here though !")
-            self.path_messages.rm()
         self.messenger = NodeMessenger(self.path_messages)
 
         if self.messenger.running:
             if self.public_configs.id is None:
-                raise ValueError(f"Node {self.public_configs.id}'s messenger says it is running, but node's ID is"
-                                 f"None. Delete the node's messages file {self.path_messages} and start again.")
-            raise ValueError(f"Node {self.public_configs.id} was running before the central server started. Do not"
-                             f"do that")
+                logger.warning(
+                    f"Node {self.id}'s messenger says it is running, but node's ID is None."
+                    " Stopping it and removing it from learning."
+                )
+                self.messenger.stop = True
+                return
+        if self.messenger.error:
+            logger.warning(f"Node {self.public_configs.id} seems to have crashed before central server started.")
+            self.messenger.rm()
+            return
+        if self.messenger.stop:
+            logger.warning(f"Node {self.public_configs.id} seems to have stoped before central server started.")
+            self.messenger.rm()
+            return
         self.messenger.reset_messages()
 
         self.ruleset = None
@@ -111,7 +118,7 @@ class NodeGate:
             self.ruleset.load(self.public_configs.local_model_path)
             self.last_fetch = datetime.now()
             self.new_data = True
-            logger.info(f"Fetched new ruleset from node {self.id} at {self.last_fetch}")
+            logger.info(f"Fetched new ruleset from node {self.public_configs.id} at {self.last_fetch}")
 
         if self.new_data:
             # If we are here, then we already have self.ruleset matching the latest node model. It might not have
@@ -133,12 +140,16 @@ class NodeGate:
 
         self.messenger.get_latest_messages()
 
+        if self.messenger.error is not None:
+            # Handled by 'watch'
+            return
+
         if not self.messenger.running:
-            logger.info(f"Node {self.id} is not running yet")
+            logger.info(f"Node {self.public_configs.id} is not running yet")
             return
 
         if self.messenger.fitting:
-            logger.info(f"Node {self.id} is fitting.")
+            logger.info(f"Node {self.public_configs.id} is fitting.")
             return
 
         self.checked = True
@@ -157,7 +168,7 @@ class NodeGate:
             ):
                 get_ruleset()
             else:
-                logger.info(f"Node {self.id} has no new model")
+                logger.info(f"Node {self.public_configs.id} has no new model")
 
     def push_central_model(self, ruleset: RuleSet):
         """Pushes central model's ruleset to the node remote directory. This means the node's latest model was used in
@@ -169,7 +180,9 @@ class NodeGate:
         ruleset: RuleSet
             The central model's ruleset
         """
-        logger.info(f"Pushing central model to node {self.id} at {self.public_configs.central_model_path}")
+        logger.info(
+            f"Pushing central model to node {self.public_configs.id} at {self.public_configs.central_model_path}"
+        )
         ruleset.save(self.public_configs.central_model_path)
         self.new_data = False
 
@@ -231,6 +244,8 @@ class CentralServer:
             raise ValueError("Minimum number of new nodes to trigger aggregation must be 2 or more")
 
         if len(self.nodes) < self.central_configs.min_number_of_new_models:
+            for node in self.nodes:
+                node.messenger.central_error = True
             raise ValueError(f"The minimum number of nodes to trigger aggregation "
                              f"({self.central_configs.min_number_of_new_models}) is greater than the number of"
                              f" available nodes ({len(self.nodes)}): that can not work !")
@@ -321,15 +336,16 @@ class CentralServer:
 
             while time() - t < timeout or timeout <= 0:
 
+                if len(self.nodes) == 0:
+                    logger.warning("No nodes to learn on ! Stopping learning.")
+                    break
+
                 if len(checked_nodes) == len(self.nodes):
                     logger.info("All nodes were checked and none is fitting anything : no new data can be extracted."
                                 "Stopping learning.")
                     learning_over = True
                     break
                 new_models = False
-
-                if len(self.nodes) == 0:
-                    raise ValueError("No nodes to learn on !")
 
                 for node in copy(self.nodes):
                     if node in updated_nodes:
@@ -394,12 +410,18 @@ class CentralServer:
             if learning_over is False:
                 logger.info(f"Timeout of {timeout} seconds reached, stopping learning.")
             for node in self.nodes:
-                node.messenger.stop = True
+                if node.messenger.running:
+                    node.messenger.stop = True
+                else:
+                    node.messenger.rm()
             if self.ruleset is None:
                 logger.warning("Learning failed to produce a central model. No output generated.")
             logger.info(f"Made {iterations} complete iterations between central server and nodes.")
             logger.info(f"Results saved in {self.central_configs.output_path}")
         except Exception as e:
             for node in self.nodes:
-                node.messenger.central_error = traceback.format_exc()
+                if node.messenger.running:
+                    node.messenger.central_error = traceback.format_exc()
+                else:
+                    node.messenger.rm()
             raise e

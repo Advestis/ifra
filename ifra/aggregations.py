@@ -5,19 +5,25 @@ from collections import Counter
 
 logger = logging.getLogger(__name__)
 
+# TODO (pcotte) : make it a watcher for data separation
+
 
 class Aggregation:
     """Abstract class for aggregating node models."""
 
     # noinspection PyUnresolvedReferences
-    def __init__(self, central_server: "CentralServer"):  # Do not import CentralServer to avoid recursive import
+    def __init__(self, central_server: "CentralServer", **kwargs):
         """
         Parameters
         ----------
         central_server: CentralServer
             `ifra.central_server.CentralServer` object
+        kwargs:
+            Any additionnal keyword argument that the overleading class accepts. Those arguments will become attributes.
         """
         self.central_server = central_server
+        for arg in kwargs:
+            setattr(self, arg, kwargs[arg])
 
     def aggregate(self, rulesets: List[RuleSet]) -> str:
         """Aggregates the node models into central model, then updates the central model's rules predictions
@@ -94,17 +100,12 @@ class AdaBoostAggregation(Aggregation):
             return "pass"
 
         if self.central_server.ruleset is None:
-            occurences = {
-                r: all_rules.count(r)
-                for r in set(all_rules)
-                if r.coverage < self.central_server.central_configs.max_coverage
-            }
+            occurences = {r: all_rules.count(r)for r in set(all_rules)}
         else:
             occurences = {
                 r: all_rules.count(r)
                 for r in set(all_rules)
-                if r.coverage < self.central_server.central_configs.max_coverage
-                and r not in self.central_server.ruleset
+                if r not in self.central_server.ruleset
             }
 
         if len(occurences) == 0:
@@ -205,4 +206,5 @@ def aggregate_classif_preds(ruleset: RuleSet):
 
 
 def aggregate_regr_preds(self):
+    # TODO (pcotte)
     pass

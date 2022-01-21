@@ -6,6 +6,7 @@ import numpy as np
 from ruleskit import RuleSet
 from sklearn import tree
 from ruleskit.utils.rule_utils import extract_rules_from_tree
+from ruleskit import Rule
 import logging
 
 from .configs import NodePublicConfig, NodeDataConfig
@@ -20,10 +21,25 @@ class Fitter:
         self,
         public_configs: NodePublicConfig,
         data: NodeDataConfig,
+        **kwargs
     ):
+        """
+
+        Parameters
+        ----------
+        public_configs: NodePublicConfig
+            `ifra.node.Node`'s *public_config*
+        data: NodeDataConfig
+            `ifra.node.Node`'s *data*
+        kwargs:
+            Any additionnal keyword argument that the overleading class accepts. Those arguments will become attributes.
+        """
         self.public_configs = public_configs
-        self.paths = data
+        self.data = data
         self.ruleset = None
+        Rule.SET_THRESHOLDS(self.public_configs.thresholds_path)
+        for arg in kwargs:
+            setattr(self, arg, kwargs[arg])
 
     def fit(self) -> RuleSet:
         """To be implemented in daughter class"""
@@ -57,8 +73,8 @@ class DecisionTreeFitter(Fitter):
         self.tree = None
 
     def fit(self) -> RuleSet:
-        """Fits the decision tree on the data pointed by `ifra.fitters.DecisionTreeFitter` *paths.x* and
-        `ifra.fitters.DecisionTreeFitter` *paths.y*, sets
+        """Fits the decision tree on the data pointed by `ifra.fitters.DecisionTreeFitter` *data.x_path* and
+        `ifra.fitters.DecisionTreeFitter` *data.y_path*, sets
         `ifra.fitters.DecisionTreeFitter`*tree* saves it as a .dot, .svg and .joblib file in the same place
         the node will save its ruleset. Those files will be unique for each time the fit function is called.
         Also sets `ifra.fitters.DecisionTreeFitter` *ruleset* and returns it.
@@ -69,8 +85,8 @@ class DecisionTreeFitter(Fitter):
             `ifra.fitters.DecisionTreeFitter` *ruleset*
         """
         self.make_fit(
-            self.paths.x.read(**self.paths.x_read_kwargs).values,
-            self.paths.y.read(**self.paths.y_read_kwargs).values,
+            self.data.x_path.read(**self.data.x_read_kwargs).values,
+            self.data.y_path.read(**self.data.y_read_kwargs).values,
             self.public_configs.max_depth,
             self.public_configs.get_leaf,
             self.public_configs.x_mins,
@@ -151,7 +167,7 @@ class DecisionTreeFitter(Fitter):
         if len(self.ruleset) > 0:
             # Compute each rule's activation vector, and the ruleset's if remember_activation, and will stack the
             # rules' if stack_activation is True
-            self.ruleset.calc_activation(x)
+            self.ruleset.fit(y=y, xs=x)
             # self.ruleset.check_duplicated_rules(self.ruleset.rules, name_or_index="name")
 
     def tree_to_graph(

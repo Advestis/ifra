@@ -6,8 +6,18 @@ import pandas as pd
 class Predictor:
     """Class to overload. Implements the notion of ruleset's prediction."""
 
-    def __init__(self, ruleset: RuleSet):
+    def __init__(self, ruleset: RuleSet, **kwargs):
+        """
+
+        Parameters
+        ----------
+        ruleset: RuleSet
+        kwargs:
+            Any additionnal keyword argument that the overleading class accepts. Those arguments will become attributes.
+        """
         self.ruleset = ruleset
+        for arg in kwargs:
+            setattr(self, arg, kwargs[arg])
 
     def predict(self, x: pd.DataFrame) -> pd.Series:
         """To be implemented in daughter class"""

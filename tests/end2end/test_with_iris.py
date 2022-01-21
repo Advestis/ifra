@@ -33,15 +33,17 @@ def test_iris(clean):
     for public, data in zip(nodes_public_config, nodes_data_config):
         processes.append(Process(target=make_node, args=(public, data)))
         processes[-1].start()
+    sleep(3)
 
     central_config_path = "tests/data/central_configs.json"
     server = CentralServer(nodes_configs_paths=nodes_public_config, central_configs_path=central_config_path)
     processes.append(Process(target=server.watch, args=(40,)))
     processes[-1].start()
-    sleep(2)
 
+    success = []
     while len(processes) > 0:
         for proc in processes:
             if proc.exitcode is not None:
                 processes.remove(proc)
-                assert proc.exitcode == 0
+                success.append(proc.exitcode == 0)
+    assert all(success)

@@ -7,6 +7,13 @@ from json import load
 from transparentpath import TransparentPath
 
 
+def handle_path(path, fs):
+    if fs is not None:
+        return TransparentPath(path, fs=fs)
+    else:
+        return TransparentPath(path)
+
+
 class Config:
 
     # noinspection PyUnresolvedReferences
@@ -83,10 +90,13 @@ class Config:
             for key in self.configs:
                 if key not in self.EXPECTED_CONFIGS and key not in self.ADDITIONNAL_CONFIGS:
                     raise IndexError(f"Unexpected config {key}")
-
-            for key in self.configs:
                 if self.configs[key] == "":
-                    self.configs[key] = None
+                    if key.endswith("_kwargs"):
+                        self.configs[key] = {}
+                    else:
+                        self.configs[key] = None
+                elif key.endswith("_path"):
+                    self.configs[key] = handle_path(self.configs[key], self.configs.get(f"{key}_fs", None))
 
             lockfile.rm(absent="ignore")
         except Exception as e:
@@ -191,27 +201,39 @@ class NodePublicConfig(Config):
         If True, will only consider the leaf ofthe tree to create rules. If False, every node of the tree will also be
         a rule.
     local_model_path: TransparentPath
-        Path where the node is supposed to write its model. Should point to a csv file to which the central server have
+        Path where the node is supposed to write its model. Should point to a csv file to which the central server has
         access.
     central_model_path: TransparentPath
         Path where the node is supposed to look for the central model. Should point to a csv file.
+    id: Union[None, int, str]
+        Name or number of the node. If not specified, will be set by central server. If not specified, the json file
+        should still contain the key *id*, but with value "".
     dataprep: Union[str]
         Name of the dataprep to use. Can be "" or one of:\n
           * BinFeaturesDataPrep (see `ifra.datapreps.BinFeaturesDataPrep`)\n
         If not specified, will be set by central server. If not specified, the json  file should still contain the key
         *dataprep*, but with value "".
     dataprep_kwargs: dict
-        Keyword arguments for the dataprep. If not specified, will be set by central server. If not specified, the json
-        file should still contain the key *dataprep_kwargs*, but with value "".
-    id: Union[None, int, str]
-        Name or number of the node. If not specified, will be set by central server. If not specified, the json file
-        should still contain the key *id*, but with value "".
+        Keyword arguments for the `ifra.datapreps.Dataprep` init. If not specified, the json file should still contain
+        the key *dataprep_kwargs*, but with value "".
     fitter: str
         Fitter to use. Can be one of :\n
           * decisiontree_fitter (see `ifra.fitter.DecisionTreeFitter`)\n
+    fitter_kwargs: dict
+        Keyword arguments for the `ifra.fitters.Fitter` init. If not specified, the json file should still contain the
+        key *fitter_kwargs*, but with value "".
     updater: str
         Update method to be used by the node to take the central model into account. Can be one of:\n
           * adaboost_updater (see `ifra.updaters.AdaboostUpdater`)\n
+    updater_kwargs: dict
+        Keyword arguments for the `ifra.updaters.Updater` init. If not specified, the json file should still contain the
+        key *updater_kwargs*, but with value "".
+    thresholds_path: TransparentPath
+        Path to the json file to use to set `ruleskit.thresholds.Thresholds`. If not specified, the json
+        file should still contain the key *thresholds_path*, but with value "".
+    thresholds_path_fs: TransparentPath
+         File system to use for thresholds json file. Can be 'gcs', 'local' or "". If not specified, the json
+        file should still contain the key *thresholds_path_fs*, but with value "".
     """
 
     EXPECTED_CONFIGS = [
@@ -230,23 +252,26 @@ class NodePublicConfig(Config):
         "dataprep_kwargs",
         "id",
         "fitter",
-        "updater"
+        "fitter_kwargs",
+        "updater",
+        "updater_kwargs",
+        "thresholds_path",
+        "thresholds_path_fs"
     ]
-
-    def __init__(self, path: Union[str, Path, TransparentPath]):
-        super().__init__(path)
-        if isinstance(self.configs["local_model_path"], str):
-            self.configs["local_model_path"] = TransparentPath(self.configs["local_model_path"])
-        if isinstance(self.configs["central_model_path"], str):
-            self.configs["central_model_path"] = TransparentPath(self.configs["central_model_path"])
 
     def __eq__(self, other):
         if not isinstance(other, NodePublicConfig):
             return False
         for key in NodePublicConfig.EXPECTED_CONFIGS:
             # Those parameters can change without problem
-            if key == "local_model_path" or key == "central_model_path" or key == "id":
+            if key == "local_model_path" or key == "central_model_path" or key == "id" or key.endswith("_fs"):
                 continue
+            if key not in self.configs and key not in other.configs:
+                continue
+            if key == "thresholds":
+                if (self.configs[key] == "" and other.configs[key] == "")\
+                        or (self.configs[key] != "" and other.configs[key] != ""):
+                    continue
             if self.configs[key] != other.configs[key]:
                 return False
         return True
@@ -265,8 +290,6 @@ class CentralConfig(Config):
     configs: dict
         see `Config`
 
-    max_coverage: float
-        Maximum coverage allowed for a rule of the node to be aggregated into the central mode
     output_path: TransparentPath
         Path where the central server will save its model at the end of the learning. Will also produce one output each
         time the model is updated. Should point to a csv file.
@@ -277,25 +300,18 @@ class CentralConfig(Config):
     aggregation: str
         Name of the aggregation method. Can be one of: \n
           * adaboost_aggregation (see `ifra.aggregations.AdaBoostAggregation`)\n
+    aggregation_kwargs: dict
+        Keyword arguments for the `ifra.aggregations.Aggregation` init. If not specified, the json file should still
+        contain the key *aggregation_kwargs*, but with value "".
     """
 
     EXPECTED_CONFIGS = [
-        "max_coverage",
         "output_path",
         "output_path_fs",
         "min_number_of_new_models",
-        "aggregation"
+        "aggregation",
+        "aggregation_kwargs"
     ]
-
-    def __init__(self, path: Union[str, Path, TransparentPath]):
-        super().__init__(path)
-        if isinstance(self.configs["output_path"], str):
-            if self.configs["output_path_fs"] is not None:
-                self.configs["output_path"] = TransparentPath(
-                    self.configs["output_path"], fs=self.configs["output_path_fs"]
-                )
-            else:
-                self.configs["output_path"] = TransparentPath(self.configs["output_path"])
 
 
 class NodeDataConfig(Config):
@@ -338,7 +354,7 @@ class NodeDataConfig(Config):
         Set by `ifra.node.Node`. Keyword arguments for the dataprep.
     """
 
-    EXPECTED_CONFIGS = ["x", "y", "x_read_kwargs", "y_read_kwargs", "x_fs", "y_fs"]
+    EXPECTED_CONFIGS = ["x_path", "y_path", "x_read_kwargs", "y_read_kwargs", "x_path_fs", "y_path_fs"]
     ADDITIONNAL_CONFIGS = {"dataprep_kwargs": {}}
 
     def __init__(self, path: Union[str, Path, TransparentPath]):
@@ -346,24 +362,16 @@ class NodeDataConfig(Config):
 
         if "index_col" in self.x_read_kwargs:
             if self.x_read_kwargs["index_col"] != 0:
-                raise ValueError("If specifying index_col, it should be 0, otherwise you will have problem when saving "
-                                 "intermediate data")
+                raise ValueError("If specifying index_col, it should be 0, otherwise you will have problems when saving"
+                                 " intermediate x learning copies")
         else:
             if self.x.suffix == ".csv":
-                raise ValueError("If file is a csv, then its read kwargs should contain index_col=0")
+                raise ValueError("If x file is a csv, then its read kwargs should contain 'index_col=0'")
 
         if "index_col" in self.y_read_kwargs:
             if self.y_read_kwargs["index_col"] != 0:
-                raise ValueError("If specifying index_col, it should be 0, otherwise you will have problem when saving "
-                                 "intermediate data")
+                raise ValueError("If specifying index_col, it should be 0, otherwise you will have problems when saving"
+                                 " intermediate y learning copies")
         else:
             if self.y.suffix == ".csv":
-                raise ValueError("If file is a csv, then its read kwargs should contain index_col=0")
-
-        for item in self.configs:
-            if isinstance(self.configs[item], str):
-                fs = f"{item}_fs"
-                if fs in self.configs and self.configs[fs] is not None:
-                    self.configs[item] = TransparentPath(self.configs[item], fs=self.configs[fs])
-                else:
-                    self.configs[item] = TransparentPath(self.configs[item])
+                raise ValueError("If y file is a csv, then its read kwargs should contain 'index_col=0'")

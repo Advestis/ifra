@@ -10,9 +10,13 @@
     "get_leaf": false,
     "local_model_path": "/home/pcotte/Documents/git/ifra/tests/outputs/node_test/ruleset.csv",
     "central_model_path": "/home/pcotte/Documents/git/ifra/tests/outputs/ruleset.csv",
+    "id": "",
     "dataprep": "tests.alternates.dataprep.AlternateDataPrep",
     "dataprep_kwargs": {"nbins": 5},
-    "id": 0,
     "fitter": "tests.alternates.fitter.AlternateFitter",
-    "updater": "tests.alternates.updater.AlternateUpdater"
+    "fitter_kwargs": "",
+    "updater": "tests.alternates.updater.AlternateUpdater",
+    "updater_kwargs": "",
+    "thresholds_path": "tests/data/thresholds.json",
+    "thresholds_path_fs": "local"
 }

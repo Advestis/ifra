@@ -28,12 +28,12 @@ def test_init_and_watch_simple(clean):
     assert node.ruleset is None
     assert node.last_fetch is None
 
-    assert not (node.data.x.parent / "x_datapreped.csv").is_file()
-    assert not (node.data.y.parent / "y_datapreped.csv").is_file()
-    assert not (node.data.x.parent / "x_datapreped_copy_for_learning.csv").is_file()
-    assert not (node.data.y.parent / "y_datapreped_copy_for_learning.csv").is_file()
-    assert not (node.data.x.parent / "plots").is_dir()
-    assert not (node.data.x.parent / "plots_datapreped").is_dir()
+    assert not (node.data.x_path.parent / "x_datapreped.csv").is_file()
+    assert not (node.data.y_path.parent / "y_datapreped.csv").is_file()
+    assert not (node.data.x_path.parent / "x_datapreped_copy_for_learning.csv").is_file()
+    assert not (node.data.y_path.parent / "y_datapreped_copy_for_learning.csv").is_file()
+    assert not (node.data.x_path.parent / "plots").is_dir()
+    assert not (node.data.x_path.parent / "plots_datapreped").is_dir()
 
     node.watch(timeout=5, sleeptime=1)
 
@@ -41,12 +41,12 @@ def test_init_and_watch_simple(clean):
     assert node.datapreped
     assert node.messenger.fitting is False
     assert node.messenger.stop is True
-    assert (node.data.x.parent / "x_datapreped.csv").is_file()
-    assert (node.data.y.parent / "y_datapreped.csv").is_file()
-    assert (node.data.x.parent / "x_datapreped_copy_for_learning.csv").is_file()
-    assert (node.data.y.parent / "y_datapreped_copy_for_learning.csv").is_file()
-    assert (node.data.x.parent / "plots").is_dir()
-    assert (node.data.x.parent / "plots_datapreped").is_dir()
+    assert (node.data.x_path.parent / "x_datapreped.csv").is_file()
+    assert (node.data.y_path.parent / "y_datapreped.csv").is_file()
+    assert (node.data.x_path.parent / "x_datapreped_copy_for_learning.csv").is_file()
+    assert (node.data.y_path.parent / "y_datapreped_copy_for_learning.csv").is_file()
+    assert (node.data.x_path.parent / "plots").is_dir()
+    assert (node.data.x_path.parent / "plots_datapreped").is_dir()
     assert node.public_configs.local_model_path.is_file()
 
 

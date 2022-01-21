@@ -13,17 +13,28 @@ class Updater:
     data: NodeDataConfig
         `ifra.node.Node` *data*
     """
-    def __init__(self, data: NodeDataConfig):
+    def __init__(self, data: NodeDataConfig, **kwargs):
+        """
+
+        Parameters
+        ----------
+        data: NodeDataConfig
+            `ifra.node.Node`'s *data*
+        kwargs:
+            Any additionnal keyword argument that the overleading class accepts. Those arguments will become attributes.
+        """
         self.data = data
+        for arg in kwargs:
+            setattr(self, arg, kwargs[arg])
 
     def update(self, ruleset: RuleSet) -> None:
         """Reads x and y data, calls `ifra.updaters.make_update` and writes the updated data back to where they were
         read."""
-        x = self.data.x.read(**self.data.x_read_kwargs)
-        y = self.data.y.read(**self.data.y_read_kwargs)
+        x = self.data.x_path.read(**self.data.x_read_kwargs)
+        y = self.data.y_path.read(**self.data.y_read_kwargs)
         self.make_update(x, y, ruleset)
-        self.data.x.write(x)
-        self.data.y.write(y)
+        self.data.x_path.write(x)
+        self.data.y_path.write(y)
 
     @staticmethod
     def make_update(x: pd.DataFrame, y: pd.DataFrame, ruleset: RuleSet) -> Tuple[pd.DataFrame, pd.DataFrame]:

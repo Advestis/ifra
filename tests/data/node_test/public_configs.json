@@ -10,9 +10,13 @@
     "get_leaf": false,
     "local_model_path": "/home/pcotte/Documents/git/ifra/tests/outputs/node_test/ruleset.csv",
     "central_model_path": "/home/pcotte/Documents/git/ifra/tests/outputs/ruleset.csv",
+    "id": "",
     "dataprep": "binfeatures_dataprep",
     "dataprep_kwargs": {"nbins": 5},
-    "id": 0,
     "fitter": "decisiontree_fitter",
-    "updater": "adaboost_updater"
+    "fitter_kwargs": "",
+    "updater": "adaboost_updater",
+    "updater_kwargs": "",
+    "thresholds_path": "tests/data/thresholds.json",
+    "thresholds_path_fs": "local"
 }

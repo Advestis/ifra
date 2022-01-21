@@ -133,7 +133,9 @@ class Node:
                 module = self.public_configs.dataprep.replace(f".{function}", "")
                 self.dataprep = getattr(__import__(module, globals(), locals(), [function], 0), function)(self.data)
             else:
-                self.dataprep = self.possible_datapreps[self.public_configs.dataprep](self.data)
+                self.dataprep = self.possible_datapreps[self.public_configs.dataprep](
+                    self.data, **self.public_configs.dataprep_kwargs
+                )
         else:
             self.dataprep = None
 
@@ -143,15 +145,15 @@ class Node:
         self.last_fetch = None
 
     def fit(self) -> None:
-        """Plots the features and classes distribution in `ifra.node.Node`'s *data.x* and
-        `ifra.node.Node`'s *data.y* parent directories if `ifra.configs.NodePublicConfig` *plot_data*
+        """Plots the features and classes distribution in `ifra.node.Node`'s *data.x_path* and
+        `ifra.node.Node`'s *data.y_path* parent directories if `ifra.configs.NodePublicConfig` *plot_data*
         is True.
 
         Triggers `ifra.node.Node`'s *dataprep* on the features and classes if a dataprep method was
         specified, sets `ifra.node.Node` datapreped to True, plots the distributions of the datapreped data.
 
-        If `ifra.node.Node` *copied* is False, copies the files pointed by `ifra.node.Node`'s *data.x*
-        and `ifra.node.Node`'s *data.y* in new files in the same directories by appending
+        If `ifra.node.Node` *copied* is False, copies the files pointed by `ifra.node.Node`'s *data.x_path*
+        and `ifra.node.Node`'s *data.y_path* in new files in the same directories by appending
         *_copy_for_learning* to their names. Sets `ifra.node.Node` *copied* to True.
         Calls the the fitter corresponding to `ifra.node.Node` *public_configs.fitter* on the node's features and
         targets and save the resulting ruleset in `ifra.node.Node` *public_configs.local_model_path*.
@@ -161,29 +163,29 @@ class Node:
 
         try:
             if self.public_configs.plot_data:
-                if not (self.data.x.parent / "plots").is_dir():
-                    (self.data.x.parent / "plots").mkdir()
-                self.plot_data_histogram(self.data.x.parent / "plots")
+                if not (self.data.x_path.parent / "plots").is_dir():
+                    (self.data.x_path.parent / "plots").mkdir()
+                self.plot_data_histogram(self.data.x_path.parent / "plots")
 
             if self.dataprep is not None and not self.datapreped:
                 logger.info(f"Datapreping data of node {self.public_configs.id}...")
                 self.dataprep.dataprep()
                 if self.public_configs.plot_data:
-                    if not (self.data.x.parent / "plots_datapreped").is_dir():
-                        (self.data.x.parent / "plots_datapreped").mkdir()
-                    self.plot_data_histogram(self.data.x.parent / "plots_datapreped")
+                    if not (self.data.x_path.parent / "plots_datapreped").is_dir():
+                        (self.data.x_path.parent / "plots_datapreped").mkdir()
+                    self.plot_data_histogram(self.data.x_path.parent / "plots_datapreped")
                 self.datapreped = True
                 logger.info(f"...datapreping done for node {self.public_configs.id}")
 
             if not self.copied:
                 # Copy x and y in a different file, for it will be changed after each iterations by the update from
                 # central
-                x_suffix = self.data.x.suffix
-                self.data.x.cp(self.data.x.with_suffix("").append("_copy_for_learning").with_suffix(x_suffix))
-                self.data.x = self.data.x.with_suffix("").append("_copy_for_learning").with_suffix(x_suffix)
-                y_suffix = self.data.y.suffix
-                self.data.y.cp(self.data.y.with_suffix("").append("_copy_for_learning").with_suffix(y_suffix))
-                self.data.y = self.data.y.with_suffix("").append("_copy_for_learning").with_suffix(y_suffix)
+                x_suffix = self.data.x_path.suffix
+                self.data.x_path.cp(self.data.x_path.with_suffix("").append("_copy_for_learning").with_suffix(x_suffix))
+                self.data.x_path = self.data.x_path.with_suffix("").append("_copy_for_learning").with_suffix(x_suffix)
+                y_suffix = self.data.y_path.suffix
+                self.data.y_path.cp(self.data.y_path.with_suffix("").append("_copy_for_learning").with_suffix(y_suffix))
+                self.data.y_path = self.data.y_path.with_suffix("").append("_copy_for_learning").with_suffix(y_suffix)
                 self.copied = True
 
             logger.info(f"Fitting node {self.public_configs.id} using {self.public_configs.fitter}...")
@@ -193,14 +195,14 @@ class Node:
 
             self.messenger.fitting = False
             logger.info(f"... node {self.public_configs.id} fitted, results saved in"
-                    f" {self.public_configs.local_model_path.parent}.")
+                        f" {self.public_configs.local_model_path.parent}.")
         except Exception as e:
             self.messenger.fitting = False
             # Do not set messenger's error, done in self.watch
             raise e
 
     def update_from_central(self, ruleset: RuleSet) -> None:
-        """Modifies the files pointed by `ifra.node.Node`'s *data.x* and `ifra.node.Node`'s *data.y* by
+        """Modifies the files pointed by `ifra.node.Node`'s *data.x_path* and `ifra.node.Node`'s *data.y_path* by
         calling `ifra.node.Node` *public_configs.updater*.
 
         Parameters
@@ -246,15 +248,15 @@ class Node:
             logger.warning("Failed to produce tablewriter. Is LaTeX installed ?")
 
     def plot_data_histogram(self, path: TransparentPath) -> None:
-        """Plots the distribution of the data located in `ifra.node.Node`'s *data.x* and
-        `ifra.node.Node`'s *data.y* and save them in unique files.
+        """Plots the distribution of the data located in `ifra.node.Node`'s *data.x_path* and
+        `ifra.node.Node`'s *data.y_path* and save them in unique files.
 
         Parameters
         ----------
         path: TransparentPath
             Path to save the data. Should be a directory.
         """
-        x = self.data.x.read(**self.data.x_read_kwargs)
+        x = self.data.x_path.read(**self.data.x_read_kwargs)
         for col, name in zip(x.columns, self.public_configs.features_names):
             fig = plot_histogram(
                 data=x[col],
@@ -270,7 +272,7 @@ class Node:
                 path_x = path_x.parent / f"{name}_{iteration}.pdf"
             fig.savefig(path_x)
 
-        y = self.data.y.read(**self.data.y_read_kwargs)
+        y = self.data.y_path.read(**self.data.y_read_kwargs)
         fig = plot_histogram(
             data=y.squeeze(),
             xlabel="Class",
@@ -323,10 +325,6 @@ class Node:
 
                 self.public_configs = NodePublicConfig(self.path_public_configs)
                 self.messenger.get_latest_messages()
-                if self.public_configs.id is None:
-                    raise ValueError(
-                        "Node id is not set, meaning central server is not running. Always start central server first."
-                    )
                 if self.messenger.central_error is not None:
                     logger.info(f"Central server crashed. Stopping node {self.public_configs.id}.")
                     del_messenger = True

@@ -4,6 +4,9 @@ from time import time, sleep
 from typing import Optional, Union
 from json import load
 from transparentpath import TransparentPath
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class NodeMessenger:
@@ -37,6 +40,10 @@ class NodeMessenger:
         Set by `ifra.node.Node.watch`. True if the node is currently running.
      """
     DEFAULT_MESSAGES = {"stop": False, "error": None, "central_error": None, "fitting": False, "running": False}
+
+    timeout_when_missing = 600
+    """How long the messenger is supposed to wait for its file to come back when using
+    `ifra.messenger.NodeMessenger.get_latest_messages`"""
 
     def __init__(self, path: Optional[Union[str, Path, TransparentPath]] = None):
         """
@@ -145,6 +152,18 @@ class NodeMessenger:
 
     def get_latest_messages(self):
         """Gets latest messages by reading the messages json file again. File must exist."""
+        first_message = True
+        t = time()
+        while not self.path.is_file():
+            if first_message:
+                logger.info(f"Message file {self.path} disapread. Waiting for it to come back...")
+                first_message = False
+            sleep(1)
+            if time() - t > self.timeout_when_missing:
+                raise TimeoutError(f"Central server did not start after {self.timeout_when_missing} seconds.")
+        if first_message is False:
+            logger.info("...message file found. Resuming.")
+
         lockfile = self.path.append(".locked")
         t = time()
         while lockfile.is_file():
@@ -180,4 +199,10 @@ class NodeMessenger:
 
     def rm(self):
         """Removes the NodeMessenger's json file."""
+        lockfile = self.path.append(".locked")
+        t = time()
+        while lockfile.is_file():
+            sleep(0.5)
+            if time() - t > 5:
+                raise FileExistsError(f"File {lockfile} exists : could not lock on file {self.path}")
         self.path.rm(absent="ignore")
