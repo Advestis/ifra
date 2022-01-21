@@ -18,6 +18,7 @@ def one_node(node):
     assert node.checked is False
     assert node.checked_once is False
     assert node.ok is True
+    node.messenger.rm()
 
 
 def test_simple_init_and_watch():
@@ -26,11 +27,10 @@ def test_simple_init_and_watch():
             "tests/data/node_0/public_configs.json",
             "tests/data/node_1/public_configs.json",
             "tests/data/node_2/public_configs.json",
-            "tests/data/node_3/public_configs.json",
         ],
         central_configs_path="tests/data/central_configs.json",
     )
     assert isinstance(server.central_configs, (Config, CentralConfig))
-    assert len(server.nodes) == 4
+    assert len(server.nodes) == 3
     for node in server.nodes:
         one_node(node)
