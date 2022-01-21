@@ -18,14 +18,12 @@ def test_iris(clean):
         "tests/data/node_0/public_configs.json",
         "tests/data/node_1/public_configs.json",
         "tests/data/node_2/public_configs.json",
-        "tests/data/node_3/public_configs.json",
     ]
 
     nodes_data_config = [
         "tests/data/node_0/data_configs.json",
         "tests/data/node_1/data_configs.json",
         "tests/data/node_2/data_configs.json",
-        "tests/data/node_3/data_configs.json",
     ]
 
     processes = []

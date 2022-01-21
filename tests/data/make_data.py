@@ -1,12 +1,17 @@
 import pandas as pd
 
+n_nodes = 3
 x = pd.read_csv("x.csv", header=None)
 print("min: ", x.min())
 print("max: ", x.max())
 y = pd.read_csv("y.csv", header=None)
 
-for i in range(4):
-    subx = x.sample(frac=(i + 1)/4)
+n_observations = len(y.index)
+
+print("observations:", n_observations)
+
+for i in range(n_nodes):
+    subx = x.sample(frac=1 / (n_nodes - i))
     index = subx.index
     subx = subx.reset_index(drop=True)
     x = x.drop(index)

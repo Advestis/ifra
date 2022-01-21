@@ -13,7 +13,6 @@ def clean():
         output_root / "node_0",
         output_root / "node_1",
         output_root / "node_2",
-        output_root / "node_3",
         output_root / "node_test",
     ]
     for adir in output_dirs:
@@ -30,7 +29,6 @@ def clean():
         configs_root / "node_0",
         configs_root / "node_1",
         configs_root / "node_2",
-        configs_root / "node_3",
     ]
     for afile in configs_files:
         (afile / "public_configs.json.locked").rm(absent="ignore")
@@ -42,7 +40,6 @@ def clean():
         data_root / "node_0",
         data_root / "node_1",
         data_root / "node_2",
-        data_root / "node_3",
         data_root / "node_test",
     ]
     for data_dir in data_dirs:
