@@ -50,7 +50,9 @@ class EquallyWeightedClassificator(ClassificationPredictor):
             return pd.Series(index=x.index)
         self.ruleset.calc_activation(x)
         if isinstance(self.ruleset[0].prediction, str):
-            most_freq_pred = pd.concat([r.predict(x) for r in self.ruleset], axis=1).fillna(value=np.nan).replace("nan", np.nan).T.mode()
+            most_freq_pred = pd.concat(
+                [r.predict(x) for r in self.ruleset], axis=1
+            ).fillna(value=np.nan).replace("nan", np.nan).T.mode()
         else:
             most_freq_pred = pd.concat([r.predict(x) for r in self.ruleset], axis=1).T.mode()
         most_freq_pred = most_freq_pred.loc[:, most_freq_pred.count() == 1].dropna().T.squeeze()
@@ -72,17 +74,22 @@ class CriterionWeightedClassificator(ClassificationPredictor):
             return pd.Series(index=x.index)
         self.ruleset.calc_activation(x)
         if isinstance(self.ruleset[0].prediction, str):
-            predictions = pd.concat([r.predict(x) for r in self.ruleset], axis=1).fillna(value=np.nan).replace("nan", np.nan)
+            predictions = pd.concat(
+                [r.predict(x) for r in self.ruleset], axis=1
+            ).fillna(value=np.nan).replace("nan", np.nan)
         else:
             predictions = pd.concat([r.predict(x) for r in self.ruleset], axis=1)
 
         predictions.columns = pd.RangeIndex(0, len(predictions.columns))
-        criterions = pd.DataFrame([[r.criterion for r in self.ruleset] for _ in x.index], index=x.index).fillna(value=np.nan).dropna(how="all")
+        criterions = pd.DataFrame(
+            [[r.criterion for r in self.ruleset] for _ in x.index], index=x.index
+        ).fillna(value=np.nan).dropna(how="all")
         if criterions.empty:
             raise ValueError("No rules had evaluated criterion : can not use CriterionWeightedRegressor")
         # Put NaN where prediction is NaN so that not activated rules do not count in the weighting average
         predictions = predictions.reindex(criterions.index)
         criterions = (~predictions.isna() * 1).replace(0, np.nan) * criterions
+        # noinspection PyUnresolvedReferences
         mask = (criterions.T == criterions.max(axis=1)).T
         predictions = predictions[mask]
         most_freq_pred = predictions.T.mode()
@@ -119,10 +126,12 @@ class CriterionWeightedRegressor(RegressionPredictor):
         self.ruleset.calc_activation(x)
         predictions = pd.concat([r.predict(x) for r in self.ruleset], axis=1)
         predictions.columns = pd.RangeIndex(0, len(predictions.columns))
-        criterions = pd.DataFrame([[r.criterion for r in self.ruleset] for _ in x.index], index=x.index).fillna(value=np.nan).dropna(how="all")
+        criterions = pd.DataFrame(
+            [[r.criterion for r in self.ruleset] for _ in x.index], index=x.index
+        ).fillna(value=np.nan).dropna(how="all")
         if criterions.empty:
             raise ValueError("No rules had evaluated criterion : can not use CriterionWeightedRegressor")
         # Put NaN where prediction is NaN so that not activated rules do not count in the weighting average
         predictions = predictions.reindex(criterions.index)
         criterions = (~predictions.isna() * 1).replace(0, np.nan) * criterions
-        return ((predictions * criterions).sum() / criterions.sum()).reindex(x.index)
+        return ((predictions * criterions).sum(axis=1) / criterions.sum(axis=1)).reindex(x.index)
