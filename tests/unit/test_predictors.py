@@ -144,7 +144,7 @@ predictions_float = [2.2, 3.3, 2.0, 1.5]
             (predictions_str, predictions_str_equally_weighted)
     )
 )
-def test_equally_weihgted_classif_predictor(rules_predictions, preds_expected):
+def test_equally_weighted_classif_predictor(rules_predictions, preds_expected):
     for rule, pred in zip(ruleset, rules_predictions):
         rule._prediction = pred
     predictor = EquallyWeightedClassificator(ruleset)
@@ -163,7 +163,7 @@ def test_equally_weihgted_classif_predictor(rules_predictions, preds_expected):
             (predictions_str, predictions_str_crit_weighted)
     )
 )
-def test_criterion_weihgted_classif_predictor(rules_predictions, preds_expected):
+def test_criterion_weighted_classif_predictor(rules_predictions, preds_expected):
     for rule, pred in zip(ruleset, rules_predictions):
         rule._prediction = pred
     predictor = CriterionWeightedClassificator(ruleset)

@@ -77,7 +77,7 @@ class CriterionWeightedClassificator(ClassificationPredictor):
             predictions = pd.concat([r.predict(x) for r in self.ruleset], axis=1)
 
         predictions.columns = pd.RangeIndex(0, len(predictions.columns))
-        criterions = pd.DataFrame([[r.criterion for _ in x.index] for r in self.ruleset], index=x.index).T.fillna(value=np.nan).dropna(how="all")
+        criterions = pd.DataFrame([[r.criterion for r in self.ruleset] for _ in x.index], index=x.index).fillna(value=np.nan).dropna(how="all")
         if criterions.empty:
             raise ValueError("No rules had evaluated criterion : can not use CriterionWeightedRegressor")
         # Put NaN where prediction is NaN so that not activated rules do not count in the weighting average
@@ -119,7 +119,7 @@ class CriterionWeightedRegressor(RegressionPredictor):
         self.ruleset.calc_activation(x)
         predictions = pd.concat([r.predict(x) for r in self.ruleset], axis=1)
         predictions.columns = pd.RangeIndex(0, len(predictions.columns))
-        criterions = pd.DataFrame([[r.criterion for _ in x.index] for r in self.ruleset], index=x.index).T.fillna(value=np.nan).dropna(how="all")
+        criterions = pd.DataFrame([[r.criterion for r in self.ruleset] for _ in x.index], index=x.index).fillna(value=np.nan).dropna(how="all")
         if criterions.empty:
             raise ValueError("No rules had evaluated criterion : can not use CriterionWeightedRegressor")
         # Put NaN where prediction is NaN so that not activated rules do not count in the weighting average
