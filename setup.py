@@ -87,6 +87,13 @@ if version is None:
     except Exception:
         version = None
 
+if "v" in version:
+    version = version.replace("v", "")
+if "-" in version:
+    version = version.replace("-", "")
+if "\"" in version:
+    version = version.replace("\"", "")
+
 
 if __name__ == "__main__":
 
@@ -98,12 +105,12 @@ if __name__ == "__main__":
         version=version,
         author=author,
         author_email=author_email,
+        url=url,
+        packages=find_packages(exclude=("tests*",)),
         include_package_data=True,
         description=description,
         long_description=long_description,
         long_description_content_type="text/markdown",
-        url=url,
-        packages=find_packages(exclude=("tests*")),
         install_requires=requirements,
         package_data={"": ["*", ".*"]},
         classifiers=[

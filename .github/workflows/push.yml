@@ -31,11 +31,12 @@ jobs:
 
       - name: build
         run: |
-          pip install .
+          python -m pip install --upgrade pip
           python setup.py sdist
 
       - name: make doc
         run: |
+          pip install -r requirements.txt
           pip install pdoc3
           pdoc --html ifra -o docs
           mv docs/ifra/* docs/
