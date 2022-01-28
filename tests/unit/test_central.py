@@ -16,7 +16,7 @@ def one_node(node):
     assert node.last_fetch is None
     assert node.new_data is False
     assert node.checked is False
-    assert node.checked_once is False
+    assert node.id_set is False
     assert node.ok is True
     node.messenger.rm()
 

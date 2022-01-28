@@ -234,6 +234,10 @@ class NodePublicConfig(Config):
     thresholds_path_fs: TransparentPath
          File system to use for thresholds json file. Can be 'gcs', 'local' or "". If not specified, the json
         file should still contain the key *thresholds_path_fs*, but with value "".
+    emitter_path: TransparentPath
+        Path to emitter json file. See `ifra.messenger.NodeEmitter`
+    central_receiver_path: TransparentPath
+        Path to central server emitter json file. See `ifra.messenger.FromCentralReceiver`
     """
 
     EXPECTED_CONFIGS = [
@@ -256,7 +260,9 @@ class NodePublicConfig(Config):
         "updater",
         "updater_kwargs",
         "thresholds_path",
-        "thresholds_path_fs"
+        "thresholds_path_fs",
+        "emitter_path",
+        "central_receiver_path"
     ]
 
     def __eq__(self, other):

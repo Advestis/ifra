@@ -26,8 +26,19 @@ class Emitter:
         `ifra.messenger.Emitter.DEFAULT_MESSAGES`. If it exists, it is overwritten and a warning is logged.
      messages: dict
         A dictionnary of messages
-     """
-    DEFAULT_MESSAGES = {}
+
+    Messages
+    --------
+    creating: bool
+        True during emitting object's initialisation.
+    error: str
+        Set by the emitting object error occures. Will contain any error message raised.
+    running: bool
+        True during emitting object's `watch`.
+    doing: str
+        Name of the function currently being run by the emitting object
+    """
+    DEFAULT_MESSAGES = {"creating": True, "error": None, "running": False, "doing": None}
     """Overload in daughter classes."""
 
     def __init__(self, path: Union[str, Path, TransparentPath]):
@@ -91,6 +102,15 @@ class Emitter:
         memo[id(self)] = result
         setattr(result, "messages", deepcopy(self.messages, memo))
         return result
+
+    def send(self, **kwargs):
+        """Sends several messages at once. Keys in kwargs must be present in `ifra.messenger.Emitter.DEFAULT_MESSAGES`
+        """
+        for key in kwargs:
+            if key not in self.messages and key not in self.__class__.DEFAULT_MESSAGES:
+                raise ValueError(f"Message named '{key}' is not allowed")
+            self.messages[key] = kwargs[key]
+        self.save()
 
     def save(self) -> None:
         """Saves the current messages into the file it used to load."""
@@ -187,13 +207,17 @@ class Receiver:
     """How long the messenger is supposed to wait for its file to come back when using
     `ifra.messenger.NodeMessenger.get_latest_messages`"""
 
-    def __init__(self, path: Union[str, Path, TransparentPath]):
+    def __init__(self, path: Union[str, Path, TransparentPath], wait: bool = True):
         """
         Parameters
         ----------
         path: Union[str, Path, TransparentPath]
             The path to the json file containing the messages. Will be casted into a transparentpath if a str is
             given, so make sure that if you pass a str that should be local, you did not set a global file system.
+        wait: bool
+            If True, will wait for 'path' to point to an existing file for `ifra.messenger.Emitter.DEFAULT_MESSAGES`
+            seconds at Receiver creation if it does not exist. In that case, messages will be those in
+            `ifra.messenger.Emitter.DEFAULT_MESSAGES`
         """
 
         if type(path) == str:
@@ -204,7 +228,7 @@ class Receiver:
         self.path = path
         self.messages = {}
         self.new = True
-        self.get_latest_messages()
+        self.get_latest_messages(wait)
 
     def __getattr__(self, item):
         if item == "messages":
@@ -222,10 +246,11 @@ class Receiver:
         setattr(result, "messages", deepcopy(self.messages, memo))
         return result
 
-    def get_latest_messages(self):
+    def get_latest_messages(self, wait: bool = False) -> bool:
         """Gets latest messages by reading the messages json file. If file does not exist and it is the first time we
         read it (object init), wait for it for at most `ifra.messenger.Receiver.timeout_when_missing` seconds then
-        raises TimeoutError. Else, raises FileNotFoundError."""
+        raises TimeoutError. If file does not exist and it is not the first time we read it, returns False. If
+        messages are read, returns True"""
         first_message = True
 
         if self.__class__.timeout_when_missing is None:
@@ -234,7 +259,14 @@ class Receiver:
         t = time()
         while not self.path.is_file() and time() - t < self.timeout_when_missing:
             if not self.new:
-                raise FileNotFoundError(f"Message file {self.path} disapread.")
+                logger.warning(f"Message file {self.path} disapread. No message received.")
+                return False
+            if not wait:
+                logger.warning(
+                    f"Message file {self.path} does not exist. No message received, using defaults messages."
+                )
+                self.messages = copy(self.DEFAULT_MESSAGES)
+                return False
             if first_message:
                 first_message = False
                 logger.info(f"Message file {self.path} not here yet. Waiting for it to arrive...")
@@ -271,105 +303,9 @@ class Receiver:
         except Exception as e:
             lockfile.rm(absent="ignore")
             raise e
+        return True
 
     def reset_messages(self):
         """Reset messages to their default values specified in `ifra.messenger.Receiver.DEFAULT_MESSAGES`"""
         self.messages = copy(self.DEFAULT_MESSAGES)
         self.save()
-
-
-class NodeEmitter(Emitter):
-    """Overloads `ifra.messenger.Messenger`
-
-    Messages sent by a node. Listened to by the aggregator
-
-    Messages
-    --------
-    stopped: bool
-        Set to True by `ifra.node.Node.watch` when node stopped.
-    creating: bool
-        True during `ifra.node.Node` initialisation.
-    error: str
-        Set by `ifra.node.Node` methods if error occures. Will contain any error message raised.
-    fitting: bool
-        True during `ifra.node.Node.fit`.
-    running: bool
-        True during `ifra.node.Node.watch`.
-    """
-    DEFAULT_MESSAGES = {"stopped": False, "creating": True, "error": None, "fitting": False, "running": False}
-
-    def __init__(self, path):
-        super().__init__(path)
-
-
-class CentralEmitter(Emitter):
-    """Overloads `ifra.messenger.Messenger`
-
-    Messages sent by central server. Listened to by the aggregator
-
-    Messages
-    --------
-    stopped: bool
-        Set to True by `ifra.central_server.CentralServer.watch` when server stopped.
-    creating: bool
-        True during `ifra.central_server.CentralServer` initialisation.
-    error: str
-        Set by `ifra.central_server.CentralServer` methods if error occures. Will contain any error message raised.
-    running: bool
-        True during `ifra.central_server.CentralServer.watch`.
-    """
-    DEFAULT_MESSAGES = {"stopped": False, "creating": True, "error": None, "running": False}
-
-    def __init__(self, path):
-        super().__init__(path)
-
-
-class AggregatorEmitter(Emitter):
-    """Overloads `ifra.messenger.Messenger`
-
-    Messages sent by central server. Listened to by the aggregator
-
-    Messages
-    --------
-    stopped: bool
-        Set to True by `ifra.aggregator.Aggregator.watch` when aggregator stopped.
-    creating: bool
-        True during `ifra.aggregator.Aggregator` initialisation.
-    error: str
-        Set by `ifra.aggregator.Aggregator` methods if error occures. Will contain any error message raised.
-    running: bool
-        True during `ifra.aggregator.Aggregator.watch`.
-    aggregating: bool
-        True during `ifra.aggregator.Aggregator.aggregation`.
-    """
-    DEFAULT_MESSAGES = {"stopped": False, "creating": True, "error": None, "running": False, "aggregating": False}
-
-
-class FromCentralReceiver(Receiver):
-    """Overloads `ifra.messenger.Receiver`
-
-    To read central server's messages
-
-    For messages, see `ifra.messenger.CentralEmitter.DEFAULT_MESSAGES`
-    """
-    DEFAULT_MESSAGES = CentralEmitter.DEFAULT_MESSAGES
-
-
-class FromNodeReceiver(Receiver):
-    """Overloads `ifra.messenger.Receiver`
-
-    To read a node's messages
-
-    For messages, see `ifra.messenger.NodeEmitter.DEFAULT_MESSAGES`
-    """
-    DEFAULT_MESSAGES = NodeEmitter.DEFAULT_MESSAGES
-
-
-class FromAggregatorReceiver(Receiver):
-    """Overloads `ifra.messenger.Receiver`
-
-    To read a aggregator's messages
-
-    For messages, see `ifra.messenger.AggregatorEmitter.DEFAULT_MESSAGES`
-    """
-    DEFAULT_MESSAGES = AggregatorEmitter.DEFAULT_MESSAGES

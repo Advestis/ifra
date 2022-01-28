@@ -1,6 +1,4 @@
-import traceback
 from datetime import datetime
-from pathlib import Path
 from time import time, sleep
 
 from typing import Union, Optional
@@ -10,21 +8,25 @@ from tablewriter import TableWriter
 from transparentpath import TransparentPath
 import logging
 
+from .actor import Actor
 from .configs import NodePublicConfig, NodeDataConfig
-from .messenger import NodeMessenger
+from .messenger import Receiver
 from .fitters import DecisionTreeFitter
 from .updaters import AdaBoostUpdater
 from .datapreps import BinFeaturesDataPrep
 from .plot import plot_histogram
+from .decorator import emit
 
 logger = logging.getLogger(__name__)
 
 
-class Node:
+# noinspection PyAttributeOutsideInit
+class Node(Actor):
+    # noinspection PyUnresolvedReferences
     """One node of federated learning. This class should be used by each machine that is supposed to produce a local
     model. It monitors changes in a directory where the central server is supposed to push its model, and triggers fit
     when a new central model is available. It will also trigger a first fit before any central model is available.
-    
+
     Attributes
     ----------
     public_configs: `ifra.configs.NodePublicConfig`
@@ -33,8 +35,10 @@ class Node:
     path_public_configs: TransparentPath
         Path to the json file containing public configuration of the node. Needs to be kept in memory to potentially
         update the node's id once set by the central server.
-    messenger: NodeMessages
-        Interface for exchanging messages with central server. See `ifra.messenger.NodeMessages`
+    emitter: Emitter
+        `ifra.messenger.Emitter`
+    receiver: Receiver
+        `ifra.messenger.Receiver`
     dataprep: Union[None, Callable]
         The dataprep method to apply to the data before fitting. Optional, specified in the node's public configuration.
     datapreped: bool
@@ -77,13 +81,20 @@ class Node:
 
     def __init__(
         self,
-        path_public_configs: Union[str, TransparentPath],
-        path_data: Union[str, Path, TransparentPath],
+        public_configs: NodePublicConfig,
+        data: NodeDataConfig,
     ):
+        self.public_configs = None
+        self.data = None
+        super().__init__(public_configs=public_configs, path_data=data)
 
-        self.public_configs = NodePublicConfig(path_public_configs)
-        self.path_public_configs = self.public_configs.path  # Will be a TransparentPath
+    @emit
+    def _continue_init(self):
 
+        self.datapreped = False
+        self.copied = False
+        self.ruleset = None
+        self.last_fetch = None
         if self.public_configs.local_model_path.parent.is_dir():
             if not len(list(self.public_configs.local_model_path.parent.ls(""))) == 0:
                 raise ValueError(
@@ -93,22 +104,10 @@ class Node:
         else:
             self.public_configs.local_model_path.parent.mkdir()
 
-        self.path_messages = self.path_public_configs.parent / "messages.json"
+        self.path_central_receiver = self.public_configs.central_receiver_path
 
-        first_message = True
-        t = time()
-        while not self.path_messages.is_file():
-            if first_message:
-                logger.info("Waiting for central server to start before creating node...")
-                first_message = False
-            sleep(1)
-            if time() - t > self.timeout_central:
-                raise TimeoutError(f"Central server did not start after {self.timeout_central} seconds.")
-        if first_message is False:
-            logger.info("...central server started. Resuming node creation.")
+        self.receiver = Receiver(self.path_central_receiver)
 
-        self.messenger = NodeMessenger(self.path_messages)
-        self.data = NodeDataConfig(path_data)
         self.data.dataprep_kwargs = self.public_configs.dataprep_kwargs
 
         if self.public_configs.fitter not in self.possible_fitters:
@@ -138,12 +137,9 @@ class Node:
                 )
         else:
             self.dataprep = None
+        self.emitter.creating = False
 
-        self.datapreped = False
-        self.copied = False
-        self.ruleset = None
-        self.last_fetch = None
-
+    @emit
     def fit(self) -> None:
         """Plots the features and classes distribution in `ifra.node.Node`'s *data.x_path* and
         `ifra.node.Node`'s *data.y_path* parent directories if `ifra.configs.NodePublicConfig` *plot_data*
@@ -159,48 +155,41 @@ class Node:
         targets and save the resulting ruleset in `ifra.node.Node` *public_configs.local_model_path*.
         """
 
-        self.messenger.fitting = True
+        if self.public_configs.plot_data:
+            if not (self.data.x_path.parent / "plots").is_dir():
+                (self.data.x_path.parent / "plots").mkdir()
+            self.plot_data_histogram(self.data.x_path.parent / "plots")
 
-        try:
+        if self.dataprep is not None and not self.datapreped:
+            logger.info(f"Datapreping data of node {self.public_configs.id}...")
+            self.dataprep.dataprep()
             if self.public_configs.plot_data:
-                if not (self.data.x_path.parent / "plots").is_dir():
-                    (self.data.x_path.parent / "plots").mkdir()
-                self.plot_data_histogram(self.data.x_path.parent / "plots")
+                if not (self.data.x_path.parent / "plots_datapreped").is_dir():
+                    (self.data.x_path.parent / "plots_datapreped").mkdir()
+                self.plot_data_histogram(self.data.x_path.parent / "plots_datapreped")
+            self.datapreped = True
+            logger.info(f"...datapreping done for node {self.public_configs.id}")
 
-            if self.dataprep is not None and not self.datapreped:
-                logger.info(f"Datapreping data of node {self.public_configs.id}...")
-                self.dataprep.dataprep()
-                if self.public_configs.plot_data:
-                    if not (self.data.x_path.parent / "plots_datapreped").is_dir():
-                        (self.data.x_path.parent / "plots_datapreped").mkdir()
-                    self.plot_data_histogram(self.data.x_path.parent / "plots_datapreped")
-                self.datapreped = True
-                logger.info(f"...datapreping done for node {self.public_configs.id}")
+        if not self.copied:
+            # Copy x and y in a different file, for it will be changed after each iterations by the update from
+            # central
+            x_suffix = self.data.x_path.suffix
+            self.data.x_path.cp(self.data.x_path.with_suffix("").append("_copy_for_learning").with_suffix(x_suffix))
+            self.data.x_path = self.data.x_path.with_suffix("").append("_copy_for_learning").with_suffix(x_suffix)
+            y_suffix = self.data.y_path.suffix
+            self.data.y_path.cp(self.data.y_path.with_suffix("").append("_copy_for_learning").with_suffix(y_suffix))
+            self.data.y_path = self.data.y_path.with_suffix("").append("_copy_for_learning").with_suffix(y_suffix)
+            self.copied = True
 
-            if not self.copied:
-                # Copy x and y in a different file, for it will be changed after each iterations by the update from
-                # central
-                x_suffix = self.data.x_path.suffix
-                self.data.x_path.cp(self.data.x_path.with_suffix("").append("_copy_for_learning").with_suffix(x_suffix))
-                self.data.x_path = self.data.x_path.with_suffix("").append("_copy_for_learning").with_suffix(x_suffix)
-                y_suffix = self.data.y_path.suffix
-                self.data.y_path.cp(self.data.y_path.with_suffix("").append("_copy_for_learning").with_suffix(y_suffix))
-                self.data.y_path = self.data.y_path.with_suffix("").append("_copy_for_learning").with_suffix(y_suffix)
-                self.copied = True
+        logger.info(f"Fitting node {self.public_configs.id} using {self.public_configs.fitter}...")
+        self.ruleset = self.fitter.fit()
+        logger.info(f"Found {len(self.ruleset)} rules in node {self.public_configs.id}")
+        self.ruleset_to_file()
 
-            logger.info(f"Fitting node {self.public_configs.id} using {self.public_configs.fitter}...")
-            self.ruleset = self.fitter.fit()
-            logger.info(f"Found {len(self.ruleset)} rules in node {self.public_configs.id}")
-            self.ruleset_to_file()
+        logger.info(f"... node {self.public_configs.id} fitted, results saved in"
+                    f" {self.public_configs.local_model_path.parent}.")
 
-            self.messenger.fitting = False
-            logger.info(f"... node {self.public_configs.id} fitted, results saved in"
-                        f" {self.public_configs.local_model_path.parent}.")
-        except Exception as e:
-            self.messenger.fitting = False
-            # Do not set messenger's error, done in self.watch
-            raise e
-
+    @emit
     def update_from_central(self, ruleset: RuleSet) -> None:
         """Modifies the files pointed by `ifra.node.Node`'s *data.x_path* and `ifra.node.Node`'s *data.y_path* by
         calling `ifra.node.Node` *public_configs.updater*.
@@ -215,6 +204,7 @@ class Node:
         self.updater.update(ruleset)
         logger.info(f"... node {self.public_configs.id} updated.")
 
+    @emit
     def ruleset_to_file(self) -> None:
         """Saves `ifra.node.Node` *ruleset* to `ifra.configs.NodePublicConfig` *local_model_path*,
         overwritting any existing file here, and in another file in the same directory but with a unique name.
@@ -247,6 +237,7 @@ class Node:
         except ValueError:
             logger.warning("Failed to produce tablewriter. Is LaTeX installed ?")
 
+    @emit
     def plot_data_histogram(self, path: TransparentPath) -> None:
         """Plots the distribution of the data located in `ifra.node.Node`'s *data.x_path* and
         `ifra.node.Node`'s *data.y_path* and save them in unique files.
@@ -287,7 +278,8 @@ class Node:
 
         fig.savefig(path_y)
 
-    def watch(self, timeout: int = 0, sleeptime: int = 1) -> None:
+    @emit
+    def run(self, timeout: int, sleeptime: int):
         """Monitors new changes in the central server, every *sleeptime* seconds for *timeout* seconds, triggering
         node fit when a new model is found, or if the function just started. Sets
        ` ifra.configs.NodePublicConfig` *id* by re-reading the configuration file if it is None.
@@ -302,67 +294,61 @@ class Node:
         sleeptime: int
             How many seconds between each checks for new central model. Default value = 5
         """
+        # noinspection PyUnusedLocal
+        @emit  # Let self_ here for proper use of 'emit'
+        def get_ruleset(self_) -> None:
+            """Fetch the central server's latest model's RuleSet.
+            `ifra.node.Node.last_fetch` will be set to now and `ifra.node.Node.new_data` to True."""
+            central_ruleset = RuleSet()
+            central_ruleset.load(self.public_configs.central_model_path)
+            self.last_fetch = datetime.now()
+            self.update_from_central(central_ruleset)
+            logger.info(f"Fetched new central ruleset in node {self.public_configs.id} at {self.last_fetch}")
+            self.new_data = True
 
-        try:
-            def get_ruleset() -> None:
-                """Fetch the central server's latest model's RuleSet.
-                `ifra.node.Node.last_fetch` will be set to now and `ifra.node.Node.new_data` to True."""
-                central_ruleset = RuleSet()
-                central_ruleset.load(self.public_configs.central_model_path)
-                self.last_fetch = datetime.now()
-                self.update_from_central(central_ruleset)
-                logger.info(f"Fetched new central ruleset in node {self.public_configs.id} at {self.last_fetch}")
-                self.new_data = True
+        t = time()
+        stop_message = True
+        new_central_model = True  # start at true to trigger fit even if no central model is here at first iteration
+        logger.info(f"Starting node {self.public_configs.id}")
+        del_emitter = True
 
-            t = time()
-            stop_message = True
-            new_central_model = True  # start at true to trigger fit even if no central model is here at first iteration
-            logger.info(f"Starting node {self.public_configs.id}")
-            self.messenger.running = True
-            del_messenger = False
+        while time() - t < timeout or timeout <= 0:
 
-            while time() - t < timeout or timeout <= 0:
+            self.public_configs = NodePublicConfig(self.public_configs.path)
+            if not self.receiver.get_latest_messages():
+                logger.info(f"Central server emitter disappeard. Stopping node {self.public_configs.id}.")
+                del_emitter = True
+                stop_message = False
+                break
+            if self.receiver.error is not None:
+                logger.info(f"Central server crashed. Stopping node {self.public_configs.id}.")
+                del_emitter = True
+                stop_message = False
+                break
+            if self.receiver.doing != "run":
+                logger.info(f"Central server is not running. Stopping learning in node {self.public_configs.id}")
+                del_emitter = True
+                stop_message = False
+                break
 
-                self.public_configs = NodePublicConfig(self.path_public_configs)
-                self.messenger.get_latest_messages()
-                if self.messenger.central_error is not None:
-                    logger.info(f"Central server crashed. Stopping node {self.public_configs.id}.")
-                    del_messenger = True
-                    stop_message = False
-                    break
-                if self.messenger.stop:
-                    logger.info(f"'stop' flag is True. Stopping learning in node {self.public_configs.id}")
-                    del_messenger = True
-                    stop_message = False
-                    break
-
-                if self.last_fetch is None:
-                    if self.public_configs.central_model_path.is_file():
-                        get_ruleset()
-                        new_central_model = True
-                else:
-                    if (
+            if self.last_fetch is None:
+                if self.public_configs.central_model_path.is_file():
+                    get_ruleset()
+                    new_central_model = True
+            else:
+                if (
                         self.public_configs.central_model_path.is_file()
                         and self.public_configs.central_model_path.info()["mtime"] > self.last_fetch.timestamp()
-                    ):
-                        get_ruleset()
-                        new_central_model = True
+                ):
+                    get_ruleset()
+                    new_central_model = True
 
-                if new_central_model:
-                    self.fit()
-                    new_central_model = False
-                sleep(sleeptime)
+            if new_central_model:
+                self.fit()
+                new_central_model = False
+            sleep(sleeptime)
 
-            if stop_message:
-                logger.info(f"Timeout of {timeout} seconds reached, stopping learning in node"
-                            f" {self.public_configs.id}.")
-
-            self.messenger.running = False
-            self.messenger.stop = True
-
-            if del_messenger:
-                self.messenger.rm()
-        except Exception as e:
-            self.messenger.running = False
-            self.messenger.error = traceback.format_exc()
-            raise e
+        if stop_message:
+            logger.info(f"Timeout of {timeout} seconds reached, stopping learning in node"
+                        f" {self.public_configs.id}.")
+        return del_emitter

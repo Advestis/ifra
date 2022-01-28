@@ -11,7 +11,9 @@ from transparentpath import TransparentPath
 import logging
 
 from .configs import NodePublicConfig, CentralConfig
-from .messenger import NodeMessenger
+from .actor import Actor
+from .decorator import emit
+from .messenger import Receiver
 from .aggregations import AdaBoostAggregation
 
 logger = logging.getLogger(__name__)
@@ -28,17 +30,16 @@ class NodeGate:
 
     Attributes
     ----------
+    ok: bool
+        True if the object initiated correctly
     id: int
         Unique NodeGate id number. If the corresponding `ifra.node.Node` instance has not custom
         id, then it will use this one.
-    public_config_path: TransparentPath
-        Path to the node's public configuration file. The corresponding instance of the
-         `ifra.node.Node` class must use the same file.
     public_configs: NodePublicConfig
         Node's public configuration. See `ifra.configs.NodePublicConfig`. None at initialisation, set by
         `ifra.central_server.NodeGate.interact`
-    messenger: NodeMessages
-        Interface for exchanging messages with node. See `ifra.messenger.NodeMessages`
+    path_receiver: TransparentPath
+        Path to the node's emitter json file, to read with `ifra.messenger.Receiver`
     ruleset: RuleSet
         Latest node model's ruleset, same as `ifra.node.Node` *ruleset*. None at initialisation, set by
         `ifra.central_server.NodeGate.interact`
@@ -51,55 +52,30 @@ class NodeGate:
         `ifra.central_server.NodeGate.push_central_model`
     checked: bool
         True if the node was checked, whether it produced new data or not.
+    id_set: bool
+        True if the Node's ID was set by this object, or if it did not need to set the Node's ID.
     """
 
     instances = 0
 
-    def __init__(self, public_config_path: Union[str, TransparentPath]):
+    def __init__(self, public_config: NodePublicConfig):
         """
         Parameters
         ----------
-        public_config_path: Union[str, TransparentPath]
+        public_config: Union[str, TransparentPath]
             Directory were node's public configuration file can be found
         """
 
         self.ok = False
-        if type(public_config_path) == str:
-            public_config_path = TransparentPath(public_config_path)
-
         self.id = NodeGate.instances
-        try:
-            self.public_configs = NodePublicConfig(public_config_path)
-        except FileNotFoundError:
-            logger.warning(f"No file found for node configuration {public_config_path}. Ignoring it.")
-            return
-        self.path_public_configs = self.public_configs.path
-        self.path_messages = self.path_public_configs.parent / "messages.json"
-        self.messenger = NodeMessenger(self.path_messages)
-
-        if self.messenger.running:
-            if self.public_configs.id is None:
-                logger.warning(
-                    f"Node {self.id}'s messenger says it is running, but node's ID is None."
-                    " Stopping it and removing it from learning."
-                )
-                self.messenger.stop = True
-                return
-        if self.messenger.error:
-            logger.warning(f"Node {self.public_configs.id} seems to have crashed before central server started.")
-            self.messenger.rm()
-            return
-        if self.messenger.stop:
-            logger.warning(f"Node {self.public_configs.id} seems to have stoped before central server started.")
-            self.messenger.rm()
-            return
-        self.messenger.reset_messages()
+        self.public_configs = public_config
+        self.path_receiver = self.public_configs.path_emitter
 
         self.ruleset = None
         self.last_fetch = None
         self.new_data = False
         self.checked = False
-        self.checked_once = False
+        self.id_set = False
         self.ok = True
 
         NodeGate.instances += 1
@@ -129,27 +105,25 @@ class NodeGate:
 
         self.checked = False
 
-        if self.checked_once is False:
-            self.checked_once = True
-            # First time the ndoe is interacted with
+        if self.id_set is False:
+            self.id_set = True
+            # First time the node is interacted with
             if self.public_configs.id is None:
                 # If the node was not given an id by its local user, then the central server provides one, being
                 # this NodeGate's id number
                 self.public_configs.id = self.id
                 self.public_configs.save()
 
-        self.messenger.get_latest_messages()
+        receiver = Receiver(self.path_receiver, wait=False)
+        if not receiver.get_latest_messages():
+            return
 
-        if self.messenger.error is not None:
+        if receiver.error is not None:
             # Handled by 'watch'
             return
 
-        if not self.messenger.running:
+        if not receiver.dong == "run":
             logger.info(f"Node {self.public_configs.id} is not running yet")
-            return
-
-        if self.messenger.fitting:
-            logger.info(f"Node {self.public_configs.id} is fitting.")
             return
 
         self.checked = True
@@ -187,7 +161,7 @@ class NodeGate:
         self.new_data = False
 
 
-class CentralServer:
+class CentralServer(Actor):
     """Implementation of the notion of central server in federated learning.
 
     It monitors changes in a given list of remote GCP directories, were nodes are expected to write their models.
@@ -212,31 +186,34 @@ class CentralServer:
         Instance of one of the `ifra.aggregations.Aggregation` daughter classes.
     """
 
-    possible_aggregations = {
-        "adaboost_aggregation": AdaBoostAggregation
-    }
+    possible_aggregations = {"adaboost_aggregation": AdaBoostAggregation}
     """Possible string values and corresponding aggregation methods for *aggregation* attribute of
     `ifra.central_server.CentralServer`"""
 
     def __init__(
         self,
-        nodes_configs_paths: List[Union[str, TransparentPath]],
-        central_configs_path: Union[str, Path, TransparentPath],
+        nodes_configs: List[NodePublicConfig],
+        central_configs: CentralConfig,
     ):
         """
         Parameters
         ----------
-        nodes_configs_paths: List[TransparentPath]
-            List of remote paths pointing to each node's public configuration file
-        central_configs_path: Union[str, Path, TransparentPath]
+        nodes_configs: List[NodePublicConfig]
+            List of each node's public configuration file
+        central_configs: CentralConfig
             Central server configuration. See `ifra.configs.CentralConfig`
         """
+        self.nodes_configs = None
+        self.central_configs = None
+        super().__init__(nodes_configs=nodes_configs, central_configs=central_configs)
+
+    @emit
+    def _continue_init(self):
         self.reference_node_config = None
 
-        self.central_configs = CentralConfig(central_configs_path)
         self.nodes = []
-        for path in set(nodes_configs_paths):  # cast into set in order not to create twice the same node
-            node = NodeGate(path)
+        for config in self.nodes_configs:  # cast into set in order not to create twice the same node
+            node = NodeGate(config)
             if node.ok:
                 self.nodes.append(node)
 
@@ -244,11 +221,11 @@ class CentralServer:
             raise ValueError("Minimum number of new nodes to trigger aggregation must be 2 or more")
 
         if len(self.nodes) < self.central_configs.min_number_of_new_models:
-            for node in self.nodes:
-                node.messenger.central_error = True
-            raise ValueError(f"The minimum number of nodes to trigger aggregation "
-                             f"({self.central_configs.min_number_of_new_models}) is greater than the number of"
-                             f" available nodes ({len(self.nodes)}): that can not work !")
+            raise ValueError(
+                f"The minimum number of nodes to trigger aggregation "
+                f"({self.central_configs.min_number_of_new_models}) is greater than the number of"
+                f" available nodes ({len(self.nodes)}): that can not work !"
+            )
 
         self.ruleset = None
 
@@ -262,7 +239,7 @@ class CentralServer:
     def aggregate(self, rulesets: List[RuleSet]) -> Tuple[str, Union[RuleSet, None]]:
         """Aggregates rulesets in `ifra.central_server` *ruleset* using
         `ifra.central_server.CentralServer` *aggregation*
-        
+
         Parameters
         ----------
         rulesets: List[RuleSet]
@@ -301,11 +278,7 @@ class CentralServer:
         try:
             path_table = path.with_suffix(".pdf")
             TableWriter(
-                path_table,
-                path.read(index_col=0).apply(
-                    lambda x: x.round(3) if x.dtype == float else x
-                ),
-                paperwidth=30
+                path_table, path.read(index_col=0).apply(lambda x: x.round(3) if x.dtype == float else x), paperwidth=30
             ).compile(clean_tex=True)
         except ValueError:
             logger.warning("Failed to produce tablewriter. Is LaTeX installed ?")
@@ -341,8 +314,10 @@ class CentralServer:
                     break
 
                 if len(checked_nodes) == len(self.nodes):
-                    logger.info("All nodes were checked and none is fitting anything : no new data can be extracted."
-                                "Stopping learning.")
+                    logger.info(
+                        "All nodes were checked and none is fitting anything : no new data can be extracted."
+                        "Stopping learning."
+                    )
                     learning_over = True
                     break
                 new_models = False
@@ -358,8 +333,10 @@ class CentralServer:
                         if node.messenger.error is not None:
                             logger.info(f"Removing crashed node {node.public_configs.id} from learning")
                         else:
-                            logger.info(f"Removing node {node.public_configs.id} from learning : its timeout"
-                                        " was reached and it stopped")
+                            logger.info(
+                                f"Removing node {node.public_configs.id} from learning : its timeout"
+                                " was reached and it stopped"
+                            )
                         node.messenger.rm()
                         self.nodes.remove(node)
                         continue
@@ -370,8 +347,10 @@ class CentralServer:
                         s = "\n"
                         for key in node.public_configs.configs:
                             if node.public_configs.configs[key] != self.reference_node_config.configs[key]:
-                                s = f"{s}{key}: {node.public_configs.configs[key]}" \
+                                s = (
+                                    f"{s}{key}: {node.public_configs.configs[key]}"
                                     f" != {self.reference_node_config.configs[key]}\n"
+                                )
                         logger.warning(
                             f"Node {node.id}'s configuration is not compatible with previous"
                             f" configuration. Differences are: {s}"
