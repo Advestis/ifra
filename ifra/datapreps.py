@@ -38,8 +38,8 @@ class DataPrep:
 
         x_datapreped_path.write(x)
         y_datapreped_path.write(y)
-        self.data.x_path = x_datapreped_path
-        self.data.y_path = y_datapreped_path
+        self.data.x_path_to_use = x_datapreped_path
+        self.data.y_path_to_use = y_datapreped_path
 
     def dataprep_method(self, x: pd.DataFrame, y: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
         """To be implemented in daughter class.

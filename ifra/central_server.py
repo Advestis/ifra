@@ -1,7 +1,5 @@
-import traceback
-from copy import deepcopy, copy
+from copy import deepcopy
 from datetime import datetime
-from pathlib import Path
 from time import time, sleep
 from typing import List, Union, Tuple, Optional
 
@@ -25,8 +23,7 @@ class NodeGate:
     the public configuration of one given node, to which must correspond an instance of the
     `ifra.node.Node` class. This configuration holds among other things, the places where the nodes
     are supposed to save their models and where they will be looking for the central model. It implements a method,
-    `ifra.central_server.NodeGate.interact`, that check whether the node produced a new model, and a method,
-    `ifra.central_server.NodeGate.push_central_model`, to send the latest central model to the node
+    `ifra.central_server.NodeGate.interact`, that check whether the node produced a new model.
 
     Attributes
     ----------
@@ -46,12 +43,6 @@ class NodeGate:
     last_fetch: datetime
         Last time the node produced a new model. None at initialisation, set by
         `ifra.central_server.NodeGate.interact`
-    new_data: bool
-        True if `ifra.central_server.NodeGate` *ruleset* is a ruleset not yet aggregated into the central server's
-        model. False at first, modified by `ifra.central_server.NodeGate.interact` and
-        `ifra.central_server.NodeGate.push_central_model`
-    checked: bool
-        True if the node was checked, whether it produced new data or not.
     id_set: bool
         True if the Node's ID was set by this object, or if it did not need to set the Node's ID.
     """
@@ -70,21 +61,34 @@ class NodeGate:
         self.id = NodeGate.instances
         self.public_configs = public_config
         self.path_receiver = self.public_configs.path_emitter
+        self.receiver = Receiver(self.path_receiver, wait=False)
 
         self.ruleset = None
         self.last_fetch = None
-        self.new_data = False
-        self.checked = False
         self.id_set = False
         self.ok = True
 
         NodeGate.instances += 1
 
-    def interact(self):
+    def interact(self, reference_node_config: NodePublicConfig, central_model_path: TransparentPath) -> bool:
         """Fetch the node's configuration if not done yet and the node's latest model if it is new compared to central
         server model. Sets `ifra.central_server.NodeGate` *public_configs*,
         `ifra.central_server.NodeGate` *ruleset*, `ifra.central_server.NodeGate` *last_fetch* to now
-        and `ifra.central_server.NodeGate` *new_data* to True"""
+        and `ifra.central_server.NodeGate` *new_data* to True
+
+        Parameters
+        ----------
+        reference_node_config: NodePublicConfig
+            Configuration reference. If the node's public configuration do not match it, the node is ignored.
+            If reference_node_config is ont set yet, then this node's public configuration becomes the reference
+            if it produced a ew model.
+        central_model_path: TransparentPath
+            Path to where the central model is, to give to the node's configurations.
+
+        Returns
+        -------
+        True if successfully fetched new model, else False
+        """
 
         def get_ruleset():
             """Fetch the node's latest model's RuleSet.
@@ -93,17 +97,22 @@ class NodeGate:
             self.ruleset = RuleSet()
             self.ruleset.load(self.public_configs.local_model_path)
             self.last_fetch = datetime.now()
-            self.new_data = True
+            self.new_model_found = True
             logger.info(f"Fetched new ruleset from node {self.public_configs.id} at {self.last_fetch}")
 
-        if self.new_data:
-            # If we are here, then we already have self.ruleset matching the latest node model. It might not have
-            # produced any new rules however, so the central server may not have pushed anything new to the node.
-            # In that case, it is pointless to interact with the node.
-            logger.info(f"Node {self.public_configs.id} already provided new data")
-            return
-
-        self.checked = False
+        if len(reference_node_config.configs) > 0 and self.public_configs != reference_node_config:
+            s = "\n"
+            for key in self.public_configs.configs:
+                if self.public_configs.configs[key] != reference_node_config.configs[key]:
+                    s = (
+                        f"{s}{key}: {self.public_configs.configs[key]}"
+                        f" != {reference_node_config.configs[key]}\n"
+                    )
+            logger.warning(
+                f"Node {self.id}'s configuration is not compatible with previous"
+                f" configuration. Skipping for now. Differences are: {s}"
+            )
+            return False
 
         if self.id_set is False:
             self.id_set = True
@@ -114,19 +123,23 @@ class NodeGate:
                 self.public_configs.id = self.id
                 self.public_configs.save()
 
-        receiver = Receiver(self.path_receiver, wait=False)
-        if not receiver.get_latest_messages():
-            return
+        if not self.receiver.get_latest_messages(wait=False):
+            # If emitter file does not exist, skip this node
+            logger.info(f"Node {self.public_configs.id} emitter not reachable. Skipping for now.")
+            return False
 
-        if receiver.error is not None:
+        if self.receiver.error is not None:
             # Handled by 'watch'
-            return
+            logger.info(f"Node {self.public_configs.id} crashed. Skipping for now.")
+            return False
 
-        if not receiver.dong == "run":
-            logger.info(f"Node {self.public_configs.id} is not running yet")
-            return
+        if self.receiver.doing is None:
+            logger.debug(f"Node {self.public_configs.id} is not running. Skipping for now.")
+            return False
 
-        self.checked = True
+        if self.receiver.doing != "run":
+            logger.debug(f"Node {self.public_configs.id} is busy doing something. Skipping for now.")
+            return False
 
         if self.ruleset is None:
             # The node has not produced any model yet if self.ruleset is None. No need to bother with self.last fetch
@@ -142,23 +155,19 @@ class NodeGate:
             ):
                 get_ruleset()
             else:
-                logger.info(f"Node {self.public_configs.id} has no new model")
+                logger.debug(f"Node {self.public_configs.id} has no new model. Skipping for now.")
+                return False
 
-    def push_central_model(self, ruleset: RuleSet):
-        """Pushes central model's ruleset to the node remote directory. This means the node's latest model was used in
-        central model aggregation, and that the aggregation produced new learning information. In that case, the node's
-        model is not new anymore, and `ifra.central_server.NodeGate` *new_data* is thus set to False.
+        if len(reference_node_config.configs) == 0:
+            reference_node_config.configs = deepcopy(self.public_configs.configs)
 
-        Parameters
-        ----------
-        ruleset: RuleSet
-            The central model's ruleset
-        """
-        logger.info(
-            f"Pushing central model to node {self.public_configs.id} at {self.public_configs.central_model_path}"
-        )
-        ruleset.save(self.public_configs.central_model_path)
-        self.new_data = False
+        if self.public_configs.central_model_path is None:
+            # First time the node's model is catched : provide it the information about where it can read the central
+            # model
+            self.public_configs.central_model_path = central_model_path
+            self.public_configs.save()
+
+        return True
 
 
 class CentralServer(Actor):
@@ -166,10 +175,8 @@ class CentralServer(Actor):
 
     It monitors changes in a given list of remote GCP directories, were nodes are expected to write their models.
     Upon changes of the model files, the central server downloads them. When enough model files are downloaded, the
-    central server aggregates them to produce/update the central model, which is sent to each nodes' directories.
-    "enough" model is defined in the central server configuration (see `ifra.configs.CentralConfig`)
-
-    The aggregation method is that of AdaBoost. See `ifra.central_server.CentralServer.aggregate`
+    central server aggregates them to produce/update the central model, which is saved to a directory.
+    "Enough" model is defined in the central server configuration (see `ifra.configs.CentralConfig`)
 
     Attributes
     ----------
@@ -205,17 +212,22 @@ class CentralServer(Actor):
         """
         self.nodes_configs = None
         self.central_configs = None
+        self.reference_node_config = None
+        self.nodes = []
+        self.ruleset = None
+        self.aggregation = None
         super().__init__(nodes_configs=nodes_configs, central_configs=central_configs)
 
     @emit
-    def _continue_init(self):
-        self.reference_node_config = None
+    def create(self):
 
         self.nodes = []
         for config in self.nodes_configs:  # cast into set in order not to create twice the same node
             node = NodeGate(config)
             if node.ok:
                 self.nodes.append(node)
+            else:
+                logger.warning("One node could not be instantiated. Ignoring it.")
 
         if self.central_configs.min_number_of_new_models < 2:
             raise ValueError("Minimum number of new nodes to trigger aggregation must be 2 or more")
@@ -236,6 +248,7 @@ class CentralServer(Actor):
         else:
             self.aggregation = self.possible_aggregations[self.central_configs.aggregation](self)
 
+    @emit
     def aggregate(self, rulesets: List[RuleSet]) -> Tuple[str, Union[RuleSet, None]]:
         """Aggregates rulesets in `ifra.central_server` *ruleset* using
         `ifra.central_server.CentralServer` *aggregation*
@@ -256,8 +269,9 @@ class CentralServer(Actor):
         """
         return self.aggregation.aggregate(rulesets)
 
+    @emit
     def ruleset_to_file(self) -> None:
-        """Saves `ifra.node.Node` *ruleset* to `ifra.configs.CentralConfig` *output_path*,
+        """Saves `ifra.node.Node` *ruleset* to `ifra.configs.CentralConfig` *central_model_path*,
         overwritting any existing file here, and in another file in the same directory but with a unique name.
         Will also produce a .pdf of the ruleset using TableWriter.
         Does not do anything if `ifra.node.Node` *ruleset* is None
@@ -265,15 +279,15 @@ class CentralServer(Actor):
         ruleset = self.ruleset
 
         iteration = 0
-        name = self.central_configs.output_path.stem
-        path = self.central_configs.output_path.parent / f"{name}_{iteration}.csv"
+        name = self.central_configs.central_model_path.stem
+        path = self.central_configs.central_model_path.parent / f"{name}_{iteration}.csv"
         while path.is_file():
             iteration += 1
-            path = self.central_configs.output_path.parent / f"{name}_{iteration}.csv"
+            path = self.central_configs.central_model_path.parent / f"{name}_{iteration}.csv"
 
         path = path.with_suffix(".csv")
         ruleset.save(path)
-        ruleset.save(self.central_configs.output_path)
+        ruleset.save(self.central_configs.central_model_path)
 
         try:
             path_table = path.with_suffix(".pdf")
@@ -283,7 +297,8 @@ class CentralServer(Actor):
         except ValueError:
             logger.warning("Failed to produce tablewriter. Is LaTeX installed ?")
 
-    def watch(self, timeout: int = 0, sleeptime: int = 5):
+    @emit
+    def run(self, timeout: int = 0, sleeptime: int = 5):
         """Monitors new changes in the nodes, every ''sleeptime'' seconds for ''timeout'' seconds, triggering
         aggregation and pushing central model to nodes when enough new node models are available.
 
@@ -297,110 +312,54 @@ class CentralServer(Actor):
         sleeptime: int
             How many seconds between each checks for new nodes models. Default value = 5.
         """
-        try:
-            logger.info("")
-            logger.info("Starting central server")
-            t = time()
-            updated_nodes = []
-            checked_nodes = []
-            rulesets = []
-            learning_over = False
-            iterations = 0
+        t = time()
+        updated_nodes = []
+        learning_over = False
+        iterations = 0
 
-            while time() - t < timeout or timeout <= 0:
+        if timeout <= 0:
+            logger.warning("You did not specify a timeout for your run. It will last until manually stopped.")
+        logger.info("")
+        logger.info("Starting central server")
 
-                if len(self.nodes) == 0:
-                    logger.warning("No nodes to learn on ! Stopping learning.")
-                    break
+        while time() - t < timeout or timeout <= 0:
 
-                if len(checked_nodes) == len(self.nodes):
-                    logger.info(
-                        "All nodes were checked and none is fitting anything : no new data can be extracted."
-                        "Stopping learning."
-                    )
+            if len(self.nodes) == 0:
+                logger.warning("No nodes to learn on.")
+                learning_over = True
+                break
+
+            new_models = False
+
+            for node in self.nodes:
+                # Node fetches its latest model from GCP. Returns True if a new model was found.
+                if node.interact(self.reference_node_config, self.central_configs.central_model_path) is False:
+                    continue
+
+                updated_nodes.append(node)
+                if len(updated_nodes) >= self.central_configs.min_number_of_new_models:
+                    new_models = True
+
+            if new_models:
+                logger.info(f"Found enough ({len(updated_nodes)}) new nodes models. Triggering aggregation.")
+                what_now = self.aggregate([node.ruleset for node in updated_nodes])
+                if what_now == "stop":
                     learning_over = True
                     break
-                new_models = False
+                elif what_now != "pass":
+                    # Aggregation successfully updated central model.
+                    updated_nodes = []
 
-                for node in copy(self.nodes):
-                    if node in updated_nodes:
-                        continue
-                    node.interact()  # Node fetches its latest data from GCP
-                    if node.checked:
-                        checked_nodes.append(node)
+                    if self.ruleset is None:
+                        raise ValueError("Should never happen !")
+                    iterations += 1
+                    self.ruleset_to_file()
 
-                    if node.messenger.error is not None or node.messenger.stop is True:
-                        if node.messenger.error is not None:
-                            logger.info(f"Removing crashed node {node.public_configs.id} from learning")
-                        else:
-                            logger.info(
-                                f"Removing node {node.public_configs.id} from learning : its timeout"
-                                " was reached and it stopped"
-                            )
-                        node.messenger.rm()
-                        self.nodes.remove(node)
-                        continue
-                    if self.reference_node_config is None:
-                        self.reference_node_config = deepcopy(node.public_configs)
-                    # Nodes with configurations different from central's are ignored
-                    elif node.public_configs != self.reference_node_config:
-                        s = "\n"
-                        for key in node.public_configs.configs:
-                            if node.public_configs.configs[key] != self.reference_node_config.configs[key]:
-                                s = (
-                                    f"{s}{key}: {node.public_configs.configs[key]}"
-                                    f" != {self.reference_node_config.configs[key]}\n"
-                                )
-                        logger.warning(
-                            f"Node {node.id}'s configuration is not compatible with previous"
-                            f" configuration. Differences are: {s}"
-                        )
-                        continue
+            sleep(sleeptime)
 
-                    if node.new_data:
-                        updated_nodes.append(node)
-                        rulesets.append(node.ruleset)
-                        if len(updated_nodes) >= self.central_configs.min_number_of_new_models:
-                            new_models = True
-
-                if new_models:
-                    logger.info(f"Found enough ({len(updated_nodes)}) new nodes nodels.")
-                    what_now = self.aggregate(rulesets)
-                    if what_now == "stop":
-                        learning_over = True
-                        break
-                    elif what_now != "pass":
-                        # Aggregation successfully updated central model. Forget the node's current model and push the
-                        # new model to them.
-                        rulesets = []
-                        updated_nodes = []
-                        checked_nodes = []
-
-                        for node in self.nodes:
-                            node.push_central_model(deepcopy(self.ruleset))
-
-                        if self.ruleset is None:
-                            raise ValueError("Should never happen !")
-                        iterations += 1
-                        self.ruleset_to_file()
-
-                sleep(sleeptime)
-
-            if learning_over is False:
-                logger.info(f"Timeout of {timeout} seconds reached, stopping learning.")
-            for node in self.nodes:
-                if node.messenger.running:
-                    node.messenger.stop = True
-                else:
-                    node.messenger.rm()
-            if self.ruleset is None:
-                logger.warning("Learning failed to produce a central model. No output generated.")
-            logger.info(f"Made {iterations} complete iterations between central server and nodes.")
-            logger.info(f"Results saved in {self.central_configs.output_path}")
-        except Exception as e:
-            for node in self.nodes:
-                if node.messenger.running:
-                    node.messenger.central_error = traceback.format_exc()
-                else:
-                    node.messenger.rm()
-            raise e
+        if learning_over is False:
+            logger.info(f"Timeout of {timeout} seconds reached, stopping learning.")
+        if self.ruleset is None:
+            logger.warning("Learning failed to produce a central model. No output generated.")
+        logger.info(f"Made {iterations} complete iterations between central server and nodes.")
+        logger.info(f"Results saved in {self.central_configs.central_model_path}")

@@ -20,7 +20,6 @@ class Fitter:
     def __init__(
         self,
         public_configs: NodePublicConfig,
-        data: NodeDataConfig,
         **kwargs
     ):
         """
@@ -35,13 +34,12 @@ class Fitter:
             Any additionnal keyword argument that the overleading class accepts. Those arguments will become attributes.
         """
         self.public_configs = public_configs
-        self.data = data
         self.ruleset = None
         Rule.SET_THRESHOLDS(self.public_configs.thresholds_path)
         for arg in kwargs:
             setattr(self, arg, kwargs[arg])
 
-    def fit(self) -> RuleSet:
+    def fit(self, x: np.ndarray, y: np.ndarray) -> RuleSet:
         """To be implemented in daughter class"""
         pass
 
@@ -56,8 +54,6 @@ class DecisionTreeFitter(Fitter):
     ----------
     public_configs: `ifra.configs.NodePublicConfig`
         The public configuration of the node using this fitter
-    data: NodeDataConfig
-        The data paths configuration of the node using this fitter
     ruleset: Union[None, RuleSet]
         Fitted ruleset, or None if fit not done yet
     tree: Union[None, DecisionTreeFitter]
@@ -67,17 +63,23 @@ class DecisionTreeFitter(Fitter):
     def __init__(
         self,
         public_configs: NodePublicConfig,
-        data: NodeDataConfig,
     ):
-        super().__init__(public_configs, data)
+        super().__init__(public_configs)
         self.tree = None
 
-    def fit(self) -> RuleSet:
+    def fit(self, x: np.ndarray, y: np.ndarray) -> RuleSet:
         """Fits the decision tree on the data pointed by `ifra.fitters.DecisionTreeFitter` *data.x_path* and
         `ifra.fitters.DecisionTreeFitter` *data.y_path*, sets
         `ifra.fitters.DecisionTreeFitter`*tree* saves it as a .dot, .svg and .joblib file in the same place
         the node will save its ruleset. Those files will be unique for each time the fit function is called.
         Also sets `ifra.fitters.DecisionTreeFitter` *ruleset* and returns it.
+
+        Parameters
+        ----------
+        x: np.ndarray
+            The features on which to learn
+        y: np.ndarray
+            The target to predict
 
         Returns
         -------
@@ -85,8 +87,8 @@ class DecisionTreeFitter(Fitter):
             `ifra.fitters.DecisionTreeFitter` *ruleset*
         """
         self.make_fit(
-            self.data.x_path.read(**self.data.x_read_kwargs).values,
-            self.data.y_path.read(**self.data.y_read_kwargs).values,
+            x,
+            y,
             self.public_configs.max_depth,
             self.public_configs.get_leaf,
             self.public_configs.x_mins,

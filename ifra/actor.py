@@ -1,4 +1,4 @@
-from typing import List, Union, Dict
+from typing import List, Union
 
 from .decorator import emit
 from .messenger import Emitter
@@ -10,7 +10,7 @@ class Actor:
     An actor can be a node, the central server or the aggregator
     """
 
-    def __init__(self, **configs: Dict[str: Union[Config, List[Config]]]):
+    def __init__(self, **configs: Union[Config, List[Config]]):
         self.path_emitter = None
 
         for config in configs:
@@ -30,19 +30,12 @@ class Actor:
             raise ValueError(f"Did not find 'path_emitter' configuration for object of type {self.__class__.__name__}")
 
         self.emitter = Emitter(self.path_emitter)
-        self.emitter.creating = True
-        self._continue_init()
+        self.create()
 
     @emit
-    def _continue_init(self):
+    def create(self):
         """Implement in daughter class"""
         pass
-
-    def watch(self, timeout: int = 0, sleeptime: int = 1) -> None:
-        del_emitter = self.run(timeout, sleeptime)
-
-        if del_emitter:
-            self.emitter.rm()
 
     @emit
     def run(self, timeout: int, sleeptime: int):

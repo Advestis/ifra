@@ -56,7 +56,12 @@ class Config:
         path: Optional[Union[str, Path, TransparentPath]]
             The path to the json file containing the configuration. Will be casted into a transparentpath if a str is
             given, so make sure that if you pass a str that should be local, you did not set a global file system.
+            If None, creates an empty configuration.
         """
+
+        if path is None:
+            self.configs = {}
+            return
 
         if type(path) == str:
             path = TransparentPath(path)
@@ -203,8 +208,6 @@ class NodePublicConfig(Config):
     local_model_path: TransparentPath
         Path where the node is supposed to write its model. Should point to a csv file to which the central server has
         access.
-    central_model_path: TransparentPath
-        Path where the node is supposed to look for the central model. Should point to a csv file.
     id: Union[None, int, str]
         Name or number of the node. If not specified, will be set by central server. If not specified, the json file
         should still contain the key *id*, but with value "".
@@ -238,6 +241,8 @@ class NodePublicConfig(Config):
         Path to emitter json file. See `ifra.messenger.NodeEmitter`
     central_receiver_path: TransparentPath
         Path to central server emitter json file. See `ifra.messenger.FromCentralReceiver`
+    central_model_path: TransparentPath
+        Set by `ifra.central_server.NodeGate.interact`. Path where the node is supposed to look for the central model.
     """
 
     EXPECTED_CONFIGS = [
@@ -251,7 +256,6 @@ class NodePublicConfig(Config):
         "plot_data",
         "get_leaf",
         "local_model_path",
-        "central_model_path",
         "dataprep",
         "dataprep_kwargs",
         "id",
@@ -264,17 +268,24 @@ class NodePublicConfig(Config):
         "emitter_path",
         "central_receiver_path"
     ]
+    ADDITIONNAL_CONFIGS = {"central_model_path": {}}
 
     def __eq__(self, other):
         if not isinstance(other, NodePublicConfig):
             return False
         for key in NodePublicConfig.EXPECTED_CONFIGS:
-            # Those parameters can change without problem
-            if key == "local_model_path" or key == "central_model_path" or key == "id" or key.endswith("_fs"):
+            # Those parameters can be different
+            if (
+                    key == "emitter_path"
+                    or key == "local_model_path"
+                    or key == "id"
+                    or key.endswith("_fs")
+                    or key == "plot_data"
+            ):
                 continue
             if key not in self.configs and key not in other.configs:
                 continue
-            if key == "thresholds":
+            if key == "thresholds_path":  # Can be either both "", or both not "" and different or both "" and equal
                 if (self.configs[key] == "" and other.configs[key] == "")\
                         or (self.configs[key] != "" and other.configs[key] != ""):
                     continue
@@ -312,8 +323,8 @@ class CentralConfig(Config):
     """
 
     EXPECTED_CONFIGS = [
-        "output_path",
-        "output_path_fs",
+        "central_model_path",
+        "central_model_path_fs",
         "min_number_of_new_models",
         "aggregation",
         "aggregation_kwargs"
@@ -340,10 +351,10 @@ class NodeDataConfig(Config):
     configs: dict
         see `Config`
 
-    x: TransparentPath
+    x_path: TransparentPath
         Path to the features file. If it is a csv, it MUST contain the index and columns (can be integers), and
         x_read_kwargs should contain index_col=0
-    y: TransparentPath
+    y_path: TransparentPath
         Path to the target (classes) file. If it is a csv, it MUST contain the index and columns (can be integers), and
         y_read_kwargs should contain index_col=0
     x_read_kwargs: Union[None, dict]
@@ -358,12 +369,16 @@ class NodeDataConfig(Config):
         File system to use for y file. Can be 'gcs', 'local' or ""
     dataprep_kwargs: dict
         Set by `ifra.node.Node`. Keyword arguments for the dataprep.
+    x_path_to_use: TransparentPath
+        Set by `ifra.node.Node.fit`. Path to the (datapreped and) copied features file used for learning.
+    y_path_to_use: TransparentPath
+        Set by `ifra.node.Node.fit`. Path to the (datapreped and) copied target file used for learning.
     """
 
     EXPECTED_CONFIGS = ["x_path", "y_path", "x_read_kwargs", "y_read_kwargs", "x_path_fs", "y_path_fs"]
-    ADDITIONNAL_CONFIGS = {"dataprep_kwargs": {}}
+    ADDITIONNAL_CONFIGS = {"dataprep_kwargs": {}, "éx_path_to_use": None, "y_path_to_use": None}
 
-    def __init__(self, path: Union[str, Path, TransparentPath]):
+    def __init__(self, path: Optional[Union[str, Path, TransparentPath]] = None):
         super().__init__(path)
 
         if "index_col" in self.x_read_kwargs:

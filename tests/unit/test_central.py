@@ -14,7 +14,7 @@ def one_node(node):
     assert node.messenger.central_error is None
     assert node.ruleset is None
     assert node.last_fetch is None
-    assert node.new_data is False
+    assert node.new_model_found is False
     assert node.checked is False
     assert node.id_set is False
     assert node.ok is True

@@ -23,7 +23,9 @@ class Emitter:
         The path to the json file containing the messages. Will be casted into a transparentpath if a str is
         given, so make sure that if you pass a string that should be local, you did not set a global file system.
         If it does not exist, it is created with the default messages present in
-        `ifra.messenger.Emitter.DEFAULT_MESSAGES`. If it exists, it is overwritten and a warning is logged.
+        `ifra.messenger.Emitter.DEFAULT_MESSAGES`. If it exists and it indicates that the corresponding object is
+        doint something, will raise an error. It it exists and says taht the corresponding object is doing nothing,
+        overwrites the file.
      messages: dict
         A dictionnary of messages
 
@@ -33,12 +35,10 @@ class Emitter:
         True during emitting object's initialisation.
     error: str
         Set by the emitting object error occures. Will contain any error message raised.
-    running: bool
-        True during emitting object's `watch`.
     doing: str
         Name of the function currently being run by the emitting object
     """
-    DEFAULT_MESSAGES = {"creating": True, "error": None, "running": False, "doing": None}
+    DEFAULT_MESSAGES = {"creating": True, "error": None, "doing": None}
     """Overload in daughter classes."""
 
     def __init__(self, path: Union[str, Path, TransparentPath]):
@@ -56,11 +56,6 @@ class Emitter:
         if not path.suffix == ".json":
             raise ValueError("Emitter path must be a json")
 
-        if path.is_file():
-            raise ValueError(f"Message file '{path}' existed at Emitter creation. "
-                             f"This can indicate a crash of a previous execution, or the fact that two"
-                             f"sessions are running at the same time. Delete this file and restart.")
-
         lockfile = path.append(".locked")
         if lockfile.is_file():
             raise ValueError(f"Lock file '{path}' existed at Emitter creation. "
@@ -70,13 +65,40 @@ class Emitter:
             lockfile.touch()
 
         self.path = path
-        self.messages = {}
-        try:
-            lockfile.rm(absent="ignore")
-            self.reset_messages()
-        except Exception as e:
-            lockfile.rm(absent="ignore")
-            raise e
+        if path.is_file():
+            try:
+
+                if hasattr(self.path, "read"):
+                    self.messages = self.path.read()
+                else:
+                    with open(self.path) as opath:
+                        self.messages = load(opath)
+
+                for key in self.messages:
+                    if self.messages[key] == "":
+                        self.messages[key] = None
+
+                lockfile.rm(absent="ignore")
+            except Exception as e:
+                lockfile.rm(absent="ignore")
+                raise e
+        else:
+            self.messages = {"doing": None, "creating": False}
+
+        if self.doing is not None:
+            raise ValueError(
+                f"Message file '{path}' existed at Emitter creation and had 'doing={self.doing}'. "
+                f"This can indicate a crash of a previous execution, or the fact that two"
+                f"sessions are running at the same time. Delete this file and restart."
+            )
+        elif self.creating is True:
+            raise ValueError(
+                f"Message file '{path}' existed at Emitter creation and had 'creating=True'. "
+                f"This can indicate a crash of a previous execution, or the fact that two"
+                f"sessions are running at the same time. Delete this file and restart."
+            )
+
+        self.reset_messages()
 
     def __getattr__(self, item):
         if item == "messages":
@@ -129,36 +151,10 @@ class Emitter:
                 if key not in self.__class__.DEFAULT_MESSAGES:
                     raise ValueError(f"Forbidden message '{key}'")
                 if to_save[key] is None:
+                    # noinspection PyTypeChecker
                     to_save[key] = ""
 
             self.path.write(to_save)
-            lockfile.rm(absent="ignore")
-        except Exception as e:
-            lockfile.rm(absent="ignore")
-            raise e
-
-        lockfile = self.path.append(".locked")
-        t = time()
-        while lockfile.is_file():
-            sleep(0.5)
-            if time() - t > 5:
-                raise FileExistsError(f"File {lockfile} exists : could not lock on file {self.path}")
-        lockfile.touch()
-
-        try:
-
-            if not self.path.is_file():
-                raise FileNotFoundError(f"Messenger file {self.path} not found")
-
-            if hasattr(self.path, "read"):
-                self.messages = self.path.read()
-            else:
-                with open(self.path) as opath:
-                    self.messages = load(opath)
-
-            for key in self.messages:
-                if self.messages[key] == "":
-                    self.messages[key] = None
 
             lockfile.rm(absent="ignore")
         except Exception as e:
@@ -216,7 +212,7 @@ class Receiver:
             given, so make sure that if you pass a str that should be local, you did not set a global file system.
         wait: bool
             If True, will wait for 'path' to point to an existing file for `ifra.messenger.Emitter.DEFAULT_MESSAGES`
-            seconds at Receiver creation if it does not exist. In that case, messages will be those in
+            seconds at Receiver creation if it does not exist. Else, messages will be those in
             `ifra.messenger.Emitter.DEFAULT_MESSAGES`
         """
 
@@ -232,9 +228,9 @@ class Receiver:
 
     def __getattr__(self, item):
         if item == "messages":
-            raise ValueError("NodeMessenger object's 'messages' not set")
+            raise ValueError("Messenger object's 'messages' not set")
         if item == "path":
-            raise ValueError("NodeMessenger object's 'path' not set")
+            raise ValueError("Messenger object's 'path' not set")
         if item not in self.messages:
             raise ValueError(f"No messages named '{item}' was found")
         return self.messages[item]
