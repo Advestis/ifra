@@ -9,10 +9,7 @@ logger = logging.getLogger(__name__)
 
 def central_model_update(central_ruleset: RuleSet, aggregated_ruleset: RuleSet) -> bool:
 
-    if central_ruleset is None:
-        return True
-
-    if central_ruleset.rule_type != aggregated_ruleset.rule_type:
+    if central_ruleset.rule_type is not None and (central_ruleset.rule_type != aggregated_ruleset.rule_type):
         raise TypeError("Central model's and aggregated model's rules type are different")
     
     new_rules = 0

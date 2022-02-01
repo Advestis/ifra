@@ -203,6 +203,9 @@ class Aggregator(Actor):
         else:
             self.aggregation = self.possible_aggregations[self.aggregator_configs.aggregation](self)
 
+        # s = "\n".join([f"{key}: {self.aggregator_configs.configs[key]}" for key in self.aggregator_configs.configs])
+        # logger.info(f"Aggregator configuration:\n{s}")
+
     @emit
     def aggregate(self, rulesets: List[RuleSet]) -> Tuple[str, Union[RuleSet, None]]:
         """Aggregates rulesets in `ifra.aggregator.Aggregator` *ruleset* using
@@ -242,6 +245,7 @@ class Aggregator(Actor):
         path = path.with_suffix(".csv")
         ruleset.save(path)
         ruleset.save(self.aggregator_configs.aggregated_model_path)
+        logger.info(f"Saved aggregated model in '{self.aggregator_configs.aggregated_model_path}'")
 
         try:
             path_table = path.with_suffix(".pdf")
@@ -271,8 +275,7 @@ class Aggregator(Actor):
 
         if timeout <= 0:
             logger.warning("You did not specify a timeout for your run. It will last until manually stopped.")
-        logger.info("")
-        logger.info("Starting aggregator.")
+        logger.info("Starting aggregator. Monitoring changes in nodes' models directories.")
 
         if len(self.nodes) == 0:
             raise ValueError("No nodes to learn on !")

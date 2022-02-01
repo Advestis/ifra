@@ -49,8 +49,9 @@ class CentralServer(Actor):
 
     @emit
     def create(self):
-        """Nothing more to do in CentralServer"""
-        pass
+        self.ruleset = RuleSet()
+        # s = "\n".join([f"{key}: {self.central_configs.configs[key]}" for key in self.central_configs.configs])
+        # logger.info(f"Central Server configuration:\n{s}")
 
     @emit
     def update(self):
@@ -89,6 +90,7 @@ class CentralServer(Actor):
         path = path.with_suffix(".csv")
         ruleset.save(path)
         ruleset.save(self.central_configs.central_model_path)
+        logger.info(f"Saved central model in '{self.central_configs.central_model_path}'")
 
         try:
             path_table = path.with_suffix(".pdf")
@@ -118,23 +120,21 @@ class CentralServer(Actor):
 
         if timeout <= 0:
             logger.warning("You did not specify a timeout for your run. It will last until manually stopped.")
-        logger.info("")
-        logger.info("Starting central server.")
+        logger.info(f"Starting central server. Monitoring changes in {self.central_configs.aggregated_model_path}.")
 
         while time() - t < timeout or timeout <= 0:
 
-            if self.ruleset is None:
+            if len(self.ruleset) == 0:
                 if self.central_configs.aggregated_model_path.is_file():
                     self.update()
+                    iterations += 1
             else:
                 if (
                         self.central_configs.aggregated_model_path.is_file()
                         and self.central_configs.aggregated_model_path.info()["mtime"] > self.last_fetch.timestamp()
                 ):
                     self.update()
-                else:
-                    logger.debug(f"Aggregator has no new model.")
-                    return False
+                    iterations += 1
 
             sleep(sleeptime)
 

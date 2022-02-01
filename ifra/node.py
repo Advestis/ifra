@@ -187,11 +187,6 @@ class Node(Actor):
         logger.info(f"Found {len(self.ruleset)} rules in node {self.public_configs.id}")
         self.ruleset_to_file()
 
-        logger.info(
-            f"... node {self.public_configs.id} fitted, results saved in"
-            f" {self.public_configs.local_model_path.parent}."
-        )
-
     @emit
     def update_from_central(self, ruleset: RuleSet) -> None:
         """Modifies the files pointed by `ifra.node.Node`'s *data.x_path* and `ifra.node.Node`'s *data.y_path* by
@@ -227,6 +222,10 @@ class Node(Actor):
         path = path.with_suffix(".csv")
         ruleset.save(path)
         ruleset.save(self.public_configs.local_model_path)
+
+        logger.info(
+            f"Node {self.public_configs.id}'s model saved in {self.public_configs.local_model_path.parent}."
+        )
 
         try:
             path_table = path.with_suffix(".pdf")
@@ -297,7 +296,7 @@ class Node(Actor):
             central_ruleset.load(self.public_configs.central_model_path)
             self.last_fetch = datetime.now()
             self.update_from_central(central_ruleset)
-            logger.info(f"Fetched central ruleset in node {self.public_configs.id} at {self.last_fetch}")
+            logger.info(f"Fetched central model in node {self.public_configs.id} at {self.last_fetch}")
 
         t = time()
         do_fit = True  # start at true to trigger fit even if no central model is here at first iteration
@@ -306,6 +305,10 @@ class Node(Actor):
             logger.warning("You did not specify a timeout for your run. It will last until manually stopped.")
 
         logger.info(f"Starting node {self.public_configs.id}")
+        logger.info(
+            f"Starting node {self.public_configs.id}. Monitoring changes in {self.public_configs.central_model_path},"
+            f" {self.data.x_path} and {self.data.y_path}."
+        )
 
         while time() - t < timeout or timeout <= 0:
 
@@ -328,14 +331,14 @@ class Node(Actor):
 
             if self.last_fetch is None:
                 if self.public_configs.central_model_path.is_file():
-                    get_ruleset()
+                    get_ruleset(self)
                     do_fit = True
             else:
                 if (
                     self.public_configs.central_model_path.is_file()
                     and self.public_configs.central_model_path.info()["mtime"] > self.last_fetch.timestamp()
                 ):
-                    get_ruleset()
+                    get_ruleset(self)
                     do_fit = True
 
             if do_fit:

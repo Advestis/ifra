@@ -10,7 +10,7 @@
     "get_leaf": false,
     "local_model_path": "/home/pcotte/Documents/git/ifra/tests/outputs/node_2/ruleset.csv",
     "local_model_path_fs": "local",
-    "central_model_path": "/home/pcotte/Documents/git/ifra/tests/outputs/ruleset.csv",
+    "central_model_path": "/home/pcotte/Documents/git/ifra/tests/outputs/central_server/ruleset.csv",
     "central_model_path_fs": "local",
     "id": "chat",
     "dataprep": "binfeatures",

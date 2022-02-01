@@ -118,11 +118,22 @@ Example of step 5:
 
 from .node import Node
 from .central_server import CentralServer
+from .aggregator import Aggregator
 from .datapreps import DataPrep
 from .node_model_updaters import NodeModelUpdater
 from .fitters import Fitter
 from .aggregations import Aggregation
 from .setup_logger import setup_logger
+from .predictor import (
+    Predictor,
+    RegressionPredictor,
+    ClassificationPredictor,
+    EquallyWeightedClassificator,
+    EquallyWeightedRegressor,
+    CriterionWeightedRegressor,
+    CriterionWeightedClassificator,
+)
+from .configs import AggregatorConfig, CentralConfig, NodePublicConfig, NodeDataConfig
 
 try:
     from ._version import __version__

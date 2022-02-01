@@ -22,7 +22,7 @@ def emit(_func):
                 res = func(*args, **kwargs)
                 emitter.doing = doing
                 return res
-            except Exception as e:
+            except (Exception, KeyboardInterrupt) as e:
                 emitter.send(doing=None, error=traceback.format_exc())
                 raise e
         return wrapper_emit
