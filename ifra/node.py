@@ -1,8 +1,9 @@
 from datetime import datetime
 from time import time, sleep
 
-from typing import Union, Optional
+from typing import Union
 
+import pandas as pd
 from ruleskit import RuleSet
 from tablewriter import TableWriter
 from transparentpath import TransparentPath
@@ -11,7 +12,7 @@ import logging
 from .actor import Actor
 from .configs import NodePublicConfig, NodeDataConfig
 from .fitters import DecisionTreeFitter
-from .updaters import AdaBoostUpdater
+from .node_model_updaters import AdaBoostNodeModelUpdater
 from .datapreps import BinFeaturesDataPrep
 from .plot import plot_histogram
 from .decorator import emit
@@ -56,19 +57,19 @@ class Node(Actor):
         Configuration of the paths to the node's features and target data files
     fitter: `ifra.fitters.Fitter`
         Configuration of the paths to the node's features and target data files
-    updater: `ifra.updaters.Updater`
+    updater: `ifra.node_model_updaters.NodeModelUpdater`
         Configuration of the paths to the node's features and target data files
     """
 
-    possible_fitters = {"decisiontree_fitter": DecisionTreeFitter}
+    possible_fitters = {"decisiontree": DecisionTreeFitter}
     """Possible string values and corresponding fitter object for *fitter* attribute of
     `ifra.configs.NodePublicConfig`"""
 
-    possible_updaters = {"adaboost_updater": AdaBoostUpdater}
+    possible_updaters = {"adaboost": AdaBoostNodeModelUpdater}
     """Possible string values and corresponding updaters object for *updater* attribute of
     `ifra.configs.NodePublicConfig`"""
 
-    possible_datapreps = {"binfeatures_dataprep": BinFeaturesDataPrep}
+    possible_datapreps = {"binfeatures": BinFeaturesDataPrep}
     """Possible string values and corresponding updaters object for *updater* attribute of
     `ifra.configs.NodePublicConfig`"""
 
@@ -84,7 +85,7 @@ class Node(Actor):
         self.data = None
         self.last_x = None
         self.last_y = None
-        super().__init__(public_configs=public_configs, path_data=data)
+        super().__init__(public_configs=public_configs, data=data)
 
     @emit
     def create(self):
@@ -102,10 +103,10 @@ class Node(Actor):
             function = self.public_configs.fitter.split(".")[-1]
             module = self.public_configs.fitter.replace(f".{function}", "")
             self.fitter = getattr(__import__(module, globals(), locals(), [function], 0), function)(
-                self.public_configs, self.data
+                self.public_configs
             )
         else:
-            self.fitter = self.possible_fitters[self.public_configs.fitter](self.public_configs, self.data)
+            self.fitter = self.possible_fitters[self.public_configs.fitter](self.public_configs)
 
         if self.public_configs.updater not in self.possible_updaters:
             function = self.public_configs.updater.split(".")[-1]
@@ -145,7 +146,7 @@ class Node(Actor):
                 (self.data.x_path.parent / "plots").mkdir()
             self.plot_data_histogram(self.data.x_path.parent / "plots")
 
-        self.last_x, self.last_y = datetime.now()
+        self.last_x = self.last_y = datetime.now()
 
         if self.dataprep is not None and not self.datapreped:
             logger.info(f"Datapreping data of node {self.public_configs.id}...")
@@ -155,6 +156,7 @@ class Node(Actor):
                     (self.data.x_path.parent / "plots_datapreped").mkdir()
                 self.plot_data_histogram(self.data.x_path.parent / "plots_datapreped")
             self.datapreped = True
+            self.copied = True
             logger.info(f"...datapreping done for node {self.public_configs.id}")
 
         if not self.copied:
@@ -228,9 +230,12 @@ class Node(Actor):
 
         try:
             path_table = path.with_suffix(".pdf")
-            TableWriter(
-                path_table, path.read(index_col=0).apply(lambda x: x.round(3) if x.dtype == float else x), paperwidth=30
-            ).compile(clean_tex=True)
+            df = path.read(index_col=0)
+            if not df.empty:
+                df = df.apply(lambda x: x.round(3) if x.dtype == float else x)
+            else:
+                df = pd.DataFrame(data=[["empty"]])
+            TableWriter(path_table, df, paperwidth=30).compile(clean_tex=True)
         except ValueError:
             logger.warning("Failed to produce tablewriter. Is LaTeX installed ?")
 
@@ -268,7 +273,7 @@ class Node(Actor):
         fig.savefig(path_y)
 
     @emit
-    def run(self, timeout: int, sleeptime: int):
+    def run(self, timeout: Union[int, float] = 0, sleeptime: Union[int, float] = 5):
         """Monitors new changes in the central server, every *sleeptime* seconds for *timeout* seconds, triggering
         node fit when a new model is found, if new data are available or if the function just started. Sets
         `ifra.configs.NodePublicConfig` *id* and *central_server_path* by re-reading the configuration file.
@@ -278,23 +283,21 @@ class Node(Actor):
 
         Parameters
         ----------
-        timeout: Optional[int]
-            How many seconds the watch last. If <= 0>, will last until the central server sets
-            `ifra.configs.NodePublicConfig` *stop* to True. Default value = 0
-        sleeptime: int
+        timeout: Union[int, float]
+            How many seconds the run last. If <= 0>, will last until killed by the user. Default value = 0
+        sleeptime: Union[int, float]
             How many seconds between each checks for new central model. Default value = 5
         """
         # noinspection PyUnusedLocal
         @emit  # Let self_ here for proper use of 'emit'
         def get_ruleset(self_) -> None:
             """Fetch the central server's latest model's RuleSet.
-            `ifra.node.Node.last_fetch` will be set to now and `ifra.node.Node.new_data` to True."""
+            `ifra.node.Node.last_fetch` will be set to now."""
             central_ruleset = RuleSet()
             central_ruleset.load(self.public_configs.central_model_path)
             self.last_fetch = datetime.now()
             self.update_from_central(central_ruleset)
             logger.info(f"Fetched central ruleset in node {self.public_configs.id} at {self.last_fetch}")
-            self.new_data = True
 
         t = time()
         do_fit = True  # start at true to trigger fit even if no central model is here at first iteration

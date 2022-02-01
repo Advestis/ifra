@@ -5,7 +5,7 @@ from ruleskit import RuleSet
 from .configs import NodeDataConfig
 
 
-class Updater:
+class NodeModelUpdater:
     """Abstract class implementing how nodes should take central model into account.
 
     Attributes
@@ -30,11 +30,11 @@ class Updater:
     def update(self, ruleset: RuleSet) -> None:
         """Reads x and y data, calls `ifra.updaters.make_update` and writes the updated data back to where they were
         read."""
-        x = self.data.x_path.read(**self.data.x_read_kwargs)
-        y = self.data.y_path.read(**self.data.y_read_kwargs)
+        x = self.data.x_path_to_use.read(**self.data.x_read_kwargs)
+        y = self.data.y_path_to_use.read(**self.data.y_read_kwargs)
         self.make_update(x, y, ruleset)
-        self.data.x_path.write(x)
-        self.data.y_path.write(y)
+        self.data.x_path_to_use.write(x)
+        self.data.y_path_to_use.write(y)
 
     @staticmethod
     def make_update(x: pd.DataFrame, y: pd.DataFrame, ruleset: RuleSet) -> Tuple[pd.DataFrame, pd.DataFrame]:
@@ -54,11 +54,11 @@ class Updater:
         pass
 
 
-class AdaBoostUpdater(Updater):
-    """Ignores points activated by the central server ruleset in order to find other relevant rules in the next
+class AdaBoostNodeModelUpdater(NodeModelUpdater):
+    """Ignores points activated by the central model's ruleset in order to find other relevant rules in the next
     iterations.
 
-    Can be used by giving *adaboost_updater* as *updater* configuration when creating a `ifra.node.Node`
+    Can be used by giving *adaboost* as *updater* configuration when creating a `ifra.node.Node`
     """
 
     @staticmethod

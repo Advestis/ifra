@@ -23,7 +23,7 @@ def emit(_func):
                 emitter.doing = doing
                 return res
             except Exception as e:
-                emitter.send(doing=None, running=False, error=traceback.format_exc())
+                emitter.send(doing=None, error=traceback.format_exc())
                 raise e
         return wrapper_emit
 

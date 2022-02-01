@@ -13,15 +13,15 @@ Steps 2 to 4 are then repeated until either the user stops the algorithm or some
 
 In IFRA, the model to train is supposed to produce rules as learning output. Rules are managed by the `ruleskit`
 pacakge. The available learning models are:\n
-  * decisiontree_fitter (see `ifra.fitters.DecisionTreeFitter`)\n
+  * decisiontree (see `ifra.fitters.DecisionTreeFitter`)\n
 The user has the liberty to choose the aggregation method among:\n
-  * adaboost_aggregation (see `ifra.aggregations.AdaBoostAggregation`)\n
+  * adaboost (see `ifra.aggregations.AdaBoostAggregation`)\n
 The user has the liberty to choose the update method to be used by the node to take the central model into account.
 The available updaters are:\n
-  * adaboost_updater (see `ifra.updaters.AdaboostUpdater`)\n
+  * adaboost (see `ifra.updaters.AdaboostUpdater`)\n
 Each node has the possbility to execute a dataprep before the first learning. The user has the liberty to choose the
 dataprep method. The available datapreps are:\n
-  * binfeatures_dataprep (see `ifra.datapreps.BinFeaturesDataPrep`)\n
+  * binfeatures (see `ifra.datapreps.BinFeaturesDataPrep`)\n
 
 In addition to the available objects listed above, the user can define its own by overloading the `ifra.fitters.Fitter`,
 `ifra.aggregations.Aggregation`, `ifra.updaters.Updater` and `ifra.datapreps.DataPrep` classes. Read their
@@ -71,10 +71,10 @@ Example of step 1: you could create nodes public configuration json files contan
 >>>   "get_leaf": false,
 >>>   "local_model_path": "tests/outputs/node_0/ruleset.csv",
 >>>   "central_model_path": "tests/outputs/ruleset.csv",
->>>   "dataprep": "binfeatures_dataprep",
+>>>   "dataprep": "binfeatures",
 >>>   "id": "",
->>>   "fitter": "decisiontree_fitter",
->>>   "updater": "adaboost_updater"
+>>>   "fitter": "decisiontree",
+>>>   "updater": "adaboost"
 >>> }
 
 Example of step 2: you could create nodes data configuration json files contaning:
@@ -119,7 +119,7 @@ Example of step 5:
 from .node import Node
 from .central_server import CentralServer
 from .datapreps import DataPrep
-from .updaters import Updater
+from .node_model_updaters import NodeModelUpdater
 from .fitters import Fitter
 from .aggregations import Aggregation
 from .setup_logger import setup_logger

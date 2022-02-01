@@ -9,6 +9,28 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def get_lock(path: TransparentPath, timeout: int = 5, exists: str = "wait") -> TransparentPath:
+    lockfile = path.append(".lock")
+    if not lockfile.parent.is_dir():
+        lockfile.mkdir(parents=True)
+        lockfile.touch()
+        return lockfile
+
+    t = time()
+    while lockfile.is_file():
+        if exists != "wait":
+            raise ValueError(
+                f"Lock file '{lockfile}' exists. "
+                "This can indicate a crash of a previous execution, or the fact that two"
+                "sessions are running at the same time. Delete this file and restart."
+            )
+        sleep(0.5)
+        if time() - t > timeout:
+            raise FileExistsError(f"File '{lockfile}' exists : could not lock on corresponding file.")
+    lockfile.touch()
+    return lockfile
+
+
 class Emitter:
     """Instance to send messages to a receiver. It uses a json file to write messages.
 
@@ -31,14 +53,12 @@ class Emitter:
 
     Messages
     --------
-    creating: bool
-        True during emitting object's initialisation.
     error: str
         Set by the emitting object error occures. Will contain any error message raised.
     doing: str
         Name of the function currently being run by the emitting object
     """
-    DEFAULT_MESSAGES = {"creating": True, "error": None, "doing": None}
+    DEFAULT_MESSAGES = {"error": None, "doing": None}
     """Overload in daughter classes."""
 
     def __init__(self, path: Union[str, Path, TransparentPath]):
@@ -56,16 +76,10 @@ class Emitter:
         if not path.suffix == ".json":
             raise ValueError("Emitter path must be a json")
 
-        lockfile = path.append(".locked")
-        if lockfile.is_file():
-            raise ValueError(f"Lock file '{path}' existed at Emitter creation. "
-                             f"This can indicate a crash of a previous execution, or the fact that two"
-                             f"sessions are running at the same time. Delete this file and restart.")
-        else:
-            lockfile.touch()
+        lockfile = get_lock(path, exists="raise")
 
         self.path = path
-        if path.is_file():
+        if self.path.is_file():
             try:
 
                 if hasattr(self.path, "read"):
@@ -83,7 +97,7 @@ class Emitter:
                 lockfile.rm(absent="ignore")
                 raise e
         else:
-            self.messages = {"doing": None, "creating": False}
+            self.messages = {"doing": None, "error": None}
 
         if self.doing is not None:
             raise ValueError(
@@ -91,13 +105,8 @@ class Emitter:
                 f"This can indicate a crash of a previous execution, or the fact that two"
                 f"sessions are running at the same time. Delete this file and restart."
             )
-        elif self.creating is True:
-            raise ValueError(
-                f"Message file '{path}' existed at Emitter creation and had 'creating=True'. "
-                f"This can indicate a crash of a previous execution, or the fact that two"
-                f"sessions are running at the same time. Delete this file and restart."
-            )
 
+        lockfile.rm(absent="ignore")
         self.reset_messages()
 
     def __getattr__(self, item):
@@ -138,13 +147,7 @@ class Emitter:
         """Saves the current messages into the file it used to load."""
         to_save = copy(self.messages)
 
-        lockfile = self.path.append(".locked")
-        t = time()
-        while lockfile.is_file():
-            sleep(0.5)
-            if time() - t > 5:
-                raise FileExistsError(f"File {lockfile} exists : could not lock on file {self.path}")
-        lockfile.touch()
+        lockfile = get_lock(self.path)
 
         try:
             for key in to_save:
@@ -168,12 +171,7 @@ class Emitter:
 
     def rm(self):
         """Removes the Emitter's json file."""
-        lockfile = self.path.append(".locked")
-        t = time()
-        while lockfile.is_file():
-            sleep(0.5)
-            if time() - t > 5:
-                raise FileExistsError(f"File {lockfile} exists : could not lock on file {self.path}")
+        lockfile = get_lock(self.path)
         self.path.rm(absent="ignore")
         lockfile.rm()
 
@@ -275,13 +273,7 @@ class Receiver:
 
         self.new = False
 
-        lockfile = self.path.append(".locked")
-        t = time()
-        while lockfile.is_file():
-            sleep(0.5)
-            if time() - t > 5:
-                raise FileExistsError(f"File {lockfile} exists : could not lock on file {self.path}")
-        lockfile.touch()
+        lockfile = get_lock(self.path)
 
         try:
 

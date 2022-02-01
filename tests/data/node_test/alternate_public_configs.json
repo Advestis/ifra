@@ -9,14 +9,18 @@
     "plot_data": true,
     "get_leaf": false,
     "local_model_path": "/home/pcotte/Documents/git/ifra/tests/outputs/node_test/ruleset.csv",
+    "local_model_path_fs": "local",
     "central_model_path": "/home/pcotte/Documents/git/ifra/tests/outputs/ruleset.csv",
-    "id": "",
+    "central_model_path_fs": "local",
+    "id": "cheval",
     "dataprep": "tests.alternates.dataprep.AlternateDataPrep",
     "dataprep_kwargs": {"nbins": 5},
     "fitter": "tests.alternates.fitter.AlternateFitter",
-    "fitter_kwargs": "",
+    "fitter_kwargs": {},
     "updater": "tests.alternates.updater.AlternateUpdater",
-    "updater_kwargs": "",
-    "thresholds_path": "tests/data/thresholds.json",
-    "thresholds_path_fs": "local"
+    "updater_kwargs": {},
+    "thresholds_path": "/home/pcotte/Documents/git/ifra/tests/data/thresholds.json",
+    "thresholds_path_fs": "local",
+    "emitter_path": "/home/pcotte/Documents/git/ifra/tests/outputs/node_test/node_cheval_messages.json",
+    "emitter_path_fs": "local"
 }

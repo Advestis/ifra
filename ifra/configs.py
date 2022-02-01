@@ -70,7 +70,7 @@ class Config:
             raise ValueError("Config path must be a json")
 
         if not path.is_file():
-            raise FileNotFoundError(f"No file found for node configuration {self.path}")
+            raise FileNotFoundError(f"No file found for node configuration {path}")
 
         lockfile = path.append(".locked")
         t = time()
@@ -102,6 +102,13 @@ class Config:
                         self.configs[key] = None
                 elif key.endswith("_path"):
                     self.configs[key] = handle_path(self.configs[key], self.configs.get(f"{key}_fs", None))
+                elif key.endswith("_paths"):
+                    fss = self.configs.get(f"{key}_fss", None)
+                    if fss is not None:
+                        new_configs = []
+                        for element, fs in zip(self.configs[key], fss):
+                            new_configs.append(handle_path(element, fs))
+                        self.configs[key] = new_configs
 
             lockfile.rm(absent="ignore")
         except Exception as e:
@@ -206,11 +213,13 @@ class NodePublicConfig(Config):
         If True, will only consider the leaf ofthe tree to create rules. If False, every node of the tree will also be
         a rule.
     local_model_path: TransparentPath
-        Path where the node is supposed to write its model. Should point to a csv file to which the central server has
+        Path where the node is supposed to write its model. Should point to a csv file to which the aggregator has
         access.
+    local_model_path_fs: TransparentPath
+        File system to use for local model file. Can be 'gcs', 'local' or "". If not specified, the json
+        file should still contain the key *local_model_path_fs*, but with value "".
     id: Union[None, int, str]
-        Name or number of the node. If not specified, will be set by central server. If not specified, the json file
-        should still contain the key *id*, but with value "".
+        Name or number of the node. Can not be "".
     dataprep: Union[str]
         Name of the dataprep to use. Can be "" or one of:\n
           * BinFeaturesDataPrep (see `ifra.datapreps.BinFeaturesDataPrep`)\n
@@ -235,14 +244,18 @@ class NodePublicConfig(Config):
         Path to the json file to use to set `ruleskit.thresholds.Thresholds`. If not specified, the json
         file should still contain the key *thresholds_path*, but with value "".
     thresholds_path_fs: TransparentPath
-         File system to use for thresholds json file. Can be 'gcs', 'local' or "". If not specified, the json
+        File system to use for thresholds json file. Can be 'gcs', 'local' or "". If not specified, the json
         file should still contain the key *thresholds_path_fs*, but with value "".
     emitter_path: TransparentPath
-        Path to emitter json file. See `ifra.messenger.NodeEmitter`
-    central_receiver_path: TransparentPath
-        Path to central server emitter json file. See `ifra.messenger.FromCentralReceiver`
+        Path to emitter json file. See `ifra.messenger.Emitter`
+    emitter_path_fs: TransparentPath
+        File system of path to emitter. Can be 'gcs', 'local' or "". If not specified, the json
+        file should still contain the key *emitter_path_fs*, but with value "".
     central_model_path: TransparentPath
-        Set by `ifra.central_server.NodeGate.interact`. Path where the node is supposed to look for the central model.
+        Path where the node is supposed to look for the central model.
+    central_model_path_fs: str
+        File system of central model path. Can be 'gcs', 'local' or "". If not specified, the json
+        file should still contain the key *central_model_path_fs*, but with value "".
     """
 
     EXPECTED_CONFIGS = [
@@ -256,6 +269,7 @@ class NodePublicConfig(Config):
         "plot_data",
         "get_leaf",
         "local_model_path",
+        "local_model_path_fs",
         "dataprep",
         "dataprep_kwargs",
         "id",
@@ -266,9 +280,10 @@ class NodePublicConfig(Config):
         "thresholds_path",
         "thresholds_path_fs",
         "emitter_path",
-        "central_receiver_path"
+        "emitter_path_fs",
+        "central_model_path",
+        "central_model_path_fs"
     ]
-    ADDITIONNAL_CONFIGS = {"central_model_path": {}}
 
     def __eq__(self, other):
         if not isinstance(other, NodePublicConfig):
@@ -280,6 +295,7 @@ class NodePublicConfig(Config):
                     or key == "local_model_path"
                     or key == "id"
                     or key.endswith("_fs")
+                    or key.endswith("_fss")
                     or key == "plot_data"
             ):
                 continue
@@ -294,11 +310,11 @@ class NodePublicConfig(Config):
         return True
 
 
-class CentralConfig(Config):
+class AggregatorConfig(Config):
     # noinspection PyUnresolvedReferences
-    """Overloads `Config`, corresponding to the central server configuration.
+    """Overloads `Config`, corresponding to the aggregator configuration.
 
-    Used by `ifra.central_server.CentralServer`
+    Used by `ifra.aggregator.Aggregator`
 
     Attributes
     ----------
@@ -307,27 +323,74 @@ class CentralConfig(Config):
     configs: dict
         see `Config`
 
-    output_path: TransparentPath
-        Path where the central server will save its model at the end of the learning. Will also produce one output each
+    aggregated_model_path: TransparentPath
+        Path where the aggregator will save its model after each aggregations. Will also produce one output each
         time the model is updated. Should point to a csv file.
-    output_path_fs: str
+    aggregated_model_path_fs: str
         File system to use for learning outpout. Can be 'gcs', 'local' or ""
     min_number_of_new_models: int
         Minimum number of nodes that must have prodived a new model to trigger aggregation.
     aggregation: str
         Name of the aggregation method. Can be one of: \n
-          * adaboost_aggregation (see `ifra.aggregations.AdaBoostAggregation`)\n
+          * adaboost (see `ifra.aggregations.AdaBoostAggregation`)\n
     aggregation_kwargs: dict
         Keyword arguments for the `ifra.aggregations.Aggregation` init. If not specified, the json file should still
         contain the key *aggregation_kwargs*, but with value "".
+    emitter_path: TransparentPath
+        Path to emitter json file. See `ifra.messenger.Emitter`
+    emitter_path_fs: TransparentPath
+        File system of path to emitter. Can be 'gcs', 'local' or "". If not specified, the json
+        file should still contain the key *emitter_path_fs*, but with value "".
     """
 
     EXPECTED_CONFIGS = [
-        "central_model_path",
-        "central_model_path_fs",
+        "aggregated_model_path",
+        "aggregated_model_path_fs",
         "min_number_of_new_models",
         "aggregation",
-        "aggregation_kwargs"
+        "aggregation_kwargs",
+        "emitter_path",
+        "emitter_path_fs",
+    ]
+
+
+class CentralConfig(Config):
+    # noinspection PyUnresolvedReferences
+    """Overloads `Config`, corresponding to the aggregator configuration.
+
+    Used by `ifra.aggregator.Aggregator`
+
+    Attributes
+    ----------
+    path: TransparentPath
+        see `Config`
+    configs: dict
+        see `Config`
+
+    aggregated_model_path: TransparentPath
+        Path where the aggregator will save its model after each aggregations. Will also produce one output each
+        time the model is updated. Should point to a csv file.
+    aggregated_model_path_fs: str
+        File system to use for learning outpout. Can be 'gcs', 'local' or ""
+    central_model_path: TransparentPath
+        Path where the central model will save its model after each update. Will also produce one output each
+        time the model is updated. Should point to a csv file.
+    central_model_path_fs: str
+        File system to use for learning outpout. Can be 'gcs', 'local' or ""
+    emitter_path: TransparentPath
+        Path to emitter json file. See `ifra.messenger.Emitter`
+    emitter_path_fs: TransparentPath
+        File system of path to emitter. Can be 'gcs', 'local' or "". If not specified, the json
+        file should still contain the key *emitter_path_fs*, but with value "".
+    """
+
+    EXPECTED_CONFIGS = [
+        "aggregated_model_path",
+        "aggregated_model_path_fs",
+        "central_model_path",
+        "central_model_path_fs",
+        "emitter_path",
+        "emitter_path_fs",
     ]
 
 
@@ -363,9 +426,9 @@ class NodeDataConfig(Config):
     y_read_kwargs: Union[None, dict]
         Keyword arguments to read the target file. If not specified, the json file should still contain the key
         *x_read_kwargs*, but with value "".
-    x_fs: str
+    x_path_fs: str
         File system to use for x file. Can be 'gcs', 'local' or ""
-    y_fs: str
+    y_path_fs: str
         File system to use for y file. Can be 'gcs', 'local' or ""
     dataprep_kwargs: dict
         Set by `ifra.node.Node`. Keyword arguments for the dataprep.
@@ -376,7 +439,7 @@ class NodeDataConfig(Config):
     """
 
     EXPECTED_CONFIGS = ["x_path", "y_path", "x_read_kwargs", "y_read_kwargs", "x_path_fs", "y_path_fs"]
-    ADDITIONNAL_CONFIGS = {"dataprep_kwargs": {}, "éx_path_to_use": None, "y_path_to_use": None}
+    ADDITIONNAL_CONFIGS = {"dataprep_kwargs": {}, "x_path_to_use": None, "y_path_to_use": None}
 
     def __init__(self, path: Optional[Union[str, Path, TransparentPath]] = None):
         super().__init__(path)
@@ -396,3 +459,34 @@ class NodeDataConfig(Config):
         else:
             if self.y.suffix == ".csv":
                 raise ValueError("If y file is a csv, then its read kwargs should contain 'index_col=0'")
+
+
+class MonitoringConfig(Config):
+    # noinspection PyUnresolvedReferences
+    """Overloads `Config`, configuration for monitoring the learning.
+
+    Used by `ifra.monitoring.Monitor`
+
+    Attributes
+    ----------
+    path: TransparentPath
+        see `Config`
+    configs: dict
+        see `Config`
+
+    central_server_receiver_path: TransparentPath
+    central_server_receiver_path_fs: str
+    aggregator_receiver_path: TransparentPath
+    aggregator_receiver_path_fs: str
+    nodes_receivers_paths: List[TransparentPath]
+    nodes_receivers_paths_fss: List[str]
+    """
+
+    EXPECTED_CONFIGS = [
+        "central_server_receiver_path",
+        "central_server_receiver_path_fs",
+        "aggregator_receiver_path",
+        "aggregator_receiver_path_fs",
+        "nodes_receivers_paths",
+        "nodes_receivers_paths_fss",
+    ]

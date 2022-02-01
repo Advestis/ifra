@@ -48,7 +48,7 @@ class DecisionTreeFitter(Fitter):
 
     """Overloads the Fitter class. Fits a DecisionTreeFitter on some data.
 
-    Can be used by giving *decisiontree_fitter* as *fitter* configuration when creating a `ifra.node.Node`
+    Can be used by giving *decisiontree* as *fitter* configuration when creating a `ifra.node.Node`
 
     Attributes
     ----------

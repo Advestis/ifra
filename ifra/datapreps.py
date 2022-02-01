@@ -24,7 +24,7 @@ class DataPrep:
 
     def dataprep(self):
         """Writes the output of the dataprep in `ifra.node.Node`'s *data.x_path* and `ifra.node.Node`'s *data.y_path*
-        parent directories by appending *_datapreped* to the files names. Modifies `ifra.node.Node`'s *data.x_path* and
+        parent directories by appending *_to_use* to the files names. Modifies `ifra.node.Node`'s *data.x_path* and
         `ifra.node.Node`'s *data.y_path* to point to those files.
         """
         x, y = self.dataprep_method(
@@ -33,8 +33,8 @@ class DataPrep:
         )
         x_suffix = self.data.x_path.suffix
         y_suffix = self.data.y_path.suffix
-        x_datapreped_path = self.data.x_path.with_suffix("").append("_datapreped").with_suffix(x_suffix)
-        y_datapreped_path = self.data.y_path.with_suffix("").append("_datapreped").with_suffix(y_suffix)
+        x_datapreped_path = self.data.x_path.with_suffix("").append("_to_use").with_suffix(x_suffix)
+        y_datapreped_path = self.data.y_path.with_suffix("").append("_to_use").with_suffix(y_suffix)
 
         x_datapreped_path.write(x)
         y_datapreped_path.write(y)

@@ -11,7 +11,7 @@ class Actor:
     """
 
     def __init__(self, **configs: Union[Config, List[Config]]):
-        self.path_emitter = None
+        self.emitter_path = None
 
         for config in configs:
             if isinstance(configs[config], list):
@@ -22,14 +22,15 @@ class Actor:
             elif not isinstance(configs[config], Config):
                 raise TypeError(f"Configuration '{config}' is of type {type(configs[config])}"
                                 " instead of type Config")
+            else:
+                if self.emitter_path is None and "emitter_path" in configs[config].configs:
+                    self.emitter_path = configs[config].emitter_path
             setattr(self, config, configs[config])
-            if hasattr(configs[config], "path_emitter"):
-                self.path_emitter = configs[config].emitter_path
 
-        if self.path_emitter is None:
-            raise ValueError(f"Did not find 'path_emitter' configuration for object of type {self.__class__.__name__}")
+        if self.emitter_path is None:
+            raise ValueError(f"Did not find 'emitter_path' configuration for object of type {self.__class__.__name__}")
 
-        self.emitter = Emitter(self.path_emitter)
+        self.emitter = Emitter(self.emitter_path)
         self.create()
 
     @emit
@@ -38,6 +39,14 @@ class Actor:
         pass
 
     @emit
-    def run(self, timeout: int, sleeptime: int):
-        """Implement in daughter class"""
+    def run(self, timeout: Union[int, float] = 0, sleeptime: Union[int, float] = 5):
+        """Implement in daughter class
+
+        Parameters
+        ----------
+        timeout: Union[int, float]
+            How many seconds should the run last. If <= 0, will last until killed by the user. Default value = 0.
+        sleeptime: Union[int, float]
+            How many seconds between each checks. Default value = 5.
+        """
         pass
