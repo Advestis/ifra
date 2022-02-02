@@ -175,17 +175,36 @@ class Node(Actor):
         """
         Calls `ifra.node.Node.plot_dataprep_and_copy`.
         Calls the fitter corresponding to `ifra.node.Node` *public_configs.fitter* on the node's features and
-        targets and save the resulting ruleset in `ifra.node.Node` *public_configs.local_model_path*.
+        targets.
+        Filters out rules that are already present in the central model, if it exists.
+        Saves the resulting ruleset in `ifra.node.Node` *public_configs.local_model_path* if new rules were found.
         """
 
         self.plot_dataprep_and_copy()
         logger.info(f"Fitting node {self.public_configs.id} using {self.public_configs.fitter}...")
-        self.ruleset = self.fitter.fit(
+        ruleset = self.fitter.fit(
             self.data.x_path_to_use.read(**self.data.x_read_kwargs).values,
             self.data.y_path_to_use.read(**self.data.y_read_kwargs).values,
         )
-        logger.info(f"Found {len(self.ruleset)} rules in node {self.public_configs.id}")
-        self.ruleset_to_file()
+        central_ruleset_path = self.public_configs.central_model_path
+        if central_ruleset_path.isfile():
+            central_ruleset = RuleSet()
+            central_ruleset.load(central_ruleset_path)
+            rules = [r for r in ruleset if r not in central_ruleset]
+            if len(rules) > 0:
+                self.ruleset = RuleSet(
+                    remember_activation=ruleset.remember_activation,
+                    stack_activation=ruleset.stack_activation,
+                    rules_list=rules
+                )
+                logger.info(f"Found {len(self.ruleset)} new rules in node {self.public_configs.id}")
+                self.ruleset_to_file()
+            else:
+                logger.info(f"Did not find new rules in node {self.public_configs.id}")
+        else:
+            self.ruleset = ruleset
+            self.ruleset_to_file()
+            logger.info(f"Found {len(self.ruleset)} rules in node {self.public_configs.id}")
 
     @emit
     def update_from_central(self, ruleset: RuleSet) -> None:
