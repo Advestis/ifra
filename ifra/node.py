@@ -203,8 +203,8 @@ class Node(Actor):
                 logger.info(f"Did not find new rules in node {self.public_configs.id}")
         else:
             self.ruleset = ruleset
-            self.ruleset_to_file()
             logger.info(f"Found {len(self.ruleset)} rules in node {self.public_configs.id}")
+            self.ruleset_to_file()
 
     @emit
     def update_from_central(self, ruleset: RuleSet) -> None:
