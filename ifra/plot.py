@@ -1,7 +1,10 @@
 from typing import Union
 import matplotlib as mpl
 from matplotlib import pyplot as plt
+import logging
 
+
+logger = logging.getLogger(__name__)
 mpl.rcParams["text.usetex"] = True
 mpl.rcParams["text.latex.preamble"] = r"\usepackage{amsmath}\boldmath"
 
@@ -110,6 +113,13 @@ def plot_histogram(**kwargs) -> plt.Figure:
             shadow=True,
             title=None,
         )
-    plt.gcf().tight_layout()
-
+    try:
+        plt.gcf().tight_layout()
+    except RuntimeError as e:
+        if "latex" in str(e):
+            logger.warning("LaTeX not installed, deactivating it in matplotlib")
+            mpl.rcParams["text.usetex"] = False
+            plt.gcf().tight_layout()
+        else:
+            raise e
     return fig
