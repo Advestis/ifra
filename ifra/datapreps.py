@@ -8,6 +8,7 @@ from .configs import NodeDataConfig
 
 
 class DataPrep:
+    """Abstract class for DataPrep."""
 
     def __init__(self, data: NodeDataConfig, **kwargs):
         """

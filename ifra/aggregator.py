@@ -17,8 +17,8 @@ logger = logging.getLogger(__name__)
 
 class NodeGate:
 
-    """This class is the gate used by the aggregator to interact with the remote nodes. Mainly, it has in memory
-    the public configuration of one given node, to which must correspond an instance of the
+    """This class is the gate used by the aggregator to interact with the remote nodes.
+    It knows the public configuration of one given node, to which must correspond an instance of the
     `ifra.node.Node` class. This configuration holds among other things, the places where the nodes
     are supposed to save their models. It implements a method, `ifra.aggregator.NodeGate.interact`,
     that check whether the node produced a new model.

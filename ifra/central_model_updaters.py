@@ -8,6 +8,13 @@ logger = logging.getLogger(__name__)
 
 
 def central_model_update(central_ruleset: RuleSet, aggregated_ruleset: RuleSet) -> bool:
+    """Used by `ifra.central_server.CentralServer` to take into account the new aggregated model.
+
+    It will ignore rules already present in the central model (even though there should be None, because ndoes would
+    have already filtered duplicated rules out).
+    Checks that aggregated model rule types are the same (regression or classification) compared to current central
+    model.
+    """
 
     if central_ruleset.rule_type is not None and (central_ruleset.rule_type != aggregated_ruleset.rule_type):
         raise TypeError("Central model's and aggregated model's rules type are different")
@@ -32,7 +39,7 @@ def central_model_update(central_ruleset: RuleSet, aggregated_ruleset: RuleSet) 
 
 
 def update_classif_preds(ruleset: RuleSet):
-    """For now, the ruleset can contain rules with identical conditions but different predictions.
+    """At this point, the central model can contain rules with identical conditions but different predictions.
     This method aims at solving that : for duplicated conditions, the corresponding rules will have their
     predictions set to be the one of the most recurring prediction. If several predictions are equally frequent, the
     rules corresponding to the duplicated conditions are discarded.

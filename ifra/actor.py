@@ -7,7 +7,7 @@ from .configs import Config
 
 class Actor:
     """Abstract class for an actor of federated learning.
-    An actor can be a node, the central server or the aggregator
+    An actor can be a node, the central server or the aggregator.
     """
 
     def __init__(self, **configs: Union[Config, List[Config]]):
@@ -40,7 +40,8 @@ class Actor:
 
     @emit
     def run(self, timeout: Union[int, float] = 0, sleeptime: Union[int, float] = 5):
-        """Implement in daughter class
+        """Implement in daughter class.
+        Monitors changes in the inputs of the actor and triggers it upon changes.
 
         Parameters
         ----------

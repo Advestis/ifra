@@ -4,6 +4,7 @@ from functools import wraps
 
 
 def emit(_func):
+    """Actor's methods should be decorated with that, to automatically send messages about the actor's current state."""
     def tags_decorator(func):
         @wraps(func)
         def wrapper_emit(*args, **kwargs):

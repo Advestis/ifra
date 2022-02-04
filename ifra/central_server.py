@@ -18,8 +18,8 @@ class CentralServer(Actor):
     """Implementation of the notion of central server in federated learning.
 
     It monitors changes in a remote GCP directory, were aggregator is expected to write its model.
-    Upon changes of the model file, the central server downloads is, updates its central model and saves it to a
-    directory.
+    Upon changes of the model file, the central server downloads is, updates its using
+    `ifra.central_model_updaters.central_model_update` model and saves it to a directory.
     This directory is read by the nodes to update their own models.
 
     Attributes
