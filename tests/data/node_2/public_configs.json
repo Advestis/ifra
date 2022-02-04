@@ -8,9 +8,9 @@
     "stack_activation": false,
     "plot_data": true,
     "get_leaf": false,
-    "node_model_path": "/home/pcotte/Documents/git/ifra/tests/outputs/node_2/ruleset.csv",
+    "node_model_path": "tests/outputs/node_2/ruleset.csv",
     "node_model_path_fs": "local",
-    "central_model_path": "/home/pcotte/Documents/git/ifra/tests/outputs/central_server/ruleset.csv",
+    "central_model_path": "tests/outputs/central_server/ruleset.csv",
     "central_model_path_fs": "local",
     "id": "chat",
     "dataprep": "binfeatures",
@@ -19,8 +19,8 @@
     "fitter_kwargs": {},
     "updater": "adaboost",
     "updater_kwargs": {},
-    "thresholds_path": "/home/pcotte/Documents/git/ifra/tests/data/thresholds.json",
+    "thresholds_path": "tests/data/thresholds.json",
     "thresholds_path_fs": "local",
-    "emitter_path": "/home/pcotte/Documents/git/ifra/tests/outputs/node_2/node_chat_messages.json",
+    "emitter_path": "tests/outputs/node_2/node_chat_messages.json",
     "emitter_path_fs": "local"
 }
