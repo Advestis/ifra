@@ -230,7 +230,7 @@ class NodePublicConfig(Config):
         the key *dataprep_kwargs*, but with value "".
     fitter: str
         Fitter to use. Can be one of :\n
-          * decisiontree_fitter (see `ifra.fitter.DecisionTreeFitter`)\n
+          * decisiontree_fitter (see `ifra.fitters.DecisionTreeFitter`)\n
     fitter_kwargs: dict
         Keyword arguments for the `ifra.fitters.Fitter` init. If not specified, the json file should still contain the
         key *fitter_kwargs*, but with value "".

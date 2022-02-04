@@ -23,7 +23,7 @@ The difference between 'aggregated model' and 'central model' is that the centra
 learned from the previous iterations, while the aggregated model only know the rules of the current iteration.
 
 In IFRA, one node produces one ruleset using the `ruleskit` package. Each user is free to define its own model by
-overloading the `ifra.fitter.Fitter` class. The available models currently are:\n
+overloading the `ifra.fitters.Fitter` class. The available models currently are:\n
   * decisiontree (see `ifra.fitters.DecisionTreeFitter` for details)\n
 The user also has the liberty to define its own aggregation method, by overloading `ifra.aggregation.Aggregation`.
 The available aggregation methods currently are:\n

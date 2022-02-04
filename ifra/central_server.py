@@ -40,7 +40,7 @@ class CentralServer(Actor):
         Parameters
         ----------
         central_configs: CentralConfig
-            This central server configurations.
+            This central server configurations. see `ifra.configs.CentralConfig`.
         """
         self.central_configs = None
         self.ruleset = None
