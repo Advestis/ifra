@@ -32,13 +32,14 @@ def format_x(s: Union[float, int], with_dollar: bool = False) -> str:
     return xstr
 
 
-def plot_histogram(**kwargs) -> plt.Figure:
+def plot_histogram(use_latex: bool = True, **kwargs) -> plt.Figure:
     """Plot the distribution of some data, including a statbox as legend"""
+    plt.close("all")
     data = kwargs.get("data")
     xlabel = kwargs.get("xlabel", "x")
-    xlabel = "".join(["\\textbf{", xlabel, "}"])
+    xlabel = "".join(["\\textbf{", xlabel, "}"]) if use_latex else xlabel
     ylabel = kwargs.get("ylabel", "count")
-    ylabel = "".join(["\\textbf{", ylabel, "}"])
+    ylabel = "".join(["\\textbf{", ylabel, "}"]) if use_latex else ylabel
     xlabelfontsize = kwargs.get("xlabelfontsize", 20)
     ylabelfontsize = kwargs.get("ylabelfontsize", 20)
     title = kwargs.get("title", None)
@@ -73,13 +74,16 @@ def plot_histogram(**kwargs) -> plt.Figure:
         std = format_x(data.std())
         count = format_x(len(data))
         integral = format_x(sum(data))
-        label = (
+        if use_latex:
+            label = (
                 f"\\flushleft$\\mu={mean}$ \\\\ $\\sigma={std}$ \\\\ "
                 + "\\textbf{Count}$="
                 + f"{count}$ \\\\ "
                 + "\\textbf{Integral}$="
                 + f"{integral}$"
-        )
+            )
+        else:
+            label = f"mean={mean}\nstd={std}\nCount={count}\nIntegral={integral}"
     except TypeError:
         pass
 
@@ -119,7 +123,7 @@ def plot_histogram(**kwargs) -> plt.Figure:
         if "latex" in str(e):
             logger.warning("LaTeX not installed, deactivating it in matplotlib")
             mpl.rcParams["text.usetex"] = False
-            plt.gcf().tight_layout()
+            return plot_histogram(use_latex=False, **kwargs)
         else:
             raise e
     return fig
