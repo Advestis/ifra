@@ -23,10 +23,12 @@ logger = logging.getLogger(__name__)
 # noinspection PyAttributeOutsideInit
 class Node(Actor):
     # noinspection PyUnresolvedReferences
-    """One node of federated learning. This class should be used by each machine that is supposed to produce a local
+    """One node of federated learning.
+    This class should be used by each machine that is supposed to produce a local
     model. It monitors changes in a directory where the central server is supposed to push its model, and triggers fit
     when a new central model is available. It will also trigger a first fit before any central model is available. It
     also monitors changes in the input data file, to automatically re-fit the model when new data are available.
+    Any rules produced by the node and already present in the central model are ignored.
 
     Attributes
     ----------
