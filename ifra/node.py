@@ -11,9 +11,9 @@ import logging
 
 from .actor import Actor
 from .configs import NodePublicConfig, NodeDataConfig
-from .fitters import DecisionTreeFitter
-from .node_model_updaters import AdaBoostNodeModelUpdater
-from .datapreps import BinFeaturesDataPrep
+from .fitters import DecisionTreeFitter, Fitter
+from .node_model_updaters import AdaBoostNodeModelUpdater, NodeModelUpdater
+from .datapreps import BinFeaturesDataPrep, DataPrep
 from .plot import plot_histogram
 from .decorator import emit
 
@@ -94,8 +94,8 @@ class Node(Actor):
         self.copied = False
         self.ruleset = None
         self.last_fetch = None
-        if not self.public_configs.local_model_path.parent.is_dir():
-            self.public_configs.local_model_path.parent.mkdir()
+        if not self.public_configs.node_model_path.parent.is_dir():
+            self.public_configs.node_model_path.parent.mkdir()
 
         self.data.dataprep_kwargs = self.public_configs.dataprep_kwargs
 
@@ -105,6 +105,8 @@ class Node(Actor):
             self.fitter = getattr(__import__(module, globals(), locals(), [function], 0), function)(
                 self.public_configs
             )
+            if not isinstance(self.fitter, Fitter):
+                raise TypeError("Node fitter should inherite from Fitter class")
         else:
             self.fitter = self.possible_fitters[self.public_configs.fitter](self.public_configs)
 
@@ -112,6 +114,8 @@ class Node(Actor):
             function = self.public_configs.updater.split(".")[-1]
             module = self.public_configs.updater.replace(f".{function}", "")
             self.updater = getattr(__import__(module, globals(), locals(), [function], 0), function)(self.data)
+            if not isinstance(self.updater, NodeModelUpdater):
+                raise TypeError("Node updater should inherite from NodeModelUpdater class")
         else:
             self.updater = self.possible_updaters[self.public_configs.updater](self.data)
 
@@ -120,6 +124,8 @@ class Node(Actor):
                 function = self.public_configs.dataprep.split(".")[-1]
                 module = self.public_configs.dataprep.replace(f".{function}", "")
                 self.dataprep = getattr(__import__(module, globals(), locals(), [function], 0), function)(self.data)
+                if not isinstance(self.dataprep, DataPrep):
+                    raise TypeError("Node dataprep should inherite from DataPrep class")
             else:
                 self.dataprep = self.possible_datapreps[self.public_configs.dataprep](
                     self.data, **self.public_configs.dataprep_kwargs
@@ -177,7 +183,7 @@ class Node(Actor):
         Calls the fitter corresponding to `ifra.node.Node` *public_configs.fitter* on the node's features and
         targets.
         Filters out rules that are already present in the central model, if it exists.
-        Saves the resulting ruleset in `ifra.node.Node` *public_configs.local_model_path* if new rules were found.
+        Saves the resulting ruleset in `ifra.node.Node` *public_configs.node_model_path* if new rules were found.
         """
 
         self.plot_dataprep_and_copy()
@@ -223,7 +229,7 @@ class Node(Actor):
 
     @emit
     def ruleset_to_file(self) -> None:
-        """Saves `ifra.node.Node` *ruleset* to `ifra.configs.NodePublicConfig` *local_model_path*,
+        """Saves `ifra.node.Node` *ruleset* to `ifra.configs.NodePublicConfig` *node_model_path*,
         overwritting any existing file here, and in another file in the same directory but with a unique name.
         Will also produce a .pdf of the ruleset using TableWriter.
         Does not do anything if `ifra.node.Node` *ruleset* is None
@@ -232,18 +238,18 @@ class Node(Actor):
         ruleset = self.ruleset
 
         iteration = 0
-        name = self.public_configs.local_model_path.stem
-        path = self.public_configs.local_model_path.parent / f"{name}_{iteration}.csv"
+        name = self.public_configs.node_model_path.stem
+        path = self.public_configs.node_model_path.parent / f"{name}_{iteration}.csv"
         while path.is_file():
             iteration += 1
-            path = self.public_configs.local_model_path.parent / f"{name}_{iteration}.csv"
+            path = self.public_configs.node_model_path.parent / f"{name}_{iteration}.csv"
 
         path = path.with_suffix(".csv")
         ruleset.save(path)
-        ruleset.save(self.public_configs.local_model_path)
+        ruleset.save(self.public_configs.node_model_path)
 
         logger.info(
-            f"Node {self.public_configs.id}'s model saved in {self.public_configs.local_model_path.parent}."
+            f"Node {self.public_configs.id}'s model saved in {self.public_configs.node_model_path.parent}."
         )
 
         try:

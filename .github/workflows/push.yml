@@ -2,6 +2,7 @@ on:
   push:
     branches:
       - master
+      - main
 
 name: master
 jobs:
@@ -13,21 +14,31 @@ jobs:
         python-version: [ 3.9 ]
     steps:
 
-      # extract repo name
-      - name: Extract repo name
-        env:
-          ACTIONS_ALLOW_UNSECURE_COMMANDS: 'true'
-        run: echo "::set-env name=REPO_NAME::$(echo ${{ github.repository }} | sed "s/${{ github.repository_owner }}\///g")"
+      - name: Set envvars
+        run: |
+          repo_name=$(echo ${{ github.repository }} | sed "s/${{ github.repository_owner }}\///g")
+          echo "REPO_NAME=$repo_name" >> $GITHUB_ENV
+          echo "BRANCH_NAME=$(echo ${GITHUB_REF#refs/heads/})" >> $GITHUB_ENV
+          if [ "${GITHUB_REF#refs/heads/}" != "master" ] && [ "${GITHUB_REF#refs/heads/}" != "main" ] ; then
+            echo "SUFFIX=$(echo -${GITHUB_REF#refs/heads/})" >> $GITHUB_ENV
+          fi
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python-version }}
+      - name: Check envvars
+        run: |
+          echo "branch: ${{ env.BRANCH_NAME }}"
+          echo "repo: ${{ env.REPO_NAME }}"
+          echo "suffix: ${{ env.SUFFIX }}"
 
       - uses: actions/checkout@master
         with:
           persist-credentials: false # otherwise, the token used is the GITHUB_TOKEN, instead of your personal token
           fetch-depth: 0 # otherwise, you will failed to push refs to dest repo
+          ref: ${{ github.head_ref }}
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
 
       - name: build
         run: |
@@ -35,14 +46,16 @@ jobs:
           python setup.py sdist
 
       - name: make doc
+        if: ${{ env.BRANCH_NAME == 'master' || env.BRANCH_NAME == 'main' }}
         run: |
           pip install -r requirements.txt
           pip install pdoc3
-          pdoc --html ifra -o docs
-          mv docs/ifra/* docs/
-          rm -r docs/ifra
+          pdoc --html ${{ env.REPO_NAME }} -o docs
+          mv docs/${{ env.REPO_NAME }}/* docs/
+          rm -r docs/${{ env.REPO_NAME }}
 
       - name: commit doc
+        if: ${{ env.BRANCH_NAME == 'master' || env.BRANCH_NAME == 'main' }}
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
@@ -50,6 +63,7 @@ jobs:
           git commit -m "docs"
 
       - name: Push doc
+        if: ${{ env.BRANCH_NAME == 'master' || env.BRANCH_NAME == 'main' }}
         uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.ORG_TOKEN_CICD }}
@@ -57,6 +71,7 @@ jobs:
           force: true
 
       - name: topypi
+        if: ${{ env.BRANCH_NAME == 'master' || env.BRANCH_NAME == 'main' }}
         uses: pypa/gh-action-pypi-publish@master
         with:
           user: ${{ secrets.ORG_PYPI_LOGIN }}

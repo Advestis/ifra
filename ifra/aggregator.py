@@ -10,7 +10,7 @@ import logging
 from .configs import NodePublicConfig, AggregatorConfig
 from .actor import Actor
 from .decorator import emit
-from .aggregations import AdaBoostAggregation
+from .aggregations import AdaBoostAggregation, Aggregation
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +85,7 @@ class NodeGate:
             `ifra.aggregator.NodeGate` *last_fetch* will be set to now.
             """
             self.ruleset = RuleSet()
-            self.ruleset.load(self.public_configs.local_model_path)
+            self.ruleset.load(self.public_configs.node_model_path)
             self.last_fetch = datetime.now()
             self.new_model_found = True
             logger.info(f"Fetched new ruleset from node {self.id} at {self.last_fetch}")
@@ -107,7 +107,7 @@ class NodeGate:
         if self.ruleset is None:
             # The node has not produced any model yet if self.ruleset is None. No need to bother with self.last fetch
             # then, just get the ruleset.
-            if self.public_configs.local_model_path.is_file():
+            if self.public_configs.node_model_path.is_file():
                 get_ruleset()
                 return True
             return False
@@ -115,8 +115,8 @@ class NodeGate:
             # The node has already produced a model. So we only get its ruleset if the model is new. We know that by
             # checking the modification time of the node's ruleset file.
             if (
-                self.public_configs.local_model_path.is_file()
-                and self.public_configs.local_model_path.info()["mtime"] > self.last_fetch.timestamp()
+                self.public_configs.node_model_path.is_file()
+                and self.public_configs.node_model_path.info()["mtime"] > self.last_fetch.timestamp()
             ):
                 get_ruleset()
                 return True
@@ -200,6 +200,8 @@ class Aggregator(Actor):
             function = self.aggregator_configs.aggregation.split(".")[-1]
             module = self.aggregator_configs.aggregation.replace(f".{function}", "")
             self.aggregation = getattr(__import__(module, globals(), locals(), [function], 0), function)(self)
+            if not isinstance(self.aggregation, Aggregation):
+                raise TypeError("Aggregator aggregation should inherite from Aggregation class")
         else:
             self.aggregation = self.possible_aggregations[self.aggregator_configs.aggregation](self)
 

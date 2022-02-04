@@ -175,7 +175,7 @@ class NodePublicConfig(Config):
     Used by `ifra.node.Node` and `ifra.central_server.NodeGate`
 
     Overloads \_\_eq\_\_ to allow for node configuration comparison. Two configurations are equal if all their
-    configuration values are equal, except *local_model_path* and *central_model_path* that can be different.
+    configuration values are equal, except *node_model_path* and *central_model_path* that can be different.
 
     Attributes
     ----------
@@ -212,12 +212,12 @@ class NodePublicConfig(Config):
     get_leaf: bool
         If True, will only consider the leaf ofthe tree to create rules. If False, every node of the tree will also be
         a rule.
-    local_model_path: TransparentPath
+    node_model_path: TransparentPath
         Path where the node is supposed to write its model. Should point to a csv file to which the aggregator has
         access.
-    local_model_path_fs: TransparentPath
+    node_model_path_fs: TransparentPath
         File system to use for local model file. Can be 'gcs', 'local' or "". If not specified, the json
-        file should still contain the key *local_model_path_fs*, but with value "".
+        file should still contain the key *node_model_path_fs*, but with value "".
     id: Union[None, int, str]
         Name or number of the node. Can not be "".
     dataprep: Union[str]
@@ -268,8 +268,8 @@ class NodePublicConfig(Config):
         "stack_activation",
         "plot_data",
         "get_leaf",
-        "local_model_path",
-        "local_model_path_fs",
+        "node_model_path",
+        "node_model_path_fs",
         "dataprep",
         "dataprep_kwargs",
         "id",
@@ -292,7 +292,7 @@ class NodePublicConfig(Config):
             # Those parameters can be different
             if (
                     key == "emitter_path"
-                    or key == "local_model_path"
+                    or key == "node_model_path"
                     or key == "id"
                     or key.endswith("_fs")
                     or key.endswith("_fss")
