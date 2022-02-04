@@ -4,5 +4,5 @@ from ifra import Fitter
 
 
 class AlternateFitter(Fitter):
-    def fit(self) -> RuleSet:
+    def fit(self, x, y) -> RuleSet:
         return RuleSet()

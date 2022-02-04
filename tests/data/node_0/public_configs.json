@@ -1,1 +1,26 @@
-{"features_names": ["sepal length in cm", "sepal width in cm", "petal length in cm", "petal width in cm"], "classes_names": ["Iris-setosa", "Iris-versicolor", "Iris-virginica"], "x_mins": "", "x_maxs": "", "max_depth": 3, "remember_activation": false, "stack_activation": false, "plot_data": true, "get_leaf": false, "local_model_path": "/home/pcotte/Documents/git/ifra/tests/outputs/node_0/ruleset.csv", "central_model_path": "/home/pcotte/Documents/git/ifra/tests/outputs/ruleset.csv", "id": 2, "dataprep": "binfeatures_dataprep", "dataprep_kwargs": {"nbins": 5}, "fitter": "decisiontree_fitter", "fitter_kwargs": {}, "updater": "adaboost_updater", "updater_kwargs": {}, "thresholds_path": "/home/pcotte/Documents/git/ifra/tests/data/thresholds.json", "thresholds_path_fs": "local"}
+{
+    "features_names": ["sepal length in cm", "sepal width in cm", "petal length in cm", "petal width in cm"],
+    "classes_names": ["Iris-setosa", "Iris-versicolor", "Iris-virginica"],
+    "x_mins": "",
+    "x_maxs": "",
+    "max_depth": 3,
+    "remember_activation": false,
+    "stack_activation": false,
+    "plot_data": true,
+    "get_leaf": false,
+    "node_model_path": "tests/outputs/node_0/ruleset.csv",
+    "node_model_path_fs": "local",
+    "central_model_path": "tests/outputs/central_server/ruleset.csv",
+    "central_model_path_fs": "local",
+    "id": "chien",
+    "dataprep": "binfeatures",
+    "dataprep_kwargs": {"nbins": 5},
+    "fitter": "decisiontree",
+    "fitter_kwargs": {},
+    "updater": "adaboost",
+    "updater_kwargs": {},
+    "thresholds_path": "tests/data/thresholds.json",
+    "thresholds_path_fs": "local",
+    "emitter_path": "tests/outputs/node_0/node_chien_messages.json",
+    "emitter_path_fs": "local"
+}
