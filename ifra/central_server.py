@@ -1,6 +1,6 @@
 from datetime import datetime
 from time import time, sleep
-from typing import Optional, Union
+from typing import Union
 
 from ruleskit import RuleSet
 from tablewriter import TableWriter
@@ -26,8 +26,8 @@ class CentralServer(Actor):
     ----------
     central_configs: CentralConfig
         see `ifra.configs.CentralConfig`
-    ruleset: RuleSet
-        Central server model's ruleset
+    model: RuleSet
+        Central server model's model
     last_fetch: datetime
         last time the aggregated model was fetched
     """
@@ -43,42 +43,42 @@ class CentralServer(Actor):
             This central server configurations. see `ifra.configs.CentralConfig`.
         """
         self.central_configs = None
-        self.ruleset = None
+        self.model = None
         self.last_fetch = None
         super().__init__(central_configs=central_configs)
 
     @emit
     def create(self):
-        self.ruleset = RuleSet()
+        self.model = RuleSet()
         # s = "\n".join([f"{key}: {self.central_configs.configs[key]}" for key in self.central_configs.configs])
         # logger.info(f"Central Server configuration:\n{s}")
 
     @emit
     def update(self):
-        """Add new rules in aggregated_ruleset to central model's rulesets and updates the rules predictions.
-        If new rules were found, save the updated ruleset to `ifra.central_server.CentralServer`'s 
+        """Add new rules in aggregated_model to central model's models and updates the rules predictions.
+        If new rules were found, save the updated model to `ifra.central_server.CentralServer`'s 
         *central_configs.central_model_path*.
         
         Returns
         -------
         bool
-            True if new rules were added, False if aggregated_ruleset contained no new rules
+            True if new rules were added, False if aggregated_model contained no new rules
         """
-        aggregated_ruleset = RuleSet()
-        aggregated_ruleset.load(self.central_configs.aggregated_model_path)
+        aggregated_model = RuleSet()
+        aggregated_model.load(self.central_configs.aggregated_model_path)
         self.last_fetch = datetime.now()
-        logger.info(f"Fetched new ruleset from aggregator at {self.last_fetch}")
-        if central_model_update(self.ruleset, aggregated_ruleset):
-            self.ruleset_to_file()
+        logger.info(f"Fetched new model from aggregator at {self.last_fetch}")
+        if central_model_update(self.model, aggregated_model):
+            self.model_to_file()
 
     @emit
-    def ruleset_to_file(self) -> None:
-        """Saves `ifra.node.Node` *ruleset* to `ifra.configs.CentralConfig` *central_model_path*,
+    def model_to_file(self) -> None:
+        """Saves `ifra.node.Node` *model* to `ifra.configs.CentralConfig` *central_model_path*,
         overwritting any existing file here, and in another file in the same directory but with a unique name.
-        Will also produce a .pdf of the ruleset using TableWriter.
-        Does not do anything if `ifra.node.Node` *ruleset* is None
+        Will also produce a .pdf of the model using TableWriter.
+        Does not do anything if `ifra.node.Node` *model* is None
         """
-        ruleset = self.ruleset
+        model = self.model
 
         iteration = 0
         name = self.central_configs.central_model_path.stem
@@ -88,8 +88,8 @@ class CentralServer(Actor):
             path = self.central_configs.central_model_path.parent / f"{name}_{iteration}.csv"
 
         path = path.with_suffix(".csv")
-        ruleset.save(path)
-        ruleset.save(self.central_configs.central_model_path)
+        model.save(path)
+        model.save(self.central_configs.central_model_path)
         logger.info(f"Saved central model in '{self.central_configs.central_model_path}'")
 
         try:
@@ -124,7 +124,7 @@ class CentralServer(Actor):
 
         while time() - t < timeout or timeout <= 0:
 
-            if len(self.ruleset) == 0:
+            if len(self.model) == 0:
                 if self.central_configs.aggregated_model_path.is_file():
                     self.update()
                     iterations += 1
@@ -139,7 +139,7 @@ class CentralServer(Actor):
             sleep(sleeptime)
 
         logger.info(f"Timeout of {timeout} seconds reached, stopping central server.")
-        if self.ruleset is None:
+        if self.model is None:
             logger.warning("Learning failed to produce a central model. No output generated.")
         logger.info(f"Made {iterations} complete iterations between central server and aggregator.")
         logger.info(f"Results saved in {self.central_configs.central_model_path}")

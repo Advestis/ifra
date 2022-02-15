@@ -21,7 +21,7 @@ def test_init_and_run_simple(clean):
     assert node.datapreped is False
     assert node.data.dataprep_kwargs == node.learning_configs.dataprep_kwargs
     assert node.copied is False
-    assert node.ruleset is None
+    assert node.model is None
     assert node.last_fetch is None
     assert not node.learning_configs.node_model_path.is_file()
 

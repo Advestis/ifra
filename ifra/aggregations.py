@@ -76,6 +76,6 @@ class AdaBoostAggregation(Aggregation):
         else:
             logger.info(f"Aggregated {len(new_rules)} new rules")
 
-        del self.aggregator.ruleset
-        self.aggregator.ruleset = new_rules
+        del self.aggregator.model
+        self.aggregator.model = new_rules
         return "updated"

@@ -48,8 +48,8 @@ class Node(Actor):
     copied: bool
         In order not to alter the data given to the node, they are copied in new files used for learning. This flag is
         False if this copy has not been done yet, False otherwise.
-    ruleset: Union[None, RuleSet]
-        Fitted ruleset
+    model: Union[None, RuleSet]
+        Fitted model
     last_fetch: Union[None, datetime]
         Date and time when the central model was last fetched.
     last_x: Union[None, datetime]
@@ -97,7 +97,7 @@ class Node(Actor):
 
         self.datapreped = False
         self.copied = False
-        self.ruleset = None
+        self.model = None
         self.last_fetch = None
         if not self.learning_configs.node_models_path.is_dir():
             self.learning_configs.node_models_path.mkdir()
@@ -188,72 +188,72 @@ class Node(Actor):
         Calls the fitter corresponding to `ifra.node.Node` *learning_configs.fitter* on the node's features and
         targets.
         Filters out rules that are already present in the central model, if it exists.
-        Saves the resulting ruleset in `ifra.node.Node` *learning_configs.node_models_path* if new rules were found.
+        Saves the resulting model in `ifra.node.Node` *learning_configs.node_models_path* if new rules were found.
         """
 
         self.plot_dataprep_and_copy()
         logger.info(f"Fitting node {self.learning_configs.id} using {self.learning_configs.fitter}...")
-        ruleset = self.fitter.fit(
+        model = self.fitter.fit(
             self.data.x_path_to_use.read(**self.data.x_read_kwargs).values,
             self.data.y_path_to_use.read(**self.data.y_read_kwargs).values,
         )
-        central_ruleset_path = self.learning_configs.central_model_path
-        if central_ruleset_path.isfile():
-            central_ruleset = RuleSet()
-            central_ruleset.load(central_ruleset_path)
-            rules = [r for r in ruleset if r not in central_ruleset]
+        central_model_path = self.learning_configs.central_model_path
+        if central_model_path.isfile():
+            central_model = RuleSet()
+            central_model.load(central_model_path)
+            rules = [r for r in model if r not in central_model]
             if len(rules) > 0:
-                self.ruleset = RuleSet(
-                    remember_activation=ruleset.remember_activation,
-                    stack_activation=ruleset.stack_activation,
+                self.model = RuleSet(
+                    remember_activation=model.remember_activation,
+                    stack_activation=model.stack_activation,
                     rules_list=rules
                 )
-                logger.info(f"Found {len(self.ruleset)} new rules in node {self.learning_configs.id}")
-                self.ruleset_to_file()
+                logger.info(f"Found {len(self.model)} new rules in node {self.learning_configs.id}")
+                self.model_to_file()
             else:
                 logger.info(f"Did not find new rules in node {self.learning_configs.id}")
         else:
-            self.ruleset = ruleset
-            logger.info(f"Found {len(self.ruleset)} rules in node {self.learning_configs.id}")
-            self.ruleset_to_file()
+            self.model = model
+            logger.info(f"Found {len(self.model)} rules in node {self.learning_configs.id}")
+            self.model_to_file()
 
     @emit
-    def update_from_central(self, ruleset: RuleSet) -> None:
+    def update_from_central(self, model: RuleSet) -> None:
         """Modifies the files pointed by `ifra.node.Node`'s *data.x_path* and `ifra.node.Node`'s *data.y_path* by
         calling `ifra.node.Node` *learning_configs.updater*.
 
         Parameters
         ----------
-        ruleset: RuleSet
-            The central model's ruleset
+        model: RuleSet
+            The central model
         """
         logger.info(f"Updating node {self.learning_configs.id}...")
         # Compute activation of the selected rules
-        self.updater.update(ruleset)
+        self.updater.update(model)
         logger.info(f"... node {self.learning_configs.id} updated.")
 
     @emit
-    def ruleset_to_file(self) -> None:
-        """Saves `ifra.node.Node` *ruleset* to `ifra.configs.NodeLearningConfig` *node_models_path*,
-        under 'ruleset_nnode_niteration.csv' and 'ruleset_main_nnode', where 'nnode' is determined by counting how many
-        files named 'ruleset_*_0.csv' already exist, and where 'niteration' is incremented at each call of this method,
+    def model_to_file(self) -> None:
+        """Saves `ifra.node.Node` *model* to `ifra.configs.NodeLearningConfig` *node_models_path*,
+        under 'model_nnode_niteration.csv' and 'model_main_nnode', where 'nnode' is determined by counting how many
+        files named 'model_*_0.csv' already exist, and where 'niteration' is incremented at each call of this method,
         starting at 0.
-        Will also produce a .pdf of the ruleset using TableWriter if LaTeX is available on the system.
-        Does not do anything if `ifra.node.Node` *ruleset* is None
+        Will also produce a .pdf of the model using TableWriter if LaTeX is available on the system.
+        Does not do anything if `ifra.node.Node` *model* is None
         """
 
-        ruleset = self.ruleset
-        if ruleset is None:
+        model = self.model
+        if model is None:
             return
 
         if self.filenumber is None:
-            self.filenumber = len(list(self.learning_configs.node_models_path.glob('ruleset_*_0.csv')))
-        path_iteration = self.learning_configs.node_models_path / f"ruleset_{self.filenumber}_{self.iteration}.csv"
-        path_main = self.learning_configs.node_models_path / f"ruleset_main_{self.filenumber}.csv"
+            self.filenumber = len(list(self.learning_configs.node_models_path.glob('model_*_0.csv')))
+        path_iteration = self.learning_configs.node_models_path / f"model_{self.filenumber}_{self.iteration}.csv"
+        path_main = self.learning_configs.node_models_path / f"model_main_{self.filenumber}.csv"
         self.iteration += 1
 
-        ruleset.save(path_main)
-        ruleset.save(path_iteration)
+        model.save(path_main)
+        model.save(path_iteration)
 
         logger.info(f"Node {self.learning_configs.id}'s model saved in {path_iteration} and {path_main}.")
 
@@ -319,13 +319,13 @@ class Node(Actor):
         """
         # noinspection PyUnusedLocal
         @emit  # Let self_ here for proper use of 'emit'
-        def get_ruleset(self_) -> None:
-            """Fetch the central server's latest model's RuleSet.
+        def get_model(self_) -> None:
+            """Fetch the central server's latest model.
             `ifra.node.Node.last_fetch` will be set to now."""
-            central_ruleset = RuleSet()
-            central_ruleset.load(self.learning_configs.central_model_path)
+            central_model = RuleSet()
+            central_model.load(self.learning_configs.central_model_path)
             self.last_fetch = datetime.now()
-            self.update_from_central(central_ruleset)
+            self.update_from_central(central_model)
             logger.info(f"Fetched central model in node {self.learning_configs.id} at {self.last_fetch}")
 
         t = time()
@@ -336,8 +336,8 @@ class Node(Actor):
 
         logger.info(f"Starting node {self.learning_configs.id}")
         logger.info(
-            f"Starting node {self.learning_configs.id}. Monitoring changes in {self.learning_configs.central_model_path},"
-            f" {self.data.x_path} and {self.data.y_path}."
+            f"Starting node {self.learning_configs.id}. Monitoring changes in ,"
+            f"{self.learning_configs.central_model_path} {self.data.x_path} and {self.data.y_path}."
         )
 
         while time() - t < timeout or timeout <= 0:
@@ -361,14 +361,14 @@ class Node(Actor):
 
             if self.last_fetch is None:
                 if self.learning_configs.central_model_path.is_file():
-                    get_ruleset(self)
+                    get_model(self)
                     do_fit = True
             else:
                 if (
                     self.learning_configs.central_model_path.is_file()
                     and self.learning_configs.central_model_path.info()["mtime"] > self.last_fetch.timestamp()
                 ):
-                    get_ruleset(self)
+                    get_model(self)
                     do_fit = True
 
             if do_fit:

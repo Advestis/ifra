@@ -249,7 +249,7 @@ class Aggregator(Actor):
 
             new_models = False
             new_nodes = 0
-            for path in self.aggregator_configs.node_models_path.glob("ruleset_main_*.csv"):
+            for path in self.aggregator_configs.node_models_path.glob("model_main_*.csv"):
                 if path in NodeGate.paths:
                     # Already found this node in a previous check
                     continue

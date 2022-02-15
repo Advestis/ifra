@@ -34,7 +34,7 @@ class Fitter:
             Any additionnal keyword argument that the overleading class accepts. Those arguments will become attributes.
         """
         self.learning_configs = learning_configs
-        self.ruleset = None
+        self.model = None
         Rule.SET_THRESHOLDS(self.learning_configs.thresholds_path)
         for arg in kwargs:
             setattr(self, arg, kwargs[arg])
@@ -54,8 +54,8 @@ class DecisionTreeFitter(Fitter):
     ----------
     learning_configs: `ifra.configs.NodeLearningConfig`
         The learning configuration of the node using this fitter
-    ruleset: Union[None, RuleSet]
-        Fitted ruleset, or None if fit not done yet
+    model: Union[None, RuleSet]
+        Fitted model, or None if fit not done yet
     tree: Union[None, DecisionTreeFitter]
         Fitted tree, or None if fit not done yet
     """
@@ -71,8 +71,8 @@ class DecisionTreeFitter(Fitter):
         """Fits the decision tree on the data pointed by `ifra.fitters.DecisionTreeFitter` *data.x_path* and
         `ifra.fitters.DecisionTreeFitter` *data.y_path*, sets
         `ifra.fitters.DecisionTreeFitter`*tree* saves it as a .dot, .svg and .joblib file in the same place
-        the node will save its ruleset. Those files will be unique for each time the fit function is called.
-        Also sets `ifra.fitters.DecisionTreeFitter` *ruleset* and returns it.
+        the node will save its model. Those files will be unique for each time the fit function is called.
+        Also sets `ifra.fitters.DecisionTreeFitter` *model* and returns it.
 
         Parameters
         ----------
@@ -84,7 +84,7 @@ class DecisionTreeFitter(Fitter):
         Returns
         -------
         RuleSet
-            `ifra.fitters.DecisionTreeFitter` *ruleset*
+            `ifra.fitters.DecisionTreeFitter` *model*
         """
         self.make_fit(
             x,
@@ -98,7 +98,7 @@ class DecisionTreeFitter(Fitter):
         )
         self.tree_to_graph()
         self.tree_to_joblib()
-        return self.ruleset
+        return self.model
 
     # noinspection PyArgumentList
     def make_fit(
@@ -116,7 +116,7 @@ class DecisionTreeFitter(Fitter):
     ):
         """Fits x and y using a decision tree cassifier, setting
          `ifra.fitters.DecisionTreeFitter` *tree* and
-         `ifra.fitters.DecisionTreeFitter` *ruleset*
+         `ifra.fitters.DecisionTreeFitter` *model*
 
         x array must contain one column for each feature that can exist across all nodes. Some columns can contain
         only NaNs.
@@ -155,7 +155,7 @@ class DecisionTreeFitter(Fitter):
             x_maxs = np.array(x_maxs)
 
         self.tree = tree.DecisionTreeClassifier(max_depth=max_depth).fit(x, y)
-        self.ruleset = extract_rules_from_tree(
+        self.model = extract_rules_from_tree(
             self.tree,
             xmins=x_mins,
             xmaxs=x_maxs,
@@ -166,17 +166,17 @@ class DecisionTreeFitter(Fitter):
             stack_activation=stack_activation,
         )
 
-        if len(self.ruleset) > 0:
-            # Compute each rule's activation vector, and the ruleset's if remember_activation, and will stack the
+        if len(self.model) > 0:
+            # Compute each rule's activation vector, and the model's if remember_activation, and will stack the
             # rules' if stack_activation is True
-            self.ruleset.fit(y=y, xs=x)
-            # self.ruleset.check_duplicated_rules(self.ruleset.rules, name_or_index="name")
+            self.model.fit(y=y, xs=x)
+            # self.model.check_duplicated_rules(self.model.rules, name_or_index="name")
 
     def tree_to_graph(
         self,
     ):
         """Saves `ifra.fitters.DecisionTreeFitter` *tree* to a .dot file and a .svg file at the same place
-         the node will save its ruleset. Does not do anything if `ifra.fitters.DecisionTreeFitter` *tree*
+         the node will save its model. Does not do anything if `ifra.fitters.DecisionTreeFitter` *tree*
         is None.
 
         Will create a unique file by looking at existing files and appending a unique integer to the name.
