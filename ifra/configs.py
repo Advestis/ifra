@@ -167,7 +167,7 @@ class Config:
             raise e
 
 
-class NodePublicConfig(Config):
+class NodeLearningConfig(Config):
     # noinspection PyUnresolvedReferences
     """Overloads :`Config`, corresponding to configuration of a node that can be accessed by the
     central server.
@@ -286,9 +286,9 @@ class NodePublicConfig(Config):
     ]
 
     def __eq__(self, other):
-        if not isinstance(other, NodePublicConfig):
+        if not isinstance(other, NodeLearningConfig):
             return False
-        for key in NodePublicConfig.EXPECTED_CONFIGS:
+        for key in NodeLearningConfig.EXPECTED_CONFIGS:
             # Those parameters can be different
             if (
                     key == "emitter_path"
@@ -410,7 +410,7 @@ class NodeDataConfig(Config):
     a dataframe (a single column in the case of the target file).
     The features file should contain one column for EACH FEATURE USED IN THE LEARNING, even if not all of them have data
     in this node. The order of the columns should match the order in
-    `ifra.central_server.NodeGate.NodePublicConfig`'s features_names`.
+    `ifra.central_server.NodeGate.NodeLearningConfig`'s features_names`.
 
     Attributes
     ----------

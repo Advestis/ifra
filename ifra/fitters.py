@@ -9,7 +9,7 @@ from ruleskit.utils.rule_utils import extract_rules_from_tree
 from ruleskit import Rule
 import logging
 
-from .configs import NodePublicConfig, NodeDataConfig
+from .configs import NodeLearningConfig, NodeDataConfig
 
 logger = logging.getLogger(__name__)
 
@@ -19,23 +19,23 @@ class Fitter:
 
     def __init__(
         self,
-        public_configs: NodePublicConfig,
+        learning_configs: NodeLearningConfig,
         **kwargs
     ):
         """
 
         Parameters
         ----------
-        public_configs: NodePublicConfig
-            `ifra.node.Node`'s *public_config*
+        learning_configs: NodeLearningConfig
+            `ifra.node.Node`'s *learning_config*
         data: NodeDataConfig
             `ifra.node.Node`'s *data*
         kwargs:
             Any additionnal keyword argument that the overleading class accepts. Those arguments will become attributes.
         """
-        self.public_configs = public_configs
+        self.learning_configs = learning_configs
         self.ruleset = None
-        Rule.SET_THRESHOLDS(self.public_configs.thresholds_path)
+        Rule.SET_THRESHOLDS(self.learning_configs.thresholds_path)
         for arg in kwargs:
             setattr(self, arg, kwargs[arg])
 
@@ -52,8 +52,8 @@ class DecisionTreeFitter(Fitter):
 
     Attributes
     ----------
-    public_configs: `ifra.configs.NodePublicConfig`
-        The public configuration of the node using this fitter
+    learning_configs: `ifra.configs.NodeLearningConfig`
+        The learning configuration of the node using this fitter
     ruleset: Union[None, RuleSet]
         Fitted ruleset, or None if fit not done yet
     tree: Union[None, DecisionTreeFitter]
@@ -62,9 +62,9 @@ class DecisionTreeFitter(Fitter):
 
     def __init__(
         self,
-        public_configs: NodePublicConfig,
+        learning_configs: NodeLearningConfig,
     ):
-        super().__init__(public_configs)
+        super().__init__(learning_configs)
         self.tree = None
 
     def fit(self, x: np.ndarray, y: np.ndarray) -> RuleSet:
@@ -89,12 +89,12 @@ class DecisionTreeFitter(Fitter):
         self.make_fit(
             x,
             y,
-            self.public_configs.max_depth,
-            self.public_configs.get_leaf,
-            self.public_configs.x_mins,
-            self.public_configs.x_maxs,
-            self.public_configs.features_names,
-            self.public_configs.classes_names,
+            self.learning_configs.max_depth,
+            self.learning_configs.get_leaf,
+            self.learning_configs.x_mins,
+            self.learning_configs.x_maxs,
+            self.learning_configs.features_names,
+            self.learning_configs.classes_names,
         )
         self.tree_to_graph()
         self.tree_to_joblib()
@@ -182,14 +182,14 @@ class DecisionTreeFitter(Fitter):
         Will create a unique file by looking at existing files and appending a unique integer to the name.
         """
         thetree = self.tree
-        features_names = self.public_configs.features_names
+        features_names = self.learning_configs.features_names
         iteration = 0
-        name = self.public_configs.node_model_path.stem
-        path = self.public_configs.node_model_path.parent / f"{name}_{iteration}.dot"
+        name = self.learning_configs.node_model_path.stem
+        path = self.learning_configs.node_model_path.parent / f"{name}_{iteration}.dot"
 
         while path.is_file():
             iteration += 1
-            path = self.public_configs.node_model_path.parent / f"{name}_{iteration}.dot"
+            path = self.learning_configs.node_model_path.parent / f"{name}_{iteration}.dot"
 
         with open(path, "w") as dotfile:
             tree.export_graphviz(
@@ -215,12 +215,12 @@ class DecisionTreeFitter(Fitter):
 
         thetree = self.tree
         iteration = 0
-        name = self.public_configs.node_model_path.stem
-        path = self.public_configs.node_model_path.parent / f"{name}_{iteration}.joblib"
+        name = self.learning_configs.node_model_path.stem
+        path = self.learning_configs.node_model_path.parent / f"{name}_{iteration}.joblib"
 
         while path.is_file():
             iteration += 1
-            path = self.public_configs.node_model_path.parent / f"{name}_{iteration}.joblib"
+            path = self.learning_configs.node_model_path.parent / f"{name}_{iteration}.joblib"
 
         path = path.with_suffix(".joblib")
         joblib.dump(thetree, path)

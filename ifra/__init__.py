@@ -22,6 +22,9 @@ This architecture is bug resilient, since if a node is down it can just be resta
 The difference between 'aggregated model' and 'central model' is that the central model will remember all the rules
 learned from the previous iterations, while the aggregated model only know the rules of the current iteration.
 
+In IFRA, nodes are anonymous : they all write their model to the same directory that is monitored by the aggregator, and
+the aggregator does not have access to any information about the node. It does not know which node produced which model.
+
 In IFRA, one node produces one ruleset using the `ruleskit` package. Each user is free to define its own model by
 overloading the `ifra.fitters.Fitter` class. The available models currently are:\n
   * decisiontree (see `ifra.fitters.DecisionTreeFitter` for details)\n
@@ -36,7 +39,7 @@ dataprep method by overloading the `ifra.datapreps.DataPrep` class. The availabl
   * binfeatures (see `ifra.datapreps.BinFeaturesDataPrep`)\n
 
 To overlead a class, read its documentation. Then, to make the actors use your class specify them in the
-actor's configuration file (`ifra.config.NodePublicConfig` for *fitter*, *node updater* and *dataprep*) or in
+actor's configuration file (`ifra.config.NodeLearningConfig` for *fitter*, *node updater* and *dataprep*) or in
 `ifra.config.AggregatorConfig` json file for *aggregation*).
 To be correctly imported, the line passed in the json for, let's say, the aggregation, must be like
 >>> {
@@ -51,8 +54,9 @@ Google Cloud Storage, and it is the reponsability of the user to define buckets 
 I/O rights for each actors.
   * Each node should have read access the one unique bucket where the central model is to be written. In addition, each
     node should have a read access its own data. No other actor should have read access to them. It should also have
-    write access to a place where its model will be written. The place must be different for each node.
-  * The aggregator should have read access to every places where nodes are expected to write their models, and write
+    write access to a place where the nodes models will be written. The place must be identical for each node of a
+    given learning.
+  * The aggregator should have read access to the place where nodes are expected to write their models, and write
     access to a place dedicated for the aggregated model
   * The central server should have read access to the aggregated model, and write access to the place where the central
     model is read by the nodes.
@@ -61,8 +65,8 @@ GCS paths are handeled by the `transparentpath` package. For testing purposes, t
 filesystem is set by transparentpath.
 
 To use IFRA, you need to do 5 things:\n
-  1. Define the nodes public configurations in json files. It should be stored on GCS with read access by the node and
-     the aggragtor (set the appropriate access to the service accounts). See `ifra.configs.NodePublicConfig` for more
+  1. Define the nodes learning configurations in json files. It should be stored on GCS with read access by the node
+     only (set the appropriate access to the service accounts). See `ifra.configs.NodeLearningConfig` for more
      information.\n
   2. Define the nodes data configurations in json files. It should be reachable by the node only.
      See `ifra.configs.NodeDataConfig` for more information.\n
@@ -70,7 +74,7 @@ To use IFRA, you need to do 5 things:\n
      see `ifra.configs.AggregatorConfig` for more information.\n
   4. Define the central server configuration in a json file. This file needs to be reachable by the central server only.
      see `ifra.configs.CentralConfig` for more information.\n
-  5. On each node machine, instantiate the `ifra.node.Node` class by providing it with its public and
+  5. On each node machine, instantiate the `ifra.node.Node` class by providing it with its learning and
      data configuration, and call the `ifra.node.Node.run` method.
   6. On the machine that should act as the aggregator, instantiate the `ifra.aggregator.Aggregator` class by
      providing it with the list of all nodes configuration and its aggregator configuration, then call its
@@ -80,7 +84,7 @@ To use IFRA, you need to do 5 things:\n
 
 Step 5, 6 and 7 can be done in any order.
 
-Example of step 1: you could create nodes public configuration json files contaning:
+Example of step 1: you could create nodes learning configuration json files contaning:
 >>> {
 >>>     "features_names": ["sepal length in cm", "sepal width in cm", "petal length in cm", "petal width in cm"],
 >>>     "classes_names": ["Iris-setosa", "Iris-versicolor", "Iris-virginica"],
@@ -91,8 +95,8 @@ Example of step 1: you could create nodes public configuration json files contan
 >>>     "stack_activation": false,
 >>>     "plot_data": true,
 >>>     "get_leaf": false,
->>>     "node_model_path": "gs://bucket_node_0_model/ruleset.csv",
->>>     "node_model_path_fs": "gcs",
+>>>     "node_models_path": "gs://bucket_node_models",
+>>>     "node_models_path_fs": "gcs",
 >>>     "central_model_path": "gs://bucket_central_server/ruleset.csv",
 >>>     "central_model_path_fs": "gcs",
 >>>     "id": "chien",
@@ -121,6 +125,8 @@ Example of step 2: you could create nodes data configuration json files contanin
 
 Example of step 3: you could create a aggragator configuration json file contaning:
 >>> {
+>>>     "node_models_path": "gs://bucket_node_models",
+>>>     "node_models_path_fs": "gcs",
 >>>     "aggregated_model_path": "gs://bucket_aggregated_model/ruleset.csv",
 >>>     "aggregated_model_path_fs": "gcs",
 >>>     "emitter_path": "gs://bucket_aggregator_messages/aggregator_messages.json",
@@ -141,23 +147,23 @@ Example of step 4: you could create a central server configuration json file con
 >>> }
 
 Example of step 5:
->>> from ifra import Node, NodePublicConfig, NodeDataConfig
+>>> from ifra import Node, NodeLearningConfig, NodeDataConfig
 >>> from transparentpath import Path
->>> public_config_path = NodePublicConfig(Path("gs://bucket_node_public_configs/public_configs_0.json"))
+>>> learning_config_path = NodeLearningConfig(Path("gs://bucket_node_learning_configs/learning_configs_0.json"))
 >>> data_config_path = NodeDataConfig(Path("data_configs.json", fs="local"))
->>> thenode = Node(public_configs=path_public, data=path_data)
->>> thenode.run(
+>>> thenode = Node(learning_configs=path_learning, data=path_data)
+>>> thenode.run()
 
 Example of step 6:
->>> from ifra import Aggregator, NodePublicConfig, AggregatorConfig
->>> nodes_public_config = [
->>>   NodePublicConfig(Path("gs://bucket_node_public_configs/public_configs_0.json"))
->>>   NodePublicConfig(Path("gs://bucket_node_public_configs/public_configs_1.json"))
->>>   NodePublicConfig(Path("gs://bucket_node_public_configs/public_configs_2.json"))
->>>   NodePublicConfig(Path("gs://bucket_node_public_configs/public_configs_3.json"))
+>>> from ifra import Aggregator, NodeLearningConfig, AggregatorConfig
+>>> nodes_learning_config = [
+>>>   NodeLearningConfig(Path("gs://bucket_node_learning_configs/learning_configs_0.json"))
+>>>   NodeLearningConfig(Path("gs://bucket_node_learning_configs/learning_configs_1.json"))
+>>>   NodeLearningConfig(Path("gs://bucket_node_learning_configs/learning_configs_2.json"))
+>>>   NodeLearningConfig(Path("gs://bucket_node_learning_configs/learning_configs_3.json"))
 >>> ]
 >>> aggregator_config = AggregatorConfig(Path("aggregator_configs.json", fs="local"))
->>> aggr = Aggregator(nodes_configs=nodes_public_config, aggregator_configs=aggregator_config)
+>>> aggr = Aggregator(nodes_configs=nodes_learning_config, aggregator_configs=aggregator_config)
 >>> aggr.run()
 
 Example of step 7:
@@ -187,7 +193,7 @@ from .predictor import (
     CriterionWeightedRegressor,
     CriterionWeightedClassificator,
 )
-from .configs import AggregatorConfig, CentralConfig, NodePublicConfig, NodeDataConfig
+from .configs import AggregatorConfig, CentralConfig, NodeLearningConfig, NodeDataConfig
 
 try:
     from ._version import __version__

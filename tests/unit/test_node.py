@@ -1,5 +1,5 @@
 from ifra import Node
-from ifra.configs import Config, NodePublicConfig, NodeDataConfig
+from ifra.configs import Config, NodeLearningConfig, NodeDataConfig
 from ifra.fitters import Fitter, DecisionTreeFitter
 from ifra.node_model_updaters import NodeModelUpdater, AdaBoostNodeModelUpdater
 from ifra.datapreps import DataPrep, BinFeaturesDataPrep
@@ -10,20 +10,20 @@ from ..alternates.fitter import AlternateFitter
 
 def test_init_and_run_simple(clean):
     node = Node(
-        public_configs=NodePublicConfig("tests/data/node_test/public_configs.json"),
+        learning_configs=NodeLearningConfig("tests/data/node_test/learning_configs.json"),
         data=NodeDataConfig("tests/data/node_test/data_configs.json"),
     )
-    assert isinstance(node.public_configs, (Config, NodePublicConfig))
+    assert isinstance(node.learning_configs, (Config, NodeLearningConfig))
     assert isinstance(node.data, (Config, NodeDataConfig))
     assert isinstance(node.fitter, (Fitter, DecisionTreeFitter))
     assert isinstance(node.updater, (NodeModelUpdater, AdaBoostNodeModelUpdater))
     assert isinstance(node.dataprep, (DataPrep, BinFeaturesDataPrep))
     assert node.datapreped is False
-    assert node.data.dataprep_kwargs == node.public_configs.dataprep_kwargs
+    assert node.data.dataprep_kwargs == node.learning_configs.dataprep_kwargs
     assert node.copied is False
     assert node.ruleset is None
     assert node.last_fetch is None
-    assert not node.public_configs.node_model_path.is_file()
+    assert not node.learning_configs.node_model_path.is_file()
 
     assert not (node.data.x_path.parent / "x_to_use.csv").is_file()
     assert not (node.data.y_path.parent / "y_to_use.csv").is_file()
@@ -41,7 +41,7 @@ def test_init_and_run_simple(clean):
     assert (node.data.y_path.parent / "y_to_use.csv").is_file()
     assert (node.data.x_path.parent / "plots").is_dir()
     assert (node.data.x_path.parent / "plots_datapreped").is_dir()
-    assert node.public_configs.node_model_path.is_file()
+    assert node.learning_configs.node_model_path.is_file()
 
     assert node.data.x_path_to_use.read().values.dtype == int
     assert node.data.x_path.read().values.dtype != int
@@ -52,7 +52,7 @@ def test_init_and_run_simple(clean):
 
 def test_init_alternate_dataprep_updater_fitter(clean):
     node = Node(
-        public_configs=NodePublicConfig("tests/data/node_test/alternate_public_configs.json"),
+        learning_configs=NodeLearningConfig("tests/data/node_test/alternate_learning_configs.json"),
         data=NodeDataConfig("tests/data/node_test/data_configs.json"),
     )
     assert isinstance(node.dataprep, AlternateDataPrep)

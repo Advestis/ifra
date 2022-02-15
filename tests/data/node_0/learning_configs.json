@@ -8,11 +8,11 @@
     "stack_activation": false,
     "plot_data": true,
     "get_leaf": false,
-    "node_model_path": "tests/outputs/node_2/ruleset.csv",
-    "node_model_path_fs": "local",
+    "node_models_path": "tests/outputs/node_models",
+    "node_models_path_s": "local",
     "central_model_path": "tests/outputs/central_server/ruleset.csv",
     "central_model_path_fs": "local",
-    "id": "chat",
+    "id": "chien",
     "dataprep": "binfeatures",
     "dataprep_kwargs": {"nbins": 5},
     "fitter": "decisiontree",
@@ -21,6 +21,6 @@
     "updater_kwargs": {},
     "thresholds_path": "tests/data/thresholds.json",
     "thresholds_path_fs": "local",
-    "emitter_path": "tests/outputs/node_2/node_chat_messages.json",
+    "emitter_path": "tests/outputs/node_0/node_chien_messages.json",
     "emitter_path_fs": "local"
 }
