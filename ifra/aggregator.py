@@ -242,9 +242,6 @@ class Aggregator(Actor):
             logger.warning("You did not specify a timeout for your run. It will last until manually stopped.")
         logger.info("Starting aggregator. Monitoring changes in nodes' models directories.")
 
-        if len(self.nodes) == 0:
-            raise ValueError("No nodes to learn on !")
-
         while time() - t < timeout or timeout <= 0:
 
             new_models = False
