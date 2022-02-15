@@ -9,7 +9,7 @@
     "plot_data": true,
     "get_leaf": false,
     "node_models_path": "tests/outputs/node_models",
-    "node_models_path_s": "local",
+    "node_models_path_fs": "local",
     "central_model_path": "tests/outputs/central_server/model.csv",
     "central_model_path_fs": "local",
     "id": "chien",

@@ -1,6 +1,6 @@
 {
     "node_models_path": "tests/outputs/node_models",
-    "node_models_path_s": "local",
+    "node_models_path_fs": "local",
     "aggregated_model_path": "tests/outputs/aggregator/model.csv",
     "aggregated_model_path_fs": "local",
     "emitter_path": "tests/outputs/aggregator/aggregator_messages.json",
