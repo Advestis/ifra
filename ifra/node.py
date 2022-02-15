@@ -87,6 +87,8 @@ class Node(Actor):
         self.data = None
         self.last_x = None
         self.last_y = None
+        self.filenumber = None
+        self.iteration = 0
         super().__init__(public_configs=public_configs, data=data)
 
     @emit
@@ -96,8 +98,8 @@ class Node(Actor):
         self.copied = False
         self.ruleset = None
         self.last_fetch = None
-        if not self.public_configs.node_model_path.parent.is_dir():
-            self.public_configs.node_model_path.parent.mkdir()
+        if not self.public_configs.node_models_path.is_dir():
+            self.public_configs.node_models_path.mkdir()
 
         self.data.dataprep_kwargs = self.public_configs.dataprep_kwargs
 
@@ -185,7 +187,7 @@ class Node(Actor):
         Calls the fitter corresponding to `ifra.node.Node` *public_configs.fitter* on the node's features and
         targets.
         Filters out rules that are already present in the central model, if it exists.
-        Saves the resulting ruleset in `ifra.node.Node` *public_configs.node_model_path* if new rules were found.
+        Saves the resulting ruleset in `ifra.node.Node` *public_configs.node_models_path* if new rules were found.
         """
 
         self.plot_dataprep_and_copy()
@@ -231,32 +233,32 @@ class Node(Actor):
 
     @emit
     def ruleset_to_file(self) -> None:
-        """Saves `ifra.node.Node` *ruleset* to `ifra.configs.NodePublicConfig` *node_model_path*,
-        overwritting any existing file here, and in another file in the same directory but with a unique name.
-        Will also produce a .pdf of the ruleset using TableWriter.
+        """Saves `ifra.node.Node` *ruleset* to `ifra.configs.NodePublicConfig` *node_models_path*,
+        under 'ruleset_nnode_niteration.csv' and 'ruleset_main_nnode', where 'nnode' is determined by counting how many
+        files named 'ruleset_*_0.csv' already exist, and where 'niteration' is incremented at each call of this method,
+        starting at 0.
+        Will also produce a .pdf of the ruleset using TableWriter if LaTeX is available on the system.
         Does not do anything if `ifra.node.Node` *ruleset* is None
         """
 
         ruleset = self.ruleset
+        if ruleset is None:
+            return
 
-        iteration = 0
-        name = self.public_configs.node_model_path.stem
-        path = self.public_configs.node_model_path.parent / f"{name}_{iteration}.csv"
-        while path.is_file():
-            iteration += 1
-            path = self.public_configs.node_model_path.parent / f"{name}_{iteration}.csv"
+        if self.filenumber is None:
+            self.filenumber = len(list(self.public_configs.node_models_path.glob('ruleset_*_0.csv')))
+        path_iteration = self.public_configs.node_models_path / f"ruleset_{self.filenumber}_{self.iteration}.csv"
+        path_main = self.public_configs.node_models_path / f"ruleset_main_{self.filenumber}.csv"
+        self.iteration += 1
 
-        path = path.with_suffix(".csv")
-        ruleset.save(path)
-        ruleset.save(self.public_configs.node_model_path)
+        ruleset.save(path_main)
+        ruleset.save(path_iteration)
 
-        logger.info(
-            f"Node {self.public_configs.id}'s model saved in {self.public_configs.node_model_path.parent}."
-        )
+        logger.info(f"Node {self.public_configs.id}'s model saved in {path_iteration} and {path_main}.")
 
         try:
-            path_table = path.with_suffix(".pdf")
-            df = path.read(index_col=0)
+            path_table = path_main.with_suffix(".pdf")
+            df = path_main.read(index_col=0)
             if not df.empty:
                 df = df.apply(lambda x: x.round(3) if x.dtype == float else x)
             else:

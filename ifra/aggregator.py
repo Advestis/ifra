@@ -7,7 +7,7 @@ from tablewriter import TableWriter
 from transparentpath import TransparentPath
 import logging
 
-from .configs import NodePublicConfig, AggregatorConfig
+from .configs import AggregatorConfig
 from .actor import Actor
 from .decorator import emit
 from .aggregations import AdaBoostAggregation, Aggregation
@@ -18,132 +18,116 @@ logger = logging.getLogger(__name__)
 class NodeGate:
 
     """This class is the gate used by the aggregator to interact with the remote nodes.
-    It knows the public configuration of one given node, to which must correspond an instance of the
-    `ifra.node.Node` class. This configuration holds among other things, the places where the nodes
-    are supposed to save their models. It implements a method, `ifra.aggregator.NodeGate.interact`,
-    that check whether the node produced a new model.
+    It only knows the path to the main model of a given node, and nothing else, thus making each node an anonymous
+    contributor to the model.
+    It implements a method, `ifra.aggregator.NodeGate.interact`, that checks whether the node produced a new model.
 
     Attributes
     ----------
     ok: bool
         True if the object initiated correctly
+    model_path: TransparentPath
+        The file containing one node model
     id: int
-        Unique NodeGate id number. If the corresponding `ifra.node.Node` instance has a custom
-        id, then it will use it instead.
-    public_configs: NodePublicConfig
-        Node's public configuration. See `ifra.configs.NodePublicConfig`. None at initialisation, set by
-        `ifra.aggregator.NodeGate.interact`
-    ruleset: RuleSet
-        Latest node model's ruleset, same as `ifra.node.Node` *ruleset*. None at initialisation, set by
+        Unique NodeGate id number, corresponding to the number of existing NodeGate at object creation.
+    model: RuleSet
+        Latest node model, same as `ifra.node.Node` *model*. None at initialisation, set by
         `ifra.aggregator.NodeGate.interact`
     last_fetch: datetime
         Last time the node produced a new model. None at initialisation, set by
         `ifra.aggregator.NodeGate.interact`
     """
 
-    instances = []
+    instances = 0
+    """Counts the number of existing objects"""
 
-    def __init__(self, public_config: NodePublicConfig):
+    paths = []
+    """Remembers all paths known by all instances of the class. This is done to avoid creating several nodes with the
+    same model path."""
+
+    def __init__(self, model_main_path: TransparentPath):
         """
         Parameters
         ----------
-        public_config: Union[str, TransparentPath]
-            Directory were node's public configuration file can be found
+        model_main_path: TransparentPath
+            Path to the node's model file.
         """
 
+        if model_main_path in self.paths:
+            raise ValueError(f"You can not recreate already existing node with model path {model_main_path}")
         self.ok = False
-        self.public_configs = public_config
-        self.id = self.public_configs.id
-        i = 2
-        while self.id in self.instances:
-            self.id = f"{self.public_configs.id}_{i}"
-            i += 1
-        self.instances.append(self.id)
+        self.model_path = model_main_path
+        self.id = self.instances
+        self.instances += 1
+        self.paths.append(model_main_path)
 
-        self.ruleset = None
+        self.model = None
         self.last_fetch = None
         self.id_set = False
         self.ok = True
         self.reference_node_config = None
 
-    def interact(self, reference_node_config: NodePublicConfig) -> bool:
-        """Fetch the node's latest i any model.
-
-        Parameters
-        ----------
-        reference_node_config: NodePublicConfig
-            Configuration reference. If the node's public configuration do not match it, the node is ignored.
-            If reference_node_config is ont set yet, then this node's public configuration becomes the reference.
+    def interact(self) -> bool:
+        """Fetch one anonymous node's latest model.
 
         Returns
         -------
-        True if successfully fetched new model, else False
+        True if successfully fetched new model, else False. Can be False if the model's file disapeared, or if has not
+        been modified since last check.
         """
 
-        def get_ruleset():
-            """Fetch the node's model's RuleSet.
+        def get_model() -> None:
+            """Fetch the node's model.
             `ifra.aggregator.NodeGate` *last_fetch* will be set to now.
             """
-            self.ruleset = RuleSet()
-            self.ruleset.load(self.public_configs.node_model_path)
+            self.model = RuleSet()
+            self.model.load(self.model_path)
             self.last_fetch = datetime.now()
             self.new_model_found = True
-            logger.info(f"Fetched new ruleset from node {self.id} at {self.last_fetch}")
+            logger.info(f"Fetched new model from node {self.id} at {self.last_fetch}")
 
-        if len(reference_node_config.configs) > 0 and self.public_configs != reference_node_config:
-            s = "\n"
-            for key in self.public_configs.configs:
-                if self.public_configs.configs[key] != reference_node_config.configs[key]:
-                    s = (
-                        f"{s}{key}: {self.public_configs.configs[key]}"
-                        f" != {reference_node_config.configs[key]}\n"
-                    )
-            logger.warning(
-                f"Node {self.id}'s configuration is not compatible with previous"
-                f" configuration. Skipping for now. Differences are: {s}"
-            )
-            return False
-
-        if self.ruleset is None:
-            # The node has not produced any model yet if self.ruleset is None. No need to bother with self.last fetch
-            # then, just get the ruleset.
-            if self.public_configs.node_model_path.is_file():
-                get_ruleset()
+        if self.model is None:
+            # The node has not produced any model yet if self.model is None. No need to bother with self.last_fetch
+            # then, just get the model.
+            if self.model_path.is_file():
+                get_model()
                 return True
-            return False
+            else:
+                logger.warning(f"model located at {self.model_path} disapeared.")
+                return False
         else:
-            # The node has already produced a model. So we only get its ruleset if the model is new. We know that by
-            # checking the modification time of the node's ruleset file.
-            if (
-                self.public_configs.node_model_path.is_file()
-                and self.public_configs.node_model_path.info()["mtime"] > self.last_fetch.timestamp()
-            ):
-                get_ruleset()
-                return True
-            logger.debug(f"Node {self.id} has no new model. Skipping for now.")
-            return False
+            # The node has already produced a model. So we only get its model if it is new. We know that by
+            # checking the modification time of the node's model file.
+            if self.model_path.is_file():
+                if self.model_path.info()["mtime"] > self.last_fetch.timestamp():
+                    get_model()
+                    return True
+                else:
+                    logger.debug(f"Node {self.id} has no new model. Skipping for now.")
+                    return False
+            else:
+                logger.warning(f"Model located at {self.model_path} disapeared.")
+                return False
 
 
 class Aggregator(Actor):
     """Implementation of the notion of aggregator in federated learning.
 
-    It monitors changes in a given list of remote GCP directories, were nodes are expected to write their models.
-    Upon changes of the model files, the aggregator downloads them. When enough model files are downloaded, the
-    aggregator aggregates them to produce the aggregated model, which is saved to a directory. This directory is then
-    read by the central server to update the central model (see `ifra.central_server.CentralServer`).
+    It monitors changes in a given remote GCP directory, were nodes are expected to write their models.
+    It periodically checks for new or modified model files that is downloads. When enough model files are downloaded,
+    the aggregator aggregates them to produce the aggregated model, which is saved to a directory.
+    This directory is then read by the central server to update the central model
+    (see `ifra.central_server.CentralServer`).
     "Enough" model is defined in the aggregator configuration (see `ifra.configs.AggregatorConfig`)
 
     Attributes
     ----------
-    reference_node_config: NodePublicConfig
-        Nodes linked to a given aggregator should have the same public configuration (except for their specific
-        paths). This attribute remembers the said configuration, to ignore nodes with a wrong configuration.
     aggregator_configs: AggregatorConfig
         see `ifra.configs.AggregatorConfig`
     nodes: List[NodeGate]
-        List of all gates to the nodes the aggregator should monitor.
-    ruleset: RuleSet
-        Aggregated model's ruleset
+        List of all gates to the nodes the aggregator found.
+    model: RuleSet
+        Aggregated model
     aggregation: Aggregation
         Instance of one of the `ifra.aggregations.Aggregation` daughter classes.
     """
@@ -154,47 +138,29 @@ class Aggregator(Actor):
 
     def __init__(
         self,
-        nodes_configs: List[NodePublicConfig],
         aggregator_configs: AggregatorConfig,
     ):
         """
         Parameters
         ----------
-        nodes_configs: List[NodePublicConfig]
-            List of each node's public configuration file
         aggregator_configs: AggregatorConfig
             Aggregator configuration. See `ifra.configs.AggregatorConfig`
         """
-        self.nodes_configs = None
         self.aggregator_configs = None
-        self.reference_node_config = None
         self.nodes = []
-        self.ruleset = None
+        self.model = None
         self.aggregation = None
-        super().__init__(nodes_configs=nodes_configs, aggregator_configs=aggregator_configs)
+        super().__init__(aggregator_configs=aggregator_configs)
 
     @emit
     def create(self):
 
         self.nodes = []
-        for config in self.nodes_configs:  # cast into set in order not to create twice the same node
-            node = NodeGate(config)
-            if node.ok:
-                self.nodes.append(node)
-            else:
-                logger.warning("One node could not be instantiated. Ignoring it.")
 
         if self.aggregator_configs.min_number_of_new_models < 2:
             raise ValueError("Minimum number of new nodes to trigger aggregation must be 2 or more")
 
-        if len(self.nodes) < self.aggregator_configs.min_number_of_new_models:
-            raise ValueError(
-                f"The minimum number of nodes to trigger aggregation "
-                f"({self.aggregator_configs.min_number_of_new_models}) is greater than the number of"
-                f" available nodes ({len(self.nodes)}): that can not work !"
-            )
-
-        self.ruleset = None
+        self.model = None
 
         if self.aggregator_configs.aggregation not in self.possible_aggregations:
             function = self.aggregator_configs.aggregation.split(".")[-1]
@@ -205,18 +171,15 @@ class Aggregator(Actor):
         else:
             self.aggregation = self.possible_aggregations[self.aggregator_configs.aggregation](self)
 
-        # s = "\n".join([f"{key}: {self.aggregator_configs.configs[key]}" for key in self.aggregator_configs.configs])
-        # logger.info(f"Aggregator configuration:\n{s}")
-
     @emit
-    def aggregate(self, rulesets: List[RuleSet]) -> Tuple[str, Union[RuleSet, None]]:
-        """Aggregates rulesets in `ifra.aggregator.Aggregator` *ruleset* using
+    def aggregate(self, models: List[RuleSet]) -> Tuple[str, Union[RuleSet, None]]:
+        """Aggregates models in `ifra.aggregator.Aggregator` *model* using
         `ifra.aggregator.Aggregator` *aggregation*
 
         Parameters
         ----------
-        rulesets: List[RuleSet]
-            New rulesets provided by the nodes.
+        models: List[RuleSet]
+            New models provided by the nodes.
 
         Returns
         -------
@@ -224,18 +187,18 @@ class Aggregator(Actor):
             First item of the tuple can be :
               * "updated" if aggregated model was updated
               * "pass" if no new rules were found
-            The second item is the aggregated ruleset if the first item is "updated", None otherwise
+            The second item is the aggregated model if the first item is "updated", None otherwise
         """
-        return self.aggregation.aggregate(rulesets)
+        return self.aggregation.aggregate(models)
 
     @emit
-    def ruleset_to_file(self) -> None:
-        """Saves `ifra.node.Node` *ruleset* to `ifra.configs.AggregatorConfig` *aggregated_model_path*,
+    def model_to_file(self) -> None:
+        """Saves `ifra.node.Node` *model* to `ifra.configs.AggregatorConfig` *aggregated_model_path*,
         overwritting any existing file here, and in another file in the same directory but with a unique name.
-        Will also produce a .pdf of the ruleset using TableWriter.
-        Does not do anything if `ifra.node.Node` *ruleset* is None
+        Will also produce a .pdf of the model using TableWriter.
+        Does not do anything if `ifra.node.Node` *model* is None
         """
-        ruleset = self.ruleset
+        model = self.model
 
         iteration = 0
         name = self.aggregator_configs.aggregated_model_path.stem
@@ -245,8 +208,8 @@ class Aggregator(Actor):
             path = self.aggregator_configs.aggregated_model_path.parent / f"{name}_{iteration}.csv"
 
         path = path.with_suffix(".csv")
-        ruleset.save(path)
-        ruleset.save(self.aggregator_configs.aggregated_model_path)
+        model.save(path)
+        model.save(self.aggregator_configs.aggregated_model_path)
         logger.info(f"Saved aggregated model in '{self.aggregator_configs.aggregated_model_path}'")
 
         try:
@@ -285,12 +248,24 @@ class Aggregator(Actor):
         while time() - t < timeout or timeout <= 0:
 
             new_models = False
+            new_nodes = 0
+            for path in self.aggregator_configs.node_models_path.glob("ruleset_main_*.csv"):
+                if path in NodeGate.paths:
+                    # Already found this node in a previous check
+                    continue
+                node = NodeGate(path)
+                if node.ok:
+                    self.nodes.append(node)
+                    new_nodes += 1
+                else:
+                    logger.warning("One node could not be instantiated. Ignoring it.")
+
+            if new_nodes > 0:
+                logger.info(f"Found {new_nodes} new nodes. Aggregator now knows {len(self.nodes)} nodes.")
 
             for node in self.nodes:
-                if self.reference_node_config is None:
-                    self.reference_node_config = node.public_configs
                 # Node fetches its latest model from GCP. Returns True if a new model was found.
-                if node.interact(self.reference_node_config) is False:
+                if node.interact() is False:
                     continue
 
                 updated_nodes.append(node)
@@ -299,20 +274,20 @@ class Aggregator(Actor):
 
             if new_models:
                 logger.info(f"Found enough ({len(updated_nodes)}) new nodes models. Triggering aggregation.")
-                what_now = self.aggregate([node.ruleset for node in updated_nodes])
+                what_now = self.aggregate([node.model for node in updated_nodes])
                 if what_now == "updated":
                     # Aggregation successfully updated aggregated model.
                     updated_nodes = []
 
-                    if self.ruleset is None:
+                    if self.model is None:
                         raise ValueError("Should never happen !")
                     iterations += 1
-                    self.ruleset_to_file()
+                    self.model_to_file()
 
             sleep(sleeptime)
 
         logger.info(f"Timeout of {timeout} seconds reached, stopping aggregator.")
-        if self.ruleset is None:
+        if self.model is None:
             logger.warning("Learning failed to produce an aggregatored model. No output generated.")
         logger.info(f"Made {iterations} complete iterations between aggregator and nodes.")
         logger.info(f"Results saved in {self.aggregator_configs.aggregated_model_path}")

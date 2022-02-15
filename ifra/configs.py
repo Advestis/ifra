@@ -212,12 +212,12 @@ class NodePublicConfig(Config):
     get_leaf: bool
         If True, will only consider the leaf ofthe tree to create rules. If False, every node of the tree will also be
         a rule.
-    node_model_path: TransparentPath
-        Path where the node is supposed to write its model. Should point to a csv file to which the aggregator has
+    node_models_path: TransparentPath
+        Path where all nodes are supposed to write their model. Should point to a directory to which the aggregator has
         access.
-    node_model_path_fs: TransparentPath
-        File system to use for local model file. Can be 'gcs', 'local' or "". If not specified, the json
-        file should still contain the key *node_model_path_fs*, but with value "".
+    node_models_path_fs: TransparentPath
+        File system to use for node models directory. Can be 'gcs', 'local' or "". If not specified, the json
+        file should still contain the key *node_models_path_fs*, but with value "".
     id: Union[None, int, str]
         Name or number of the node. Can not be "".
     dataprep: Union[str]
@@ -268,8 +268,8 @@ class NodePublicConfig(Config):
         "stack_activation",
         "plot_data",
         "get_leaf",
-        "node_model_path",
-        "node_model_path_fs",
+        "node_models_path",
+        "node_models_path_fs",
         "dataprep",
         "dataprep_kwargs",
         "id",
@@ -292,10 +292,8 @@ class NodePublicConfig(Config):
             # Those parameters can be different
             if (
                     key == "emitter_path"
-                    or key == "node_model_path"
                     or key == "id"
-                    or key.endswith("_fs")
-                    or key.endswith("_fss")
+                    or (key.endswith("_fs") and key != "node_models_path_fs")
                     or key == "plot_data"
             ):
                 continue
@@ -323,11 +321,16 @@ class AggregatorConfig(Config):
     configs: dict
         see `Config`
 
+    node_models_path: TransparentPath
+        Path where all nodes will write their models.
+    node_models_path_fs: TransparentPath
+        File system to use for node models directory. Can be 'gcs', 'local' or "". If not specified, the json
+        file should still contain the key *node_models_path_fs*, but with value "".
     aggregated_model_path: TransparentPath
         Path where the aggregator will save its model after each aggregations. Will also produce one output each
         time the model is updated. Should point to a csv file.
     aggregated_model_path_fs: str
-        File system to use for learning outpout. Can be 'gcs', 'local' or ""
+        File system to use for learning outpout. Can be 'gcs', 'local' or "".
     min_number_of_new_models: int
         Minimum number of nodes that must have prodived a new model to trigger aggregation.
     aggregation: str
@@ -337,13 +340,15 @@ class AggregatorConfig(Config):
         Keyword arguments for the `ifra.aggregations.Aggregation` init. If not specified, the json file should still
         contain the key *aggregation_kwargs*, but with value "".
     emitter_path: TransparentPath
-        Path to emitter json file. See `ifra.messenger.Emitter`
+        Path to emitter json file. See `ifra.messenger.Emitter`.
     emitter_path_fs: TransparentPath
         File system of path to emitter. Can be 'gcs', 'local' or "". If not specified, the json
         file should still contain the key *emitter_path_fs*, but with value "".
     """
 
     EXPECTED_CONFIGS = [
+        "node_models_path",
+        "node_models_path_fs",
         "aggregated_model_path",
         "aggregated_model_path_fs",
         "min_number_of_new_models",
