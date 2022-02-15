@@ -184,12 +184,12 @@ class DecisionTreeFitter(Fitter):
         thetree = self.tree
         features_names = self.learning_configs.features_names
         iteration = 0
-        name = self.learning_configs.node_model_path.stem
-        path = self.learning_configs.node_model_path.parent / f"{name}_{iteration}.dot"
+        name = self.learning_configs.node_models_path.stem
+        path = self.learning_configs.node_models_path.parent / f"{name}_{iteration}.dot"
 
         while path.is_file():
             iteration += 1
-            path = self.learning_configs.node_model_path.parent / f"{name}_{iteration}.dot"
+            path = self.learning_configs.node_models_path.parent / f"{name}_{iteration}.dot"
 
         with open(path, "w") as dotfile:
             tree.export_graphviz(
@@ -215,12 +215,12 @@ class DecisionTreeFitter(Fitter):
 
         thetree = self.tree
         iteration = 0
-        name = self.learning_configs.node_model_path.stem
-        path = self.learning_configs.node_model_path.parent / f"{name}_{iteration}.joblib"
+        name = self.learning_configs.node_models_path.stem
+        path = self.learning_configs.node_models_path.parent / f"{name}_{iteration}.joblib"
 
         while path.is_file():
             iteration += 1
-            path = self.learning_configs.node_model_path.parent / f"{name}_{iteration}.joblib"
+            path = self.learning_configs.node_models_path.parent / f"{name}_{iteration}.joblib"
 
         path = path.with_suffix(".joblib")
         joblib.dump(thetree, path)

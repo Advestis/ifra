@@ -23,7 +23,7 @@ def test_init_and_run_simple(clean):
     assert node.copied is False
     assert node.model is None
     assert node.last_fetch is None
-    assert not node.learning_configs.node_model_path.is_file()
+    assert not node.learning_configs.node_models_path.is_file()
 
     assert not (node.data.x_path.parent / "x_to_use.csv").is_file()
     assert not (node.data.y_path.parent / "y_to_use.csv").is_file()
@@ -41,7 +41,7 @@ def test_init_and_run_simple(clean):
     assert (node.data.y_path.parent / "y_to_use.csv").is_file()
     assert (node.data.x_path.parent / "plots").is_dir()
     assert (node.data.x_path.parent / "plots_datapreped").is_dir()
-    assert node.learning_configs.node_model_path.is_file()
+    assert node.learning_configs.node_models_path.is_file()
 
     assert node.data.x_path_to_use.read().values.dtype == int
     assert node.data.x_path.read().values.dtype != int
