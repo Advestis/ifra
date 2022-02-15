@@ -47,21 +47,16 @@ class AdaBoostAggregation(Aggregation):
     """
 
     def aggregate(self, rulesets: List[RuleSet]) -> str:
+        """In AdaBoostAggregation, 'aggregate' only returns "updated", for bad and already known rules should have been
+        filtered out by the nodes already."""
         logger.info("Aggregating fit results using AdaBoost method...")
         all_rules = []
 
         for rs in rulesets:
             all_rules += rs.rules
 
-        if len(all_rules) == 0:
-            logger.info("... no rules found")
-            return "pass"
+        occurences = {r: all_rules.count(r) for r in set(all_rules)}
 
-        occurences = {r: all_rules.count(r)for r in set(all_rules)}
-
-        if len(occurences) == 0:
-            logger.warning("No new rules matched coverage criterion")
-            return "pass"
         max_occurences = max(list(occurences.values()))
 
         new_rules = RuleSet(remember_activation=False)
@@ -70,12 +65,8 @@ class AdaBoostAggregation(Aggregation):
             if occurences[r] == max_occurences:
                 new_rules.append(r, update_activation=False)
 
-        if len(new_rules) == 0:
-            logger.warning("No new rules found")
-            return "pass"
-        else:
-            logger.info(f"Aggregated {len(new_rules)} new rules")
+        logger.info(f"Aggregated {len(new_rules)} new rules")
 
-        del self.aggregator.ruleset
-        self.aggregator.ruleset = new_rules
+        del self.aggregator.model
+        self.aggregator.model = new_rules
         return "updated"

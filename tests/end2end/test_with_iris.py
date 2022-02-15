@@ -1,22 +1,22 @@
 from time import sleep
 
-from ifra import CentralServer, Node, Aggregator, CentralConfig, NodeDataConfig, NodePublicConfig, AggregatorConfig
+from ifra import CentralServer, Node, Aggregator, CentralConfig, NodeDataConfig, NodeLearningConfig, AggregatorConfig
 from multiprocessing import Process
 import os
 
 max_cpus = min(4, os.cpu_count())
 
-nodes_public_config = [
-    NodePublicConfig("tests/data/node_0/public_configs.json"),
-    NodePublicConfig("tests/data/node_1/public_configs.json"),
-    NodePublicConfig("tests/data/node_2/public_configs.json"),
+nodes_learning_config = [
+    NodeLearningConfig("tests/data/node_0/learning_configs.json"),
+    NodeLearningConfig("tests/data/node_1/learning_configs.json"),
+    NodeLearningConfig("tests/data/node_2/learning_configs.json"),
 ]
 aggregator_config = AggregatorConfig("tests/data/aggregator_configs.json")
 central_config = CentralConfig("tests/data/central_configs.json")
 
 
-def make_node(path_public, path_data):
-    node = Node(public_configs=path_public, data=path_data)
+def make_node(path_learning, path_data):
+    node = Node(learning_configs=path_learning, data=path_data)
     node.run(timeout=60)
 
 
@@ -28,8 +28,8 @@ def make_nodes(processes):
         NodeDataConfig("tests/data/node_2/data_configs.json"),
     ]
 
-    for public, data in zip(nodes_public_config, nodes_data_config):
-        processes.append(Process(target=make_node, args=(public, data)))
+    for learning, data in zip(nodes_learning_config, nodes_data_config):
+        processes.append(Process(target=make_node, args=(learning, data)))
         processes[-1].start()
     sleep(3)
     print("")
@@ -46,7 +46,7 @@ def make_server(processes):
 
 
 def make_aggregator(processes):
-    aggregator = Aggregator(nodes_configs=nodes_public_config, aggregator_configs=aggregator_config)
+    aggregator = Aggregator(aggregator_configs=aggregator_config)
     processes.append(Process(target=aggregator.run, args=(40,)))
     processes[-1].start()
     sleep(2)

@@ -7,7 +7,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def central_model_update(central_ruleset: RuleSet, aggregated_ruleset: RuleSet) -> bool:
+def central_model_update(central_model: RuleSet, aggregated_model: RuleSet) -> bool:
     """Used by `ifra.central_server.CentralServer` to take into account the new aggregated model.
 
     It will ignore rules already present in the central model (even though there should be None, because ndoes would
@@ -16,29 +16,29 @@ def central_model_update(central_ruleset: RuleSet, aggregated_ruleset: RuleSet) 
     model.
     """
 
-    if central_ruleset.rule_type is not None and (central_ruleset.rule_type != aggregated_ruleset.rule_type):
+    if central_model.rule_type is not None and (central_model.rule_type != aggregated_model.rule_type):
         raise TypeError("Central model's and aggregated model's rules type are different")
     
     new_rules = 0
-    for rule in aggregated_ruleset:
-        if rule not in central_ruleset:
+    for rule in aggregated_model:
+        if rule not in central_model:
             new_rules += 1
-            central_ruleset.append(rule)
+            central_model.append(rule)
     
     if new_rules == 0:
         logger.warning("No new rules in aggregated model")
         return False
     
-    if central_ruleset.rule_type == ClassificationRule:
-        update_classif_preds(central_ruleset)
-    elif central_ruleset.rule_type == RegressionRule:
-        update_regr_preds(central_ruleset)
+    if central_model.rule_type == ClassificationRule:
+        update_classif_preds(central_model)
+    elif central_model.rule_type == RegressionRule:
+        update_regr_preds(central_model)
     else:
-        raise TypeError(f"Unexpected ruleset's rule type {central_ruleset.rule_type}")
+        raise TypeError(f"Unexpected model's rule type {central_model.rule_type}")
     return True
 
 
-def update_classif_preds(ruleset: RuleSet):
+def update_classif_preds(model: RuleSet):
     """At this point, the central model can contain rules with identical conditions but different predictions.
     This method aims at solving that : for duplicated conditions, the corresponding rules will have their
     predictions set to be the one of the most recurring prediction. If several predictions are equally frequent, the
@@ -46,17 +46,17 @@ def update_classif_preds(ruleset: RuleSet):
 
     Parameters
     ----------
-    ruleset: RuleSet
+    model: RuleSet
         Modified in place
     """
     duplicated_conditions = {}
     to_remove = []
-    conditions = [r.condition for r in ruleset]
+    conditions = [r.condition for r in model]
 
     if list(set(conditions)) == conditions:  # No duplicated conds -> no contradictory predictions -> do nothing
         return
 
-    for i in range(len(ruleset)):
+    for i in range(len(model)):
         if conditions.count(conditions[i]) > 1:
             if conditions[i] not in duplicated_conditions:
                 duplicated_conditions[conditions[i]] = [i]
@@ -66,7 +66,7 @@ def update_classif_preds(ruleset: RuleSet):
     for condition in duplicated_conditions:
         preds = []
         for i in duplicated_conditions[condition]:
-            preds.append(ruleset[i].prediction)
+            preds.append(model[i].prediction)
         if len(set(preds)) == 1:  # Duplicated conditions predict the same : nothing to do
             continue
         counter = Counter(preds).most_common(2)
@@ -78,14 +78,14 @@ def update_classif_preds(ruleset: RuleSet):
         good_pred = counter[0][0]
         for i in duplicated_conditions[condition]:
             # noinspection PyProtectedMember
-            ruleset[i]._prediction = good_pred
+            model[i]._prediction = good_pred
 
-    ruleset._rules = [ruleset[i] for i in range(len(ruleset)) if i not in to_remove]
-    ruleset.remember_activation = False
-    ruleset.stack_activation = False
-    ruleset._activation = None
-    ruleset.stacked_activations = None
-    ruleset._coverage = None
+    model._rules = [model[i] for i in range(len(model)) if i not in to_remove]
+    model.remember_activation = False
+    model.stack_activation = False
+    model._activation = None
+    model.stacked_activations = None
+    model._coverage = None
 
 
 def update_regr_preds(self):

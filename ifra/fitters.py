@@ -9,7 +9,9 @@ from ruleskit.utils.rule_utils import extract_rules_from_tree
 from ruleskit import Rule
 import logging
 
-from .configs import NodePublicConfig, NodeDataConfig
+from transparentpath import TransparentPath
+
+from .configs import NodeLearningConfig, NodeDataConfig
 
 logger = logging.getLogger(__name__)
 
@@ -19,23 +21,23 @@ class Fitter:
 
     def __init__(
         self,
-        public_configs: NodePublicConfig,
+        learning_configs: NodeLearningConfig,
         **kwargs
     ):
         """
 
         Parameters
         ----------
-        public_configs: NodePublicConfig
-            `ifra.node.Node`'s *public_config*
+        learning_configs: NodeLearningConfig
+            `ifra.node.Node`'s *learning_config*
         data: NodeDataConfig
             `ifra.node.Node`'s *data*
         kwargs:
             Any additionnal keyword argument that the overleading class accepts. Those arguments will become attributes.
         """
-        self.public_configs = public_configs
-        self.ruleset = None
-        Rule.SET_THRESHOLDS(self.public_configs.thresholds_path)
+        self.learning_configs = learning_configs
+        self.model = None
+        Rule.SET_THRESHOLDS(self.learning_configs.thresholds_path)
         for arg in kwargs:
             setattr(self, arg, kwargs[arg])
 
@@ -52,27 +54,27 @@ class DecisionTreeFitter(Fitter):
 
     Attributes
     ----------
-    public_configs: `ifra.configs.NodePublicConfig`
-        The public configuration of the node using this fitter
-    ruleset: Union[None, RuleSet]
-        Fitted ruleset, or None if fit not done yet
+    learning_configs: `ifra.configs.NodeLearningConfig`
+        The learning configuration of the node using this fitter
+    model: Union[None, RuleSet]
+        Fitted model, or None if fit not done yet
     tree: Union[None, DecisionTreeFitter]
         Fitted tree, or None if fit not done yet
     """
 
     def __init__(
         self,
-        public_configs: NodePublicConfig,
+        learning_configs: NodeLearningConfig,
     ):
-        super().__init__(public_configs)
+        super().__init__(learning_configs)
         self.tree = None
 
     def fit(self, x: np.ndarray, y: np.ndarray) -> RuleSet:
         """Fits the decision tree on the data pointed by `ifra.fitters.DecisionTreeFitter` *data.x_path* and
         `ifra.fitters.DecisionTreeFitter` *data.y_path*, sets
         `ifra.fitters.DecisionTreeFitter`*tree* saves it as a .dot, .svg and .joblib file in the same place
-        the node will save its ruleset. Those files will be unique for each time the fit function is called.
-        Also sets `ifra.fitters.DecisionTreeFitter` *ruleset* and returns it.
+        the node will save its model. Those files will be unique for each time the fit function is called.
+        Also sets `ifra.fitters.DecisionTreeFitter` *model* and returns it.
 
         Parameters
         ----------
@@ -84,21 +86,24 @@ class DecisionTreeFitter(Fitter):
         Returns
         -------
         RuleSet
-            `ifra.fitters.DecisionTreeFitter` *ruleset*
+            `ifra.fitters.DecisionTreeFitter` *model*
         """
         self.make_fit(
             x,
             y,
-            self.public_configs.max_depth,
-            self.public_configs.get_leaf,
-            self.public_configs.x_mins,
-            self.public_configs.x_maxs,
-            self.public_configs.features_names,
-            self.public_configs.classes_names,
+            self.learning_configs.max_depth,
+            self.learning_configs.get_leaf,
+            self.learning_configs.x_mins,
+            self.learning_configs.x_maxs,
+            self.learning_configs.features_names,
+            self.learning_configs.classes_names,
         )
-        self.tree_to_graph()
-        self.tree_to_joblib()
-        return self.ruleset
+        return self.model
+
+    def save(self, path: TransparentPath):
+        """Calls `ifra.fitters.DecisionTreeFitter.tree_to_graph` and `ifra.fitters.DecisionTreeFitter.tree_to_joblib`"""
+        self.tree_to_graph(path)
+        self.tree_to_joblib(path)
 
     # noinspection PyArgumentList
     def make_fit(
@@ -116,7 +121,7 @@ class DecisionTreeFitter(Fitter):
     ):
         """Fits x and y using a decision tree cassifier, setting
          `ifra.fitters.DecisionTreeFitter` *tree* and
-         `ifra.fitters.DecisionTreeFitter` *ruleset*
+         `ifra.fitters.DecisionTreeFitter` *model*
 
         x array must contain one column for each feature that can exist across all nodes. Some columns can contain
         only NaNs.
@@ -155,7 +160,7 @@ class DecisionTreeFitter(Fitter):
             x_maxs = np.array(x_maxs)
 
         self.tree = tree.DecisionTreeClassifier(max_depth=max_depth).fit(x, y)
-        self.ruleset = extract_rules_from_tree(
+        self.model = extract_rules_from_tree(
             self.tree,
             xmins=x_mins,
             xmaxs=x_maxs,
@@ -166,30 +171,28 @@ class DecisionTreeFitter(Fitter):
             stack_activation=stack_activation,
         )
 
-        if len(self.ruleset) > 0:
-            # Compute each rule's activation vector, and the ruleset's if remember_activation, and will stack the
+        if len(self.model) > 0:
+            # Compute each rule's activation vector, and the model's if remember_activation, and will stack the
             # rules' if stack_activation is True
-            self.ruleset.fit(y=y, xs=x)
-            # self.ruleset.check_duplicated_rules(self.ruleset.rules, name_or_index="name")
+            self.model.fit(y=y, xs=x)
+            # self.model.check_duplicated_rules(self.model.rules, name_or_index="name")
 
     def tree_to_graph(
         self,
+        path: TransparentPath
     ):
-        """Saves `ifra.fitters.DecisionTreeFitter` *tree* to a .dot file and a .svg file at the same place
-         the node will save its ruleset. Does not do anything if `ifra.fitters.DecisionTreeFitter` *tree*
-        is None.
+        """Saves `ifra.fitters.DecisionTreeFitter` *tree* to a .dot file and a .svg file. Does not do anything if
+        `ifra.fitters.DecisionTreeFitter` *tree* is None.
 
-        Will create a unique file by looking at existing files and appending a unique integer to the name.
+        Parameters
+        ----------
+        path: TransparentPath
+            File path where the files should be written. No matter the extension, one file with .dot and another with
+            .svg will be created.
         """
         thetree = self.tree
-        features_names = self.public_configs.features_names
-        iteration = 0
-        name = self.public_configs.node_model_path.stem
-        path = self.public_configs.node_model_path.parent / f"{name}_{iteration}.dot"
-
-        while path.is_file():
-            iteration += 1
-            path = self.public_configs.node_model_path.parent / f"{name}_{iteration}.dot"
+        features_names = self.learning_configs.features_names
+        path = path.with_suffix(".dot")
 
         with open(path, "w") as dotfile:
             tree.export_graphviz(
@@ -206,21 +209,17 @@ class DecisionTreeFitter(Fitter):
 
     def tree_to_joblib(
         self,
+        path: TransparentPath
     ):
         """Saves `ifra.fitters.DecisionTreeFitter` *tree* to a .joblib file. Does not do anything if
-        `ifra.fitters.DecisionTreeFitter` *tree* is None
+        `ifra.fitters.DecisionTreeFitter` *tree* is None.
 
-        Will create a unique file by looking at existing files and appending a unique integer to the name.
+        Parameters
+        ----------
+        path: TransparentPath
+            File path where the files should be written. No matter the extension, a file with .joblib will be created.
         """
 
         thetree = self.tree
-        iteration = 0
-        name = self.public_configs.node_model_path.stem
-        path = self.public_configs.node_model_path.parent / f"{name}_{iteration}.joblib"
-
-        while path.is_file():
-            iteration += 1
-            path = self.public_configs.node_model_path.parent / f"{name}_{iteration}.joblib"
-
         path = path.with_suffix(".joblib")
         joblib.dump(thetree, path)

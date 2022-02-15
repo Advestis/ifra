@@ -27,24 +27,24 @@ class NodeModelUpdater:
         for arg in kwargs:
             setattr(self, arg, kwargs[arg])
 
-    def update(self, ruleset: RuleSet) -> None:
+    def update(self, model: RuleSet) -> None:
         """Reads x and y data, calls `ifra.updaters.make_update` and writes the updated data back to where they were
         read."""
         x = self.data.x_path_to_use.read(**self.data.x_read_kwargs)
         y = self.data.y_path_to_use.read(**self.data.y_read_kwargs)
-        self.make_update(x, y, ruleset)
+        self.make_update(x, y, model)
         self.data.x_path_to_use.write(x)
         self.data.y_path_to_use.write(y)
 
     @staticmethod
-    def make_update(x: pd.DataFrame, y: pd.DataFrame, ruleset: RuleSet) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    def make_update(x: pd.DataFrame, y: pd.DataFrame, model: RuleSet) -> Tuple[pd.DataFrame, pd.DataFrame]:
         """Implement in daughter class
 
         Parameters
         ----------
         x: pd.DataFrame
         y: pd.DataFrame
-        ruleset: RuleSet
+        model: RuleSet
 
         Returns
         -------
@@ -55,16 +55,16 @@ class NodeModelUpdater:
 
 
 class AdaBoostNodeModelUpdater(NodeModelUpdater):
-    """Ignores points activated by the central model's ruleset in order to find other relevant rules in the next
+    """Ignores points activated by the central model's model in order to find other relevant rules in the next
     iterations.
 
     Can be used by giving *adaboost* as *updater* configuration when creating a `ifra.node.Node`
     """
 
     @staticmethod
-    def make_update(x: pd.DataFrame, y: pd.DataFrame, ruleset: RuleSet) -> Tuple[pd.DataFrame, pd.DataFrame]:
-        ruleset.remember_activation = True
-        ruleset.calc_activation(x.values)
-        x = x[ruleset.activation == 0]
-        y = y[ruleset.activation == 0]
+    def make_update(x: pd.DataFrame, y: pd.DataFrame, model: RuleSet) -> Tuple[pd.DataFrame, pd.DataFrame]:
+        model.remember_activation = True
+        model.calc_activation(x.values)
+        x = x[model.activation == 0]
+        y = y[model.activation == 0]
         return x, y

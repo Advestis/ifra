@@ -1,7 +1,7 @@
 {
-    "central_model_path": "tests/outputs/central_server/ruleset.csv",
+    "central_model_path": "tests/outputs/central_server/model.csv",
     "central_model_path_fs": "local",
-    "aggregated_model_path": "tests/outputs/aggregator/ruleset.csv",
+    "aggregated_model_path": "tests/outputs/aggregator/model.csv",
     "aggregated_model_path_fs": "local",
     "emitter_path": "tests/outputs/central_server/central_messages.json",
     "emitter_path_fs": "local"
