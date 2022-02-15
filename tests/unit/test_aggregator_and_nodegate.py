@@ -14,7 +14,7 @@ def test_simple_init_and_watch():
         aggregator_configs=AggregatorConfig("tests/data/aggregator_configs.json")
     )
     assert isinstance(aggr.aggregator_configs, (Config, AggregatorConfig))
-    assert len(aggr.nodes) == 3
+    assert len(aggr.nodes) == 0  # Empty until aggr.run() is called
 
     assert aggr.emitter.doing is None
     assert aggr.emitter.error is None
@@ -31,7 +31,7 @@ def test_simple_init_and_watch():
         aggregator_configs=AggregatorConfig("tests/data/aggregator_configs.json")
     )
     assert isinstance(aggr.aggregator_configs, (Config, AggregatorConfig))
-    assert len(aggr.nodes) == 3
+    assert len(aggr.nodes) == 0
     for node in aggr.nodes:
         one_node(node)
 

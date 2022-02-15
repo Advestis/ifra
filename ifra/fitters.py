@@ -9,6 +9,8 @@ from ruleskit.utils.rule_utils import extract_rules_from_tree
 from ruleskit import Rule
 import logging
 
+from transparentpath import TransparentPath
+
 from .configs import NodeLearningConfig, NodeDataConfig
 
 logger = logging.getLogger(__name__)
@@ -96,9 +98,12 @@ class DecisionTreeFitter(Fitter):
             self.learning_configs.features_names,
             self.learning_configs.classes_names,
         )
-        self.tree_to_graph()
-        self.tree_to_joblib()
         return self.model
+
+    def save(self, path: TransparentPath):
+        """Calls `ifra.fitters.DecisionTreeFitter.tree_to_graph` and `ifra.fitters.DecisionTreeFitter.tree_to_joblib`"""
+        self.tree_to_graph(path)
+        self.tree_to_joblib(path)
 
     # noinspection PyArgumentList
     def make_fit(
@@ -174,22 +179,20 @@ class DecisionTreeFitter(Fitter):
 
     def tree_to_graph(
         self,
+        path: TransparentPath
     ):
-        """Saves `ifra.fitters.DecisionTreeFitter` *tree* to a .dot file and a .svg file at the same place
-         the node will save its model. Does not do anything if `ifra.fitters.DecisionTreeFitter` *tree*
-        is None.
+        """Saves `ifra.fitters.DecisionTreeFitter` *tree* to a .dot file and a .svg file. Does not do anything if
+        `ifra.fitters.DecisionTreeFitter` *tree* is None.
 
-        Will create a unique file by looking at existing files and appending a unique integer to the name.
+        Parameters
+        ----------
+        path: TransparentPath
+            File path where the files should be written. No matter the extension, one file with .dot and another with
+            .svg will be created.
         """
         thetree = self.tree
         features_names = self.learning_configs.features_names
-        iteration = 0
-        name = self.learning_configs.node_models_path.stem
-        path = self.learning_configs.node_models_path.parent / f"{name}_{iteration}.dot"
-
-        while path.is_file():
-            iteration += 1
-            path = self.learning_configs.node_models_path.parent / f"{name}_{iteration}.dot"
+        path = path.with_suffix(".dot")
 
         with open(path, "w") as dotfile:
             tree.export_graphviz(
@@ -206,21 +209,17 @@ class DecisionTreeFitter(Fitter):
 
     def tree_to_joblib(
         self,
+        path: TransparentPath
     ):
         """Saves `ifra.fitters.DecisionTreeFitter` *tree* to a .joblib file. Does not do anything if
-        `ifra.fitters.DecisionTreeFitter` *tree* is None
+        `ifra.fitters.DecisionTreeFitter` *tree* is None.
 
-        Will create a unique file by looking at existing files and appending a unique integer to the name.
+        Parameters
+        ----------
+        path: TransparentPath
+            File path where the files should be written. No matter the extension, a file with .joblib will be created.
         """
 
         thetree = self.tree
-        iteration = 0
-        name = self.learning_configs.node_models_path.stem
-        path = self.learning_configs.node_models_path.parent / f"{name}_{iteration}.joblib"
-
-        while path.is_file():
-            iteration += 1
-            path = self.learning_configs.node_models_path.parent / f"{name}_{iteration}.joblib"
-
         path = path.with_suffix(".joblib")
         joblib.dump(thetree, path)

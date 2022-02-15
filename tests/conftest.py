@@ -13,6 +13,7 @@ def clean():
         output_root / "node_1",
         output_root / "node_2",
         output_root / "node_test",
+        output_root / "node_models",
         output_root / "central_server",
         output_root / "aggregator",
     ]
@@ -23,7 +24,7 @@ def clean():
             for f in adir.ls():
                 if "message" not in str(f):
                     f.rm(ignore_kind=True)
-    for f in output_root.glob("ruleset*"):
+    for f in output_root.glob("model_*"):
         f.rm()
 
     data_root = Path("tests/data", fs="local")

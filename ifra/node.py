@@ -1,3 +1,4 @@
+import random
 from datetime import datetime
 from time import time, sleep
 
@@ -197,25 +198,39 @@ class Node(Actor):
             self.data.x_path_to_use.read(**self.data.x_read_kwargs).values,
             self.data.y_path_to_use.read(**self.data.y_read_kwargs).values,
         )
+        good_rules = [r for r in model if r.good]
         central_model_path = self.learning_configs.central_model_path
         if central_model_path.isfile():
             central_model = RuleSet()
             central_model.load(central_model_path)
-            rules = [r for r in model if r not in central_model]
+            rules = [r for r in good_rules if r not in central_model]
             if len(rules) > 0:
                 self.model = RuleSet(
                     remember_activation=model.remember_activation,
                     stack_activation=model.stack_activation,
                     rules_list=rules
                 )
-                logger.info(f"Found {len(self.model)} new rules in node {self.learning_configs.id}")
+                logger.info(f"Found {len(self.model)} new good rules in node {self.learning_configs.id}")
                 self.model_to_file()
+                self.fitter.save(
+                    self.learning_configs.node_models_path / f"model_{self.filenumber}_{self.iteration}"
+                )
             else:
                 logger.info(f"Did not find new rules in node {self.learning_configs.id}")
         else:
-            self.model = model
-            logger.info(f"Found {len(self.model)} rules in node {self.learning_configs.id}")
-            self.model_to_file()
+            self.model = RuleSet(
+                    remember_activation=model.remember_activation,
+                    stack_activation=model.stack_activation,
+                    rules_list=good_rules
+                )
+            if len(self.model) == 0:
+                logger.info(f"No good rules found in node {self.learning_configs.id}")
+            else:
+                logger.info(f"Found {len(self.model)} rules in node {self.learning_configs.id}")
+                self.model_to_file()
+                self.fitter.save(
+                    self.learning_configs.node_models_path / f"model_{self.filenumber}_{self.iteration}"
+                )
 
     @emit
     def update_from_central(self, model: RuleSet) -> None:
@@ -246,10 +261,18 @@ class Node(Actor):
         if model is None:
             return
 
+        existing_files = list(self.learning_configs.node_models_path.glob('model_main_*.csv'))
         if self.filenumber is None:
-            self.filenumber = len(list(self.learning_configs.node_models_path.glob('model_*_0.csv')))
+            self.filenumber = random.randint(0, int(1e6))
+            path_main = self.learning_configs.node_models_path / f"model_main_{self.filenumber}.csv"
+            while path_main in existing_files:
+                self.filenumber += random.randint(int(2e6), int(3e6))
+                path_main = self.learning_configs.node_models_path / f"model_main_{self.filenumber}.csv"
+            path_main.touch()  # To lock file for possible other nodes trying to write here
+        else:
+            path_main = self.learning_configs.node_models_path / f"model_main_{self.filenumber}.csv"
+
         path_iteration = self.learning_configs.node_models_path / f"model_{self.filenumber}_{self.iteration}.csv"
-        path_main = self.learning_configs.node_models_path / f"model_main_{self.filenumber}.csv"
         self.iteration += 1
 
         model.save(path_main)
@@ -336,8 +359,8 @@ class Node(Actor):
 
         logger.info(f"Starting node {self.learning_configs.id}")
         logger.info(
-            f"Starting node {self.learning_configs.id}. Monitoring changes in ,"
-            f"{self.learning_configs.central_model_path} {self.data.x_path} and {self.data.y_path}."
+            f"Starting node {self.learning_configs.id}. Monitoring changes in "
+            f"{self.learning_configs.central_model_path}, {self.data.x_path} and {self.data.y_path}."
         )
 
         while time() - t < timeout or timeout <= 0:

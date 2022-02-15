@@ -58,7 +58,7 @@ class NodeGate:
         self.ok = False
         self.model_path = model_main_path
         self.id = self.instances
-        self.instances += 1
+        self.__class__.instances += 1
         self.paths.append(model_main_path)
 
         self.model = None
@@ -157,8 +157,8 @@ class Aggregator(Actor):
 
         self.nodes = []
 
-        if self.aggregator_configs.min_number_of_new_models < 2:
-            raise ValueError("Minimum number of new nodes to trigger aggregation must be 2 or more")
+        if self.aggregator_configs.min_number_of_new_models < 1:
+            raise ValueError("Minimum number of new nodes to trigger aggregation must be 1 or more")
 
         self.model = None
 
@@ -240,7 +240,10 @@ class Aggregator(Actor):
 
         if timeout <= 0:
             logger.warning("You did not specify a timeout for your run. It will last until manually stopped.")
-        logger.info("Starting aggregator. Monitoring changes in nodes' models directories.")
+        logger.info(
+            "Starting aggregator. Monitoring changes in nodes' models directories"
+            f" {self.aggregator_configs.node_models_path}."
+        )
 
         while time() - t < timeout or timeout <= 0:
 
@@ -265,21 +268,24 @@ class Aggregator(Actor):
                 if node.interact() is False:
                     continue
 
-                updated_nodes.append(node)
+                if node not in updated_nodes:
+                    updated_nodes.append(node)
                 if len(updated_nodes) >= self.aggregator_configs.min_number_of_new_models:
                     new_models = True
 
             if new_models:
-                logger.info(f"Found enough ({len(updated_nodes)}) new nodes models. Triggering aggregation.")
-                what_now = self.aggregate([node.model for node in updated_nodes])
+                logger.info(f"Found enough ({len(updated_nodes)}) new nodes models.")
+                what_now = self.aggregate([node.model for node in set(updated_nodes)])
                 if what_now == "updated":
-                    # Aggregation successfully updated aggregated model.
+                    # Aggregation successfully updated aggregated model: clean the list of updated nodes.
                     updated_nodes = []
 
                     if self.model is None:
                         raise ValueError("Should never happen !")
                     iterations += 1
                     self.model_to_file()
+                else:
+                    logger.info("New models did not produce anything new yet.")
 
             sleep(sleeptime)
 

@@ -12,7 +12,7 @@
     "node_models_path_fs": "local",
     "central_model_path": "tests/outputs/central_server/model.csv",
     "central_model_path_fs": "local",
-    "id": "chat",
+    "id": "cheval",
     "dataprep": "binfeatures",
     "dataprep_kwargs": {"nbins": 5},
     "fitter": "decisiontree",
