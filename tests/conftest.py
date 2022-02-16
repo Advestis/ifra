@@ -37,14 +37,26 @@ def clean():
     for data_dir in data_dirs:
         (data_dir / "plots").rmdir(absent="ignore")
         (data_dir / "plots_datapreped").rmdir(absent="ignore")
+        (data_dir / "plots_train").rmdir(absent="ignore")
+        (data_dir / "plots_test").rmdir(absent="ignore")
 
-    (data_root / "node_test" / "x_to_use.csv").rm(absent="ignore")
-    (data_root / "node_test" / "y_to_use.csv").rm(absent="ignore")
+    (data_root / "node_test" / "x_datapreped.csv").rm(absent="ignore")
+    (data_root / "node_test" / "y_datapreped.csv").rm(absent="ignore")
+    (data_root / "node_test" / "x_train.csv").rm(absent="ignore")
+    (data_root / "node_test" / "y_train.csv").rm(absent="ignore")
+    (data_root / "node_test" / "x_test.csv").rm(absent="ignore")
+    (data_root / "node_test" / "y_test.csv").rm(absent="ignore")
 
     yield
 
-    (data_root / "node_test" / "x_to_use.csv").rm(absent="ignore")
-    (data_root / "node_test" / "y_to_use.csv").rm(absent="ignore")
+    (data_root / "node_test" / "x_datapreped.csv").rm(absent="ignore")
+    (data_root / "node_test" / "y_datapreped.csv").rm(absent="ignore")
+    (data_root / "node_test" / "x_train.csv").rm(absent="ignore")
+    (data_root / "node_test" / "y_train.csv").rm(absent="ignore")
+    (data_root / "node_test" / "x_test.csv").rm(absent="ignore")
+    (data_root / "node_test" / "y_test.csv").rm(absent="ignore")
     (data_root / "node_test" / "plots").rmdir(absent="ignore")
     (data_root / "node_test" / "plots_datapreped").rmdir(absent="ignore")
+    (data_root / "node_test" / "plots_train").rmdir(absent="ignore")
+    (data_root / "node_test" / "plots_test").rmdir(absent="ignore")
     (output_root / "node_test").rmdir(absent="ignore")

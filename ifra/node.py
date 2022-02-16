@@ -15,6 +15,7 @@ from .configs import NodeLearningConfig, NodeDataConfig
 from .fitters import DecisionTreeFitter, Fitter
 from .node_model_updaters import AdaBoostNodeModelUpdater, NodeModelUpdater
 from .datapreps import BinFeaturesDataPrep, DataPrep
+from .train_test_split import TrainTestSplit
 from .plot import plot_histogram
 from .decorator import emit
 
@@ -46,9 +47,8 @@ class Node(Actor):
         configuration.
     datapreped: bool
         False if the dataprep has not been done yet, True after
-    copied: bool
-        In order not to alter the data given to the node, they are copied in new files used for learning. This flag is
-        False if this copy has not been done yet, False otherwise.
+    splitted: bool
+        This flag is True if the features and targets have been splitted into train/test yet, False otherwise.
     model: Union[None, RuleSet]
         Fitted model
     last_fetch: Union[None, datetime]
@@ -77,6 +77,10 @@ class Node(Actor):
     """Possible string values and corresponding updaters object for *updater* attribute of
     `ifra.configs.NodeLearningConfig`"""
 
+    possible_splitters = {}
+    """Possible string values and corresponding splitters object for *train_test_split* attribute of
+    `ifra.configs.NodeLearningConfig`"""
+
     timeout_central = 600
     """How long the node is supposed to wait for the central server to start up"""
 
@@ -98,12 +102,15 @@ class Node(Actor):
 
         self.datapreped = False
         self.copied = False
+        self.splitted = False
         self.model = None
         self.last_fetch = None
         if not self.learning_configs.node_models_path.is_dir():
             self.learning_configs.node_models_path.mkdir()
 
         self.data.dataprep_kwargs = self.learning_configs.dataprep_kwargs
+
+        """Set fitter"""
 
         if self.learning_configs.fitter not in self.possible_fitters:
             function = self.learning_configs.fitter.split(".")[-1]
@@ -116,6 +123,24 @@ class Node(Actor):
         else:
             self.fitter = self.possible_fitters[self.learning_configs.fitter](self.learning_configs)
 
+        """Set splitter"""
+
+        if self.learning_configs.train_test_split is not None:
+            if self.learning_configs.train_test_split not in self.possible_splitters:
+                function = self.learning_configs.train_test_split.split(".")[-1]
+                module = self.learning_configs.train_test_split.replace(f".{function}", "")
+                self.train_test_split = getattr(__import__(module, globals(), locals(), [function], 0), function)(
+                    self.learning_configs
+                )
+                if not isinstance(self.train_test_split, TrainTestSplit):
+                    raise TypeError("Node splitter should inherite from TrainTestSplit class")
+            else:
+                self.train_test_split = self.possible_splitters[self.learning_configs.train_test_split](self.data)
+        else:
+            self.train_test_split = TrainTestSplit(self.data)
+
+        """Set updater"""
+
         if self.learning_configs.updater not in self.possible_updaters:
             function = self.learning_configs.updater.split(".")[-1]
             module = self.learning_configs.updater.replace(f".{function}", "")
@@ -124,6 +149,8 @@ class Node(Actor):
                 raise TypeError("Node updater should inherite from NodeModelUpdater class")
         else:
             self.updater = self.possible_updaters[self.learning_configs.updater](self.data)
+
+        """Set dataprep"""
 
         if self.learning_configs.dataprep is not None:
             if self.learning_configs.dataprep not in self.possible_datapreps:
@@ -140,47 +167,50 @@ class Node(Actor):
             self.dataprep = None
 
     @emit
-    def plot_dataprep_and_copy(self) -> None:
+    def plot_dataprep_and_split(self) -> None:
+        self._plot(self.data.x_path)
+        self._dataprep()
+        self._split()
+
+    @emit
+    def _plot(self, which_x, name="plots"):
         """Plots the features and classes distribution in `ifra.node.Node`'s *data.x_path* and
         `ifra.node.Node`'s *data.y_path* parent directories if `ifra.configs.NodeLearningConfig` *plot_data*
-        is True.
-
-        Triggers `ifra.node.Node`'s *dataprep* on the features and classes if a dataprep method was
-        specified, sets `ifra.node.Node` datapreped to True, plots the distributions of the datapreped data.
-
-        If `ifra.node.Node` *copied* is False, copies the files pointed by `ifra.node.Node`'s *data.x_path*
-        and `ifra.node.Node`'s *data.y_path* in new files in the same directories by appending
-        *_to_use* to their names. Sets `ifra.node.Node` *copied* to True.
-        """
-
+        is True."""
         if self.learning_configs.plot_data:
-            if not (self.data.x_path.parent / "plots").is_dir():
-                (self.data.x_path.parent / "plots").mkdir()
-            self.plot_data_histogram(self.data.x_path.parent / "plots")
+            if not (which_x.parent / name).is_dir():
+                (which_x.parent / name).mkdir()
+            self.plot_data_histogram(which_x, which_x.parent / name)
 
+    @emit
+    def _dataprep(self):
+        """
+        Triggers `ifra.node.Node`'s *dataprep* on the features and targets if a dataprep method was
+        specified, sets `ifra.node.Node` datapreped to True, plots the distributions of the datapreped data.
+        """
         self.last_x = self.last_y = datetime.now()
 
         if self.dataprep is not None and not self.datapreped:
             logger.info(f"Datapreping data of node {self.learning_configs.id}...")
             self.dataprep.dataprep()
-            if self.learning_configs.plot_data:
-                if not (self.data.x_path.parent / "plots_datapreped").is_dir():
-                    (self.data.x_path.parent / "plots_datapreped").mkdir()
-                self.plot_data_histogram(self.data.x_path.parent / "plots_datapreped")
             self.datapreped = True
-            self.copied = True
+            self._plot(self.data.x_path, "plots_datapreped")
             logger.info(f"...datapreping done for node {self.learning_configs.id}")
 
-        if not self.copied:
-            # Copy x and y in a different file, for it will be changed after each iterations by the update from
-            # central
-            x_suffix = self.data.x_path.suffix
-            self.data.x_path_to_use.cp(self.data.x_path.with_suffix("").append("_to_use").with_suffix(x_suffix))
-            self.data.x_path_to_use = self.data.x_path.with_suffix("").append("_to_use").with_suffix(x_suffix)
-            y_suffix = self.data.y_path.suffix
-            self.data.y_path_to_use.cp(self.data.y_path.with_suffix("").append("_to_use").with_suffix(y_suffix))
-            self.data.y_path_to_use = self.data.y_path.with_suffix("").append("_to_use").with_suffix(y_suffix)
-            self.copied = True
+    @emit
+    def _split(self):
+        """
+        Triggers `ifra.node.Node`'s *train_test_split* on the features and targets,
+        sets `ifra.node.Node` splitted to True, plots the distributions of the splitted data.
+        """
+        if not self.splitted:
+            logger.info(f"Splitting data of node {self.learning_configs.id} in train/test...")
+            self.train_test_split.split()
+            self.splitted = True
+            self._plot(self.data.x_train_path, "plots_train")
+            if self.data.x_train_path != self.data.x_test_path:
+                self._plot(self.data.x_test_path, "plots_test")
+            logger.info(f"...splitting done for node {self.learning_configs.id}")
 
     @emit
     def fit(self) -> None:
@@ -192,11 +222,11 @@ class Node(Actor):
         Saves the resulting model in `ifra.node.Node` *learning_configs.node_models_path* if new rules were found.
         """
 
-        self.plot_dataprep_and_copy()
+        self.plot_dataprep_and_split()
         logger.info(f"Fitting node {self.learning_configs.id} using {self.learning_configs.fitter}...")
         model = self.fitter.fit(
-            self.data.x_path_to_use.read(**self.data.x_read_kwargs).values,
-            self.data.y_path_to_use.read(**self.data.y_read_kwargs).values,
+            self.data.x_train_path.read(**self.data.x_read_kwargs).values,
+            self.data.y_train_path.read(**self.data.y_read_kwargs).values,
         )
         good_rules = [r for r in model if r.good]
         central_model_path = self.learning_configs.central_model_path
@@ -292,22 +322,24 @@ class Node(Actor):
             logger.warning("Failed to produce tablewriter. Is LaTeX installed ?")
 
     @emit
-    def plot_data_histogram(self, path: TransparentPath) -> None:
+    def plot_data_histogram(self, x_path: TransparentPath, output_path: TransparentPath) -> None:
         """Plots the distribution of the data located in `ifra.node.Node`'s *data.x_path* and
         `ifra.node.Node`'s *data.y_path* and save them in unique files.
 
         Parameters
         ----------
-        path: TransparentPath
+        x_path: TransparentPath
+            Path of the x data to plot. Must be a file.
+        output_path: TransparentPath
             Path to save the data. Should be a directory.
         """
-        x = self.data.x_path.read(**self.data.x_read_kwargs)
+        x = x_path.read(**self.data.x_read_kwargs)
         for col, name in zip(x.columns, self.learning_configs.features_names):
             fig = plot_histogram(data=x[col], xlabel=name, figsize=(10, 7))
 
             iteration = 0
             name = name.replace(" ", "_")
-            path_x = path / f"{name}_{iteration}.pdf"
+            path_x = output_path / f"{name}_{iteration}.pdf"
             while path_x.is_file():
                 iteration += 1
                 path_x = path_x.parent / f"{name}_{iteration}.pdf"
@@ -317,7 +349,7 @@ class Node(Actor):
         fig = plot_histogram(data=y.squeeze(), xlabel="Class", figsize=(10, 7))
 
         iteration = 0
-        path_y = path / f"classes_{iteration}.pdf"
+        path_y = output_path / f"classes_{iteration}.pdf"
         while path_y.is_file():
             iteration += 1
             path_y = path_y.parent / f"classes_{iteration}.pdf"
@@ -376,9 +408,9 @@ class Node(Actor):
                 # New data arrived for the node to use : redo dataprep and copy and force update from the central model
                 logger.info(f"New data available for node {self.learning_configs.id}")
                 self.datapreped = False
-                self.copied = False
+                self.splitted = False
                 self.last_fetch = None
-                self.plot_dataprep_and_copy()
+                self.plot_dataprep_and_split()
 
             self.learning_configs = NodeLearningConfig(self.learning_configs.path)  # In case NodeGate changed something
 

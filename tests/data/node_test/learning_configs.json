@@ -19,6 +19,7 @@
     "fitter_kwargs": {},
     "updater": "adaboost",
     "updater_kwargs": {},
+    "train_test_split": "",
     "thresholds_path": "tests/data/thresholds.json",
     "thresholds_path_fs": "local",
     "emitter_path": "tests/outputs/node_test/node_cheval_messages.json",

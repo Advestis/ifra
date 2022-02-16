@@ -223,11 +223,14 @@ class NodeLearningConfig(Config):
     dataprep: Union[str]
         Name of the dataprep to use. Can be "" or one of:\n
           * BinFeaturesDataPrep (see `ifra.datapreps.BinFeaturesDataPrep`)\n
-        If not specified, will be set by central server. If not specified, the json  file should still contain the key
-        *dataprep*, but with value "".
+        If not specified, the json  file should still contain the key *dataprep*, but with value "".
     dataprep_kwargs: dict
         Keyword arguments for the `ifra.datapreps.Dataprep` init. If not specified, the json file should still contain
         the key *dataprep_kwargs*, but with value "".
+    train_test_split: Union[None, str]
+        Name of the dataprep to use. Can be "" or one of:\n
+          * nothing yet :) \n
+        If not specified, the json  file should still contain the key *dataprep*, but with value "".
     fitter: str
         Fitter to use. Can be one of :\n
           * decisiontree_fitter (see `ifra.fitters.DecisionTreeFitter`)\n
@@ -272,6 +275,7 @@ class NodeLearningConfig(Config):
         "node_models_path_fs",
         "dataprep",
         "dataprep_kwargs",
+        "train_test_split",
         "id",
         "fitter",
         "fitter_kwargs",
@@ -282,7 +286,7 @@ class NodeLearningConfig(Config):
         "emitter_path",
         "emitter_path_fs",
         "central_model_path",
-        "central_model_path_fs"
+        "central_model_path_fs",
     ]
 
     def __eq__(self, other):
@@ -291,17 +295,18 @@ class NodeLearningConfig(Config):
         for key in NodeLearningConfig.EXPECTED_CONFIGS:
             # Those parameters can be different
             if (
-                    key == "emitter_path"
-                    or key == "id"
-                    or (key.endswith("_fs") and key != "node_models_path_fs")
-                    or key == "plot_data"
+                key == "emitter_path"
+                or key == "id"
+                or (key.endswith("_fs") and key != "node_models_path_fs")
+                or key == "plot_data"
             ):
                 continue
             if key not in self.configs and key not in other.configs:
                 continue
             if key == "thresholds_path":  # Can be either both "", or both not "" and different or both "" and equal
-                if (self.configs[key] == "" and other.configs[key] == "")\
-                        or (self.configs[key] != "" and other.configs[key] != ""):
+                if (self.configs[key] == "" and other.configs[key] == "") or (
+                    self.configs[key] != "" and other.configs[key] != ""
+                ):
                     continue
             if self.configs[key] != other.configs[key]:
                 return False
@@ -437,30 +442,52 @@ class NodeDataConfig(Config):
         File system to use for y file. Can be 'gcs', 'local' or ""
     dataprep_kwargs: dict
         Set by `ifra.node.Node`. Keyword arguments for the dataprep.
-    x_path_to_use: TransparentPath
-        Set by `ifra.node.Node.fit`. Path to the (datapreped and) copied features file used for learning.
-    y_path_to_use: TransparentPath
-        Set by `ifra.node.Node.fit`. Path to the (datapreped and) copied target file used for learning.
+    x_datapreped_path: TransparentPath
+        Set by `ifra.node.Node.fit`. Path to the datapreped features file, before splitting into train/test.
+    y_datapreped_path: TransparentPath
+        Set by `ifra.node.Node.fit`. Path to the datapreped target file, before splitting into train/test.
+    x_train_path: TransparentPath
+        Set by `ifra.test_train_split.TrainTestSplit.split`. Path to the features file to use for testing. Can be None
+        if no split is done.
+    y_train_path: TransparentPath
+        Set by `ifra.test_train_split.TrainTestSplit.split`. Path to the features file to use for testing. Can be None
+        if no split is done.
+    x_test_path: TransparentPath
+        Set by `ifra.test_train_split.TrainTestSplit.split`. Path to the features file to use for testing.
+    y_test_path: TransparentPath
+        Set by `ifra.test_train_split.TrainTestSplit.split`. Path to the target file to use for testing.
     """
 
     EXPECTED_CONFIGS = ["x_path", "y_path", "x_read_kwargs", "y_read_kwargs", "x_path_fs", "y_path_fs"]
-    ADDITIONNAL_CONFIGS = {"dataprep_kwargs": {}, "x_path_to_use": None, "y_path_to_use": None}
+    ADDITIONNAL_CONFIGS = {
+        "dataprep_kwargs": {},
+        "x_datapreped_path": None,
+        "y_datapreped_path": None,
+        "x_train_path": None,
+        "y_train_path": None,
+        "x_test_path": None,
+        "y_test_path": None,
+    }
 
     def __init__(self, path: Optional[Union[str, Path, TransparentPath]] = None):
         super().__init__(path)
 
         if "index_col" in self.x_read_kwargs:
             if self.x_read_kwargs["index_col"] != 0:
-                raise ValueError("If specifying index_col, it should be 0, otherwise you will have problems when saving"
-                                 " intermediate x learning copies")
+                raise ValueError(
+                    "If specifying index_col, it should be 0, otherwise you will have problems when saving"
+                    " intermediate x learning copies"
+                )
         else:
             if self.x.suffix == ".csv":
                 raise ValueError("If x file is a csv, then its read kwargs should contain 'index_col=0'")
 
         if "index_col" in self.y_read_kwargs:
             if self.y_read_kwargs["index_col"] != 0:
-                raise ValueError("If specifying index_col, it should be 0, otherwise you will have problems when saving"
-                                 " intermediate y learning copies")
+                raise ValueError(
+                    "If specifying index_col, it should be 0, otherwise you will have problems when saving"
+                    " intermediate y learning copies"
+                )
         else:
             if self.y.suffix == ".csv":
                 raise ValueError("If y file is a csv, then its read kwargs should contain 'index_col=0'")
