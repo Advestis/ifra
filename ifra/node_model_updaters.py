@@ -28,13 +28,13 @@ class NodeModelUpdater:
             setattr(self, arg, kwargs[arg])
 
     def update(self, model: RuleSet) -> None:
-        """Reads x and y data, calls `ifra.updaters.make_update` and writes the updated data back to where they were
-        read."""
-        x = self.data.x_path_to_use.read(**self.data.x_read_kwargs)
-        y = self.data.y_path_to_use.read(**self.data.y_read_kwargs)
+        """Reads x and y train data, calls `ifra.updaters.make_update` and writes the updated data back to where they
+        were read."""
+        x = self.data.x_train_path.read(**self.data.x_read_kwargs)
+        y = self.data.y_train_path.read(**self.data.y_read_kwargs)
         self.make_update(x, y, model)
-        self.data.x_path_to_use.write(x)
-        self.data.y_path_to_use.write(y)
+        self.data.x_train_path.write(x)
+        self.data.y_train_path.write(y)
 
     @staticmethod
     def make_update(x: pd.DataFrame, y: pd.DataFrame, model: RuleSet) -> Tuple[pd.DataFrame, pd.DataFrame]:
