@@ -141,6 +141,9 @@ cython_debug/
 .idea
 **/*.pdf
 **/*datapreped*
+**/*_train*
+**/*_test*
 **/*_for_learning*
 **/messages.json
 **/ruleset*
+tests/outputs/
