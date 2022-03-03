@@ -184,15 +184,6 @@ from .node_model_updaters import NodeModelUpdater
 from .fitters import Fitter
 from .aggregations import Aggregation
 from .setup_logger import setup_logger
-from .predictor import (
-    Predictor,
-    RegressionPredictor,
-    ClassificationPredictor,
-    EquallyWeightedClassificator,
-    EquallyWeightedRegressor,
-    CriterionWeightedRegressor,
-    CriterionWeightedClassificator,
-)
 from .configs import AggregatorConfig, CentralConfig, NodeLearningConfig, NodeDataConfig
 
 try:

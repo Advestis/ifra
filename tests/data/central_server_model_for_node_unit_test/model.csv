@@ -1,0 +1,2 @@
+,features_names,features_indexes,bmins,bmaxs,prediction,coverage,criterion
+R_0(3),"['sepal length in cm', 'petal length in cm', 'petal width in cm']","[0, 2, 3]","[0, 1.5, 3.5]","[2.5, 4, 4]",Iris-versicolor,0.05263157894736842,0.5

@@ -223,24 +223,53 @@ class Node(Actor):
         """
 
         self.plot_dataprep_and_split()
+
+        x = self.data.x_train_path.read(**self.data.x_read_kwargs).values
+        y = self.data.y_train_path.read(**self.data.y_read_kwargs).values
+        if self.data.x_test_path != self.data.x_train_path:
+            x_test = self.data.x_test_path.read(**self.data.x_read_kwargs).values
+        else:
+            x_test = None
+        if self.data.y_test_path != self.data.y_train_path:
+            y_test = self.data.y_test_path.read(**self.data.y_read_kwargs).values
+        else:
+            y_test = y
+
         logger.info(f"Fitting node {self.learning_configs.id} using {self.learning_configs.fitter}...")
-        model = self.fitter.fit(
-            self.data.x_train_path.read(**self.data.x_read_kwargs).values,
-            self.data.y_train_path.read(**self.data.y_read_kwargs).values,
-        )
-        good_rules = [r for r in model if r.good]
+        model = self.fitter.fit(x=x, y=y)
         central_model_path = self.learning_configs.central_model_path
         if central_model_path.isfile():
             central_model = RuleSet()
             central_model.load(central_model_path)
-            rules = [r for r in good_rules if r not in central_model]
+            rules = [r for r in model if r not in central_model]
             if len(rules) > 0:
-                self.model = RuleSet(
-                    remember_activation=model.remember_activation,
-                    stack_activation=model.stack_activation,
-                    rules_list=rules
+                self.model = central_model
+                if x_test is None:
+                    self.model.stack_activation = True
+                    self.model.remember_activation = True
+                    self.model.calc_activation(xs=x)
+                for r in rules:
+                    self.model.append(r, update_activation=False)  # Rules loaded from file have no activations
+                self.model.stack_activation = True
+                self.model.remember_activation = True
+                self.model.eval(
+                    xs=x_test,
+                    y=y_test,
+                    keep_new_activations=x_test is not None
                 )
-                logger.info(f"Found {len(self.model)} new good rules in node {self.learning_configs.id}")
+                self.criterion = self.model.calc_criterion(
+                    y=self.data.y_test_path.read(**self.data.y_read_kwargs).values
+                )
+                self.coverage = self.model.ruleset_coverage
+                self.model.stack_activation = False
+                self.model.remember_activation = False
+                self.model.del_stacked_activations()
+                # noinspection PyProtectedMember
+                self.model._activation.clear()
+                logger.info(
+                    f"Found {len(self.model)} new good rules in node {self.learning_configs.id}."
+                    f" Criterion is {self.criterion}, coverage is {self.coverage}"
+                )
                 self.model_to_file()
                 self.fitter.save(
                     self.learning_configs.node_models_path / f"model_{self.filenumber}_{self.iteration}"
@@ -248,15 +277,30 @@ class Node(Actor):
             else:
                 logger.info(f"Did not find new rules in node {self.learning_configs.id}")
         else:
-            self.model = RuleSet(
-                    remember_activation=model.remember_activation,
-                    stack_activation=model.stack_activation,
-                    rules_list=good_rules
-                )
+            self.model = model
             if len(self.model) == 0:
                 logger.info(f"No good rules found in node {self.learning_configs.id}")
             else:
-                logger.info(f"Found {len(self.model)} rules in node {self.learning_configs.id}")
+                self.model.stack_activation = True
+                self.model.remember_activation = True
+                self.model.eval(
+                    xs=x_test,
+                    y=y_test,
+                    keep_new_activations=x_test is not None
+                )
+                self.criterion = self.model.calc_criterion(
+                    y=self.data.y_test_path.read(**self.data.y_read_kwargs).squeeze().values
+                )
+                self.coverage = self.model.ruleset_coverage
+                self.model.stack_activation = False
+                self.model.remember_activation = False
+                self.model.del_stacked_activations()
+                # noinspection PyProtectedMember
+                self.model._activation.clear()
+                logger.info(
+                    f"Found {len(self.model)} rules in node {self.learning_configs.id}."
+                    f" Criterion is {self.criterion}, coverage is {self.coverage}"
+                )
                 self.model_to_file()
                 self.fitter.save(
                     self.learning_configs.node_models_path / f"model_{self.filenumber}_{self.iteration}"
@@ -385,6 +429,8 @@ class Node(Actor):
 
         t = time()
         do_fit = True  # start at true to trigger fit even if no central model is here at first iteration
+        self.plot_dataprep_and_split()  # make dataprep at run start
+        started = False  # To force at least one loop of the while to trigger
 
         if timeout <= 0:
             logger.warning("You did not specify a timeout for your run. It will last until manually stopped.")
@@ -395,8 +441,8 @@ class Node(Actor):
             f"{self.learning_configs.central_model_path}, {self.data.x_path} and {self.data.y_path}."
         )
 
-        while time() - t < timeout or timeout <= 0:
-
+        while time() - t < timeout or timeout <= 0 or started is False:
+            started = True
             if (
                 self.last_x is not None
                 and self.last_y is not None

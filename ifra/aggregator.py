@@ -244,9 +244,10 @@ class Aggregator(Actor):
             "Starting aggregator. Monitoring changes in nodes' models directories"
             f" {self.aggregator_configs.node_models_path}."
         )
+        started = False  # To force at least one loop of the while to trigger
 
-        while time() - t < timeout or timeout <= 0:
-
+        while time() - t < timeout or timeout <= 0 or started is False:
+            started = True
             new_models = False
             new_nodes = 0
             for path in self.aggregator_configs.node_models_path.glob("model_main_*.csv"):

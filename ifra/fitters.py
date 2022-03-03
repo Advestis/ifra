@@ -89,14 +89,14 @@ class DecisionTreeFitter(Fitter):
             `ifra.fitters.DecisionTreeFitter` *model*
         """
         self.make_fit(
-            x,
-            y,
-            self.learning_configs.max_depth,
-            self.learning_configs.get_leaf,
-            self.learning_configs.x_mins,
-            self.learning_configs.x_maxs,
-            self.learning_configs.features_names,
-            self.learning_configs.classes_names,
+            x=x,
+            y=y,
+            max_depth=self.learning_configs.max_depth,
+            get_leaf=self.learning_configs.get_leaf,
+            x_mins=self.learning_configs.x_mins,
+            x_maxs=self.learning_configs.x_maxs,
+            features_names=self.learning_configs.features_names,
+            classes_names=self.learning_configs.classes_names,
         )
         return self.model
 
@@ -116,8 +116,6 @@ class DecisionTreeFitter(Fitter):
         x_maxs: Optional[List[float]],
         features_names: Optional[List[str]],
         classes_names: Optional[List[str]],
-        remember_activation: bool = True,
-        stack_activation: bool = False,
     ):
         """Fits x and y using a decision tree cassifier, setting
          `ifra.fitters.DecisionTreeFitter` *tree* and
@@ -144,10 +142,6 @@ class DecisionTreeFitter(Fitter):
             Names of features
         classes_names: Optional[List[str]]
             Names of the classes
-        remember_activation: bool
-            See `ruleskit.utils.rule_utils.extract_rules_from_tree`, default = True
-        stack_activation: bool
-            See `ruleskit.utils.rule_utils.extract_rules_from_tree`, default = False
         """
 
         if x_mins is None:
@@ -159,7 +153,7 @@ class DecisionTreeFitter(Fitter):
         elif not isinstance(x_maxs, np.ndarray):
             x_maxs = np.array(x_maxs)
 
-        self.tree = tree.DecisionTreeClassifier(max_depth=max_depth).fit(x, y)
+        self.tree = tree.DecisionTreeClassifier(max_depth=max_depth).fit(X=x, y=y)
         self.model = extract_rules_from_tree(
             self.tree,
             xmins=x_mins,
@@ -167,13 +161,13 @@ class DecisionTreeFitter(Fitter):
             features_names=features_names,
             classes_names=classes_names,
             get_leaf=get_leaf,
-            remember_activation=remember_activation,
-            stack_activation=stack_activation,
+            remember_activation=True,
+            stack_activation=True,
         )
 
         if len(self.model) > 0:
-            # Compute each rule's activation vector, and the model's if remember_activation, and will stack the
-            # rules' if stack_activation is True
+            # Compute each rule's activation vector, and the model's if its remember_activation flag is True, and will
+            # stack the rules' activation vectors if stack_activation is True
             self.model.fit(y=y, xs=x)
             # self.model.check_duplicated_rules(self.model.rules, name_or_index="name")
 
@@ -196,7 +190,7 @@ class DecisionTreeFitter(Fitter):
 
         with open(path, "w") as dotfile:
             tree.export_graphviz(
-                thetree,
+                decision_tree=thetree,
                 out_file=dotfile,
                 feature_names=features_names,
                 filled=True,
@@ -222,4 +216,4 @@ class DecisionTreeFitter(Fitter):
 
         thetree = self.tree
         path = path.with_suffix(".joblib")
-        joblib.dump(thetree, path)
+        joblib.dump(value=thetree, filename=path)

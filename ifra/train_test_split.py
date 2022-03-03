@@ -4,6 +4,9 @@ import numpy as np
 import pandas as pd
 
 from .configs import NodeDataConfig
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class TrainTestSplit:
@@ -78,4 +81,5 @@ class TrainTestSplit:
               Union[pd.DataFrame, pd.Series, np.ndarray], Union[pd.DataFrame, pd.Series, np.ndarray, None]]:
             x_train, x_test, y_train, y_test. Tests dataset can be None.
         """
+        logger.info("No splitting required")
         return x, None, y, None

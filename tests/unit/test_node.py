@@ -80,3 +80,11 @@ def test_init_alternate_dataprep_updater_fitter(clean):
     assert node.data.x_datapreped_path.read().values.dtype != int
     assert node.data.x_train_path.read().values.dtype != int
     assert node.data.x_path.read().values.dtype != int
+
+
+def test_init_and_run_central_model_present(clean):
+    node = Node(
+        learning_configs=NodeLearningConfig("tests/data/node_test_with_central_model/learning_configs.json"),
+        data=NodeDataConfig("tests/data/node_test_with_central_model/data_configs.json"),
+    )
+    node.run(timeout=1, sleeptime=0.1)

@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 def get_lock(path: TransparentPath, timeout: int = 5, exists: str = "wait") -> TransparentPath:
     lockfile = path.append(".lock")
     if not lockfile.parent.is_dir():
-        lockfile.mkdir(parents=True)
+        lockfile.parent.mkdir(parents=True)
         lockfile.touch()
         return lockfile
 
