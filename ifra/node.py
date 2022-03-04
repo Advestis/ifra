@@ -343,6 +343,8 @@ class Node(Actor):
         if model is None:
             return
 
+        if not self.learning_configs.node_models_path.isdir():
+            self.learning_configs.node_models_path.mkdir(parents=True)
         existing_files = list(self.learning_configs.node_models_path.glob('model_main_*.csv'))
         if self.filenumber is None:
             self.filenumber = random.randint(0, int(1e6))

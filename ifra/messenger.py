@@ -109,6 +109,13 @@ class Emitter:
         lockfile.rm(absent="ignore")
         self.reset_messages()
 
+    def __getstate__(self):
+        return self.__dict__
+
+    def __setstate__(self, d: dict):
+        for item in d:
+            setattr(self, item, d[item])
+
     def __getattr__(self, item):
         if item == "messages":
             raise ValueError("NodeMessenger object's 'messages' not set")
@@ -223,6 +230,13 @@ class Receiver:
         self.messages = {}
         self.new = True
         self.get_latest_messages(wait)
+
+    def __getstate__(self):
+        return self.__dict__
+
+    def __setstate__(self, d: dict):
+        for item in d:
+            setattr(self, item, d[item])
 
     def __getattr__(self, item):
         if item == "messages":

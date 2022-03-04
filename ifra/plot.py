@@ -2,9 +2,11 @@ from typing import Union
 import matplotlib as mpl
 from matplotlib import pyplot as plt
 import logging
+import pandas as pd
 
 
 logger = logging.getLogger(__name__)
+pd.options.plotting.backend = "matplotlib"
 mpl.rcParams["text.usetex"] = True
 mpl.rcParams["text.latex.preamble"] = r"\usepackage{amsmath}\boldmath"
 

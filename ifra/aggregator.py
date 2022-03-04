@@ -253,6 +253,8 @@ class Aggregator(Actor):
             started = True
             new_models = False
             new_nodes = 0
+            if not self.aggregator_configs.node_models_path.isdir():
+                self.aggregator_configs.node_models_path.mkdir(parents=True)
             for path in self.aggregator_configs.node_models_path.glob("model_main_*.csv"):
                 if path in NodeGate.paths:
                     # Already found this node in a previous check
