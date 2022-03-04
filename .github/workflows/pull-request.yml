@@ -33,6 +33,10 @@ jobs:
           pip install pytest-github-actions-annotate-failures
           pip install .
 
+      - name: Test with pytest, diff privacy
+        run: |
+          pytest -s -v tests/unit/test_privacy.py
+
       - name: Test with pytest
         run: |
-          pytest -s -v
+          pytest -s -v --ignore=tests/unit/test_privacy.py
