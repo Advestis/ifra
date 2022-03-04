@@ -15,7 +15,7 @@
     "id": "cheval",
     "dataprep": "binfeatures",
     "dataprep_kwargs": {"nbins": 5},
-    "fitter": "decisiontree",
+    "fitter": "decisiontreeclassification",
     "fitter_kwargs": {},
     "updater": "adaboost",
     "updater_kwargs": {},

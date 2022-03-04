@@ -49,17 +49,8 @@ class Fitter:
 class DecisionTreeFitter(Fitter):
 
     """Overloads the Fitter class. Fits a DecisionTreeFitter on some data.
-
-    Can be used by giving *decisiontree* as *fitter* configuration when creating a `ifra.node.Node`
-
-    Attributes
-    ----------
-    learning_configs: `ifra.configs.NodeLearningConfig`
-        The learning configuration of the node using this fitter
-    model: Union[None, RuleSet]
-        Fitted model, or None if fit not done yet
-    tree: Union[None, DecisionTreeFitter]
-        Fitted tree, or None if fit not done yet
+     Overleaded again to implement regression or classification by `ifra.fitters.DecisionTreeClassificationFitter`
+     and `ifra.fitters.DecisionTreeRegressionFitter`.
     """
 
     def __init__(
@@ -104,6 +95,90 @@ class DecisionTreeFitter(Fitter):
         """Calls `ifra.fitters.DecisionTreeFitter.tree_to_graph` and `ifra.fitters.DecisionTreeFitter.tree_to_joblib`"""
         self.tree_to_graph(path)
         self.tree_to_joblib(path)
+
+    # noinspection PyArgumentList
+    def make_fit(
+        self,
+        x: np.array,
+        y: np.array,
+        max_depth: int,
+        get_leaf: bool,
+        x_mins: Optional[List[float]],
+        x_maxs: Optional[List[float]],
+        features_names: Optional[List[str]],
+        classes_names: Optional[List[str]],
+    ):
+        """Implement in daughter class"""
+        pass
+
+    def tree_to_graph(
+        self,
+        path: TransparentPath
+    ):
+        """Saves `ifra.fitters.DecisionTreeFitter` *tree* to a .dot file and a .svg file. Does not do anything if
+        `ifra.fitters.DecisionTreeFitter` *tree* is None.
+
+        Parameters
+        ----------
+        path: TransparentPath
+            File path where the files should be written. No matter the extension, one file with .dot and another with
+            .svg will be created.
+        """
+        thetree = self.tree
+        features_names = self.learning_configs.features_names
+        path = path.with_suffix(".dot")
+
+        with open(path, "w") as dotfile:
+            tree.export_graphviz(
+                decision_tree=thetree,
+                out_file=dotfile,
+                feature_names=features_names,
+                filled=True,
+                rounded=True,
+                special_characters=True,
+            )
+
+        # joblib.dump(self.tree, self.__trees_path / (Y_name + ".joblib"))
+        os.system(f'dot -Tsvg "{path}" -o "{path.with_suffix(".svg")}"')
+
+    def tree_to_joblib(
+        self,
+        path: TransparentPath
+    ):
+        """Saves `ifra.fitters.DecisionTreeFitter` *tree* to a .joblib file. Does not do anything if
+        `ifra.fitters.DecisionTreeFitter` *tree* is None.
+
+        Parameters
+        ----------
+        path: TransparentPath
+            File path where the files should be written. No matter the extension, a file with .joblib will be created.
+        """
+
+        thetree = self.tree
+        path = path.with_suffix(".joblib")
+        joblib.dump(value=thetree, filename=path)
+
+
+class DecisionTreeClassificationFitter(DecisionTreeFitter):
+    """
+    Can be used by giving *decisiontreeclassification* as *fitter* configuration when creating a `ifra.node.Node`
+
+
+    Attributes
+    ----------
+    learning_configs: `ifra.configs.NodeLearningConfig`
+        The learning configuration of the node using this fitter
+    model: Union[None, RuleSet]
+        Fitted model, or None if fit not done yet
+    tree: Union[None, DecisionTreeClassifier]
+        Fitted tree, or None if fit not done yet
+    """
+
+    def __init__(
+        self,
+        learning_configs: NodeLearningConfig,
+    ):
+        super().__init__(learning_configs)
 
     # noinspection PyArgumentList
     def make_fit(
@@ -171,49 +246,91 @@ class DecisionTreeFitter(Fitter):
             self.model.fit(y=y, xs=x)
             # self.model.check_duplicated_rules(self.model.rules, name_or_index="name")
 
-    def tree_to_graph(
+
+class DecisionTreeRegressionFitter(DecisionTreeFitter):
+    """
+    Can be used by giving *decisiontreeregression* as *fitter* configuration when creating a `ifra.node.Node`
+
+
+    Attributes
+    ----------
+    learning_configs: `ifra.configs.NodeLearningConfig`
+        The learning configuration of the node using this fitter
+    model: Union[None, RuleSet]
+        Fitted model, or None if fit not done yet
+    tree: Union[None, DecisionTreeRegressor]
+        Fitted tree, or None if fit not done yet
+    """
+
+    def __init__(
         self,
-        path: TransparentPath
+        learning_configs: NodeLearningConfig,
     ):
-        """Saves `ifra.fitters.DecisionTreeFitter` *tree* to a .dot file and a .svg file. Does not do anything if
-        `ifra.fitters.DecisionTreeFitter` *tree* is None.
+        super().__init__(learning_configs)
+
+    # noinspection PyArgumentList
+    def make_fit(
+        self,
+        x: np.array,
+        y: np.array,
+        max_depth: int,
+        get_leaf: bool,
+        x_mins: Optional[List[float]],
+        x_maxs: Optional[List[float]],
+        features_names: Optional[List[str]],
+        classes_names: Optional[List[str]],
+    ):
+        """Fits x and y using a decision tree regressor, setting
+         `ifra.fitters.DecisionTreeRegressionFitter` *tree* and
+         `ifra.fitters.DecisionTreeRegressionFitter` *model*
+
+        x array must contain one column for each feature that can exist across all nodes. Some columns can contain
+        only NaNs.
 
         Parameters
         ----------
-        path: TransparentPath
-            File path where the files should be written. No matter the extension, one file with .dot and another with
-            .svg will be created.
-        """
-        thetree = self.tree
-        features_names = self.learning_configs.features_names
-        path = path.with_suffix(".dot")
-
-        with open(path, "w") as dotfile:
-            tree.export_graphviz(
-                decision_tree=thetree,
-                out_file=dotfile,
-                feature_names=features_names,
-                filled=True,
-                rounded=True,
-                special_characters=True,
-            )
-
-        # joblib.dump(self.tree, self.__trees_path / (Y_name + ".joblib"))
-        os.system(f'dot -Tsvg "{path}" -o "{path.with_suffix(".svg")}"')
-
-    def tree_to_joblib(
-        self,
-        path: TransparentPath
-    ):
-        """Saves `ifra.fitters.DecisionTreeFitter` *tree* to a .joblib file. Does not do anything if
-        `ifra.fitters.DecisionTreeFitter` *tree* is None.
-
-        Parameters
-        ----------
-        path: TransparentPath
-            File path where the files should be written. No matter the extension, a file with .joblib will be created.
+        x: np.ndarray
+            Must be of shape (# observations, # features)
+        y: np.ndarray
+            Must be of shape (# observations,)
+        max_depth: int
+            Maximum tree depth
+        get_leaf: bool
+            If True, only considers tree's leaves to make rules, else also considers its nodes
+        x_mins: Optional[List[float]]
+            Lower limits of features. If not specified, will use x.min(axis=0)
+        x_maxs: Optional[List[float]]
+            Upper limits of features. If not specified, will use x.max(axis=0)
+        features_names: Optional[List[str]]
+            Names of features
+        classes_names: Optional[List[str]]
+            Names of the classes. Unused here, but present to be compatible with parent class. Can be anything,
+            will be ignored in 'extract_rules_from_tree' anyway.
         """
 
-        thetree = self.tree
-        path = path.with_suffix(".joblib")
-        joblib.dump(value=thetree, filename=path)
+        if x_mins is None:
+            x_mins = x.min(axis=0)
+        elif not isinstance(x_mins, np.ndarray):
+            x_mins = np.array(x_mins)
+        if x_maxs is None:
+            x_maxs = x.max(axis=0)
+        elif not isinstance(x_maxs, np.ndarray):
+            x_maxs = np.array(x_maxs)
+
+        self.tree = tree.DecisionTreeRegressor(max_depth=max_depth).fit(X=x, y=y)
+        self.model = extract_rules_from_tree(
+            self.tree,
+            xmins=x_mins,
+            xmaxs=x_maxs,
+            features_names=features_names,
+            classes_names=classes_names,
+            get_leaf=get_leaf,
+            remember_activation=True,
+            stack_activation=True,
+        )
+
+        if len(self.model) > 0:
+            # Compute each rule's activation vector, and the model's if its remember_activation flag is True, and will
+            # stack the rules' activation vectors if stack_activation is True
+            self.model.fit(y=y, xs=x)
+            # self.model.check_duplicated_rules(self.model.rules, name_or_index="name")

@@ -13,7 +13,7 @@ import logging
 from .actor import Actor
 from .configs import NodeLearningConfig, NodeDataConfig
 from .diff_privacy import apply_diff_privacy
-from .fitters import DecisionTreeFitter, Fitter
+from .fitters import DecisionTreeClassificationFitter, Fitter, DecisionTreeRegressionFitter
 from .node_model_updaters import AdaBoostNodeModelUpdater, NodeModelUpdater
 from .datapreps import BinFeaturesDataPrep, DataPrep
 from .train_test_split import TrainTestSplit
@@ -66,7 +66,10 @@ class Node(Actor):
         Configuration of the paths to the node's features and target data files
     """
 
-    possible_fitters = {"decisiontree": DecisionTreeFitter}
+    possible_fitters = {
+        "decisiontreeclassification": DecisionTreeClassificationFitter,
+        "decisiontreeregression": DecisionTreeRegressionFitter
+    }
     """Possible string values and corresponding fitter object for *fitter* attribute of
     `ifra.configs.NodeLearningConfig`"""
 

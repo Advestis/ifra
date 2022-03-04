@@ -1,6 +1,6 @@
 from ifra import Node
 from ifra.configs import Config, NodeLearningConfig, NodeDataConfig
-from ifra.fitters import Fitter, DecisionTreeFitter
+from ifra.fitters import Fitter, DecisionTreeClassificationFitter
 from ifra.node_model_updaters import NodeModelUpdater, AdaBoostNodeModelUpdater
 from ifra.datapreps import DataPrep, BinFeaturesDataPrep
 from ..alternates.dataprep import AlternateDataPrep
@@ -15,7 +15,7 @@ def test_init_and_run_simple(clean):
     )
     assert isinstance(node.learning_configs, (Config, NodeLearningConfig))
     assert isinstance(node.data, (Config, NodeDataConfig))
-    assert isinstance(node.fitter, (Fitter, DecisionTreeFitter))
+    assert isinstance(node.fitter, (Fitter, DecisionTreeClassificationFitter))
     assert isinstance(node.updater, (NodeModelUpdater, AdaBoostNodeModelUpdater))
     assert isinstance(node.dataprep, (DataPrep, BinFeaturesDataPrep))
     assert node.datapreped is False

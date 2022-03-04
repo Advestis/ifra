@@ -30,7 +30,8 @@ the aggregator does not have access to any information about the node. It does n
 
 In IFRA, one node produces one ruleset using the `ruleskit` package. Each user is free to define its own model by
 overloading the `ifra.fitters.Fitter` class. The available models currently are:\n
-  * decisiontree (see `ifra.fitters.DecisionTreeFitter` for details)\n
+  * decisiontreeregression (see `ifra.fitters.DecisionTreeRegressionFitter` for details)\n
+  * decisiontreeclassification (see `ifra.fitters.DecisionTreeClassificationFitter` for details)\n
 The user also has the liberty to define its own aggregation method, by overloading `ifra.aggregation.Aggregation`.
 The available aggregation methods currently are:\n
   * adaboost (see `ifra.aggregations.AdaBoostAggregation` for details)\n
