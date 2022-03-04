@@ -12,6 +12,9 @@ those steps:\n
 Steps 2 to 4 are an 'iteration' of the learning and are repeated until either the user stops the algorithm or some
 threshold is reached. In IFRA, no thresholds exist, and the learning stops when the user(s) decide so.
 
+Differential privacy is automatically applied in each node by slightly changing the prediction of the rules.
+(Only working for regression rule for now)
+
 IFRA consists of 3 independent and asynchronous actors, represented by the abstract class `ifra.actor.Actor`.
 Each can be run individually and monitors changes in its inputs. The three actors are :
   * Nodes (**inputs**: data, central model, **output**: node model) (`ifra.node.Node`)
@@ -38,7 +41,7 @@ Each node has the possbility to execute a dataprep before the first learning. Th
 dataprep method by overloading the `ifra.datapreps.DataPrep` class. The available datapreps currently are:\n
   * binfeatures (see `ifra.datapreps.BinFeaturesDataPrep`)\n
 
-To overlead a class, read its documentation. Then, to make the actors use your class specify them in the
+To overload a class, read its documentation. Then, to make the actors use your class specify them in the
 actor's configuration file (`ifra.config.NodeLearningConfig` for *fitter*, *node updater* and *dataprep*) or in
 `ifra.config.AggregatorConfig` json file for *aggregation*).
 To be correctly imported, the line passed in the json for, let's say, the aggregation, must be like
