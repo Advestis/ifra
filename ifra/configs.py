@@ -200,11 +200,6 @@ class NodeLearningConfig(Config):
         key *x_maxs*, but with value "".
     max_depth: int
         Maximum depth of the decision tree to use in the model
-    remember_activation: bool
-        If True, the model created by the node will remember its activation (logical OR of all its rules)
-    stack_activation: bool
-        If True, the model created by the node will stack its rules' activation vectors into a np.ndarray (watch out
-        for memory overload)
     plot_data: bool
         If True, nodes will plot distributions of their data in the same directory they found the said data.
         Plots will beproduced at each learning triggered by a central model update, and will be done both for datapreped
@@ -267,8 +262,6 @@ class NodeLearningConfig(Config):
         "x_mins",
         "x_maxs",
         "max_depth",
-        "remember_activation",
-        "stack_activation",
         "plot_data",
         "get_leaf",
         "node_models_path",
