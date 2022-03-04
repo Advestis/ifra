@@ -1,7 +1,8 @@
 from copy import deepcopy, copy
+from datetime import datetime
 from pathlib import Path
 from time import time, sleep
-from typing import Union
+from typing import Union, List, Optional
 from json import load
 from transparentpath import TransparentPath
 import logging
@@ -297,3 +298,32 @@ class Receiver:
         """Reset messages to their default values specified in `ifra.messenger.Receiver.DEFAULT_MESSAGES`"""
         self.messages = copy(self.DEFAULT_MESSAGES)
         self.save()
+
+
+class MessageViewer:
+    """Class to monitor messages send by some actors"""
+    def __init__(self, receivers: List[Receiver]):
+        self.receivers = receivers
+
+    def monitor_stdout(self, filepath: Optional[TransparentPath], interval: int = 1):
+        """Prints to standard output or to a file (overwrite it) every 'interval' seconds"""
+        while True:
+            t = time()
+            s = [f"Messages at {datetime.now()}:"]
+            for receiver in self.receivers:
+                s.append("")
+                if not receiver.get_latest_messages():
+                    s.append(f"{receiver.path.stem} is not available")
+                    continue
+                s.append(receiver.path.stem)
+                s += [f"{name}: {receiver.messages[name]}" for name in receiver.messages]
+
+            s = "\n".join(s)
+            if filepath is None:
+                logger.info("\n".join(s))
+            else:
+                with filepath.open("w") as ofile:
+                    ofile.write(s)
+            t2 = time() - t
+            if t2 < interval:
+                sleep(interval - t2)

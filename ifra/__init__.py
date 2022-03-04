@@ -189,6 +189,7 @@ from .fitters import Fitter
 from .aggregations import Aggregation
 from .setup_logger import setup_logger
 from .configs import AggregatorConfig, CentralConfig, NodeLearningConfig, NodeDataConfig
+from .messenger import MessageViewer
 
 try:
     from ._version import __version__
