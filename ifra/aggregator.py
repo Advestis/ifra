@@ -199,6 +199,9 @@ class Aggregator(Actor):
         Does not do anything if `ifra.node.Node` *model* is None
         """
         model = self.model
+        # Aggregated model's criterion and coverage are meaningless
+        model._coverage = None
+        model.criterion = None
 
         iteration = 0
         name = self.aggregator_configs.aggregated_model_path.stem

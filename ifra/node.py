@@ -12,6 +12,7 @@ import logging
 
 from .actor import Actor
 from .configs import NodeLearningConfig, NodeDataConfig
+from .diff_privacy import apply_diff_privacy
 from .fitters import DecisionTreeFitter, Fitter
 from .node_model_updaters import AdaBoostNodeModelUpdater, NodeModelUpdater
 from .datapreps import BinFeaturesDataPrep, DataPrep
@@ -241,6 +242,9 @@ class Node(Actor):
         if central_model_path.isfile():
             central_model = RuleSet()
             central_model.load(central_model_path)
+            # Reset those values, they will be udpated by eval
+            central_model._coverage = None
+            central_model.criterion = None
             rules = [r for r in model if r not in central_model]
             if len(rules) > 0:
                 self.model = central_model
@@ -257,7 +261,7 @@ class Node(Actor):
                     y=y_test,
                     keep_new_activations=x_test is not None
                 )
-                self.criterion = self.model.calc_criterion(
+                self.model.calc_criterion(
                     y=self.data.y_test_path.read(**self.data.y_read_kwargs).values
                 )
                 self.coverage = self.model.ruleset_coverage
@@ -268,7 +272,7 @@ class Node(Actor):
                 self.model._activation.clear()
                 logger.info(
                     f"Found {len(self.model)} new good rules in node {self.learning_configs.id}."
-                    f" Criterion is {self.criterion}, coverage is {self.coverage}"
+                    f" Criterion is {self.model.criterion}, coverage is {self.coverage}"
                 )
                 self.model_to_file()
                 self.fitter.save(
@@ -288,7 +292,7 @@ class Node(Actor):
                     y=y_test,
                     keep_new_activations=x_test is not None
                 )
-                self.criterion = self.model.calc_criterion(
+                self.model.calc_criterion(
                     y=self.data.y_test_path.read(**self.data.y_read_kwargs).squeeze().values
                 )
                 self.coverage = self.model.ruleset_coverage
@@ -299,12 +303,13 @@ class Node(Actor):
                 self.model._activation.clear()
                 logger.info(
                     f"Found {len(self.model)} rules in node {self.learning_configs.id}."
-                    f" Criterion is {self.criterion}, coverage is {self.coverage}"
+                    f" Criterion is {self.model.criterion}, coverage is {self.coverage}"
                 )
                 self.model_to_file()
                 self.fitter.save(
                     self.learning_configs.node_models_path / f"model_{self.filenumber}_{self.iteration}"
                 )
+        apply_diff_privacy(ruleset=self.model)
 
     @emit
     def update_from_central(self, model: RuleSet) -> None:
