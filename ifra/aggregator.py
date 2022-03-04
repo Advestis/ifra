@@ -211,6 +211,8 @@ class Aggregator(Actor):
             path = self.aggregator_configs.aggregated_model_path.parent / f"{name}_{iteration}.csv"
 
         path = path.with_suffix(".csv")
+        if not path.parent.isdir():
+            path.parent.mkdir(parents=True)
         model.save(path)
         model.save(self.aggregator_configs.aggregated_model_path)
         logger.info(f"Saved aggregated model in '{self.aggregator_configs.aggregated_model_path}'")

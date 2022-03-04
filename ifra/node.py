@@ -359,6 +359,8 @@ class Node(Actor):
         path_iteration = self.learning_configs.node_models_path / f"model_{self.filenumber}_{self.iteration}.csv"
         self.iteration += 1
 
+        if not path_main.parent.isdir():
+            path_main.parent.mkdir(parents=True)
         model.save(path_main)
         model.save(path_iteration)
 

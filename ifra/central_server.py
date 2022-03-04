@@ -88,6 +88,8 @@ class CentralServer(Actor):
             path = self.central_configs.central_model_path.parent / f"{name}_{iteration}.csv"
 
         path = path.with_suffix(".csv")
+        if not path.parent.isdir():
+            path.parent.mkdir(parents=True)
         model.save(path)
         model.save(self.central_configs.central_model_path)
         logger.info(f"Saved central model in '{self.central_configs.central_model_path}'")
