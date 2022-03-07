@@ -312,7 +312,8 @@ class Node(Actor):
                 self.fitter.save(
                     self.learning_configs.node_models_path / f"model_{self.filenumber}_{self.iteration}"
                 )
-        apply_diff_privacy(ruleset=self.model, y=y)
+        if self.model is not None:
+            apply_diff_privacy(ruleset=self.model, y=y)
 
     @emit
     def update_from_central(self, model: RuleSet) -> None:
