@@ -239,7 +239,6 @@ class Aggregator(Actor):
         sleeptime: Union[int, float]
             How many seconds between each checks for new nodes models. Default value = 5.
         """
-        t = time()
         updated_nodes = []
         iterations = 0
 
@@ -251,6 +250,7 @@ class Aggregator(Actor):
         )
         started = False  # To force at least one loop of the while to trigger
 
+        t = time()
         while time() - t < timeout or timeout <= 0 or started is False:
             started = True
             new_models = False

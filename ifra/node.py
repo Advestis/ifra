@@ -439,7 +439,6 @@ class Node(Actor):
             self.update_from_central(central_model)
             logger.info(f"Fetched central model in node {self.learning_configs.id} at {self.last_fetch}")
 
-        t = time()
         do_fit = True  # start at true to trigger fit even if no central model is here at first iteration
         self.plot_dataprep_and_split()  # make dataprep at run start
         started = False  # To force at least one loop of the while to trigger
@@ -453,6 +452,7 @@ class Node(Actor):
             f"{self.learning_configs.central_model_path}, {self.data.x_path} and {self.data.y_path}."
         )
 
+        t = time()
         while time() - t < timeout or timeout <= 0 or started is False:
             started = True
             if (
