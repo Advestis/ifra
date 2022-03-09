@@ -349,6 +349,15 @@ class AggregatorConfig(Config):
     emitter_path_fs: TransparentPath
         File system of path to emitter. Can be 'gcs', 'local' or "". If not specified, the json
         file should still contain the key *emitter_path_fs*, but with value "".
+    weight: str
+        If using classification rules, 'weight' is unused. If using regression rules, will be used to average duplicated
+        rules' prediction when aggregating. Can be 'equi' or any rlue attribute name that can be used as a weight
+        (coverage, criterion...). If not specified, the json file should still contain the key *weight*,
+        but with value "". In which case rules will be equally weighted.
+    best: str
+        If using classification rules, 'best' is unused. If using regression rules, specify whether the rule is best
+        when its 'weight' is big ('best'="max") or small ('best'="min").If not specified, the json file should still
+        contain the key *best*, but with value "". In which case, it will be set to "max".
     """
 
     EXPECTED_CONFIGS = [
@@ -361,7 +370,18 @@ class AggregatorConfig(Config):
         "aggregation_kwargs",
         "emitter_path",
         "emitter_path_fs",
+        "weight",
+        "best"
     ]
+
+    def __init__(self, path: Optional[Union[str, Path, TransparentPath]] = None):
+        super().__init__(path)
+        if self.weight is None:
+            self.weight = "equi"
+        if self.best is None:
+            self.best = "max"
+        if self.best != "min" and self.best != "max":
+            raise ValueError(f"Attribute 'best' can be 'min' or 'max', not '{self.best}'")
 
 
 class CentralConfig(Config):

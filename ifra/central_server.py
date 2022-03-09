@@ -6,7 +6,6 @@ from ruleskit import RuleSet
 from tablewriter import TableWriter
 import logging
 
-from .central_model_updaters import central_model_update
 from .configs import CentralConfig
 from .actor import Actor
 from .decorator import emit
@@ -55,7 +54,7 @@ class CentralServer(Actor):
 
     @emit
     def update(self):
-        """Add new rules in aggregated_model to central model's models and updates the rules predictions.
+        """Add new rules in aggregated_model to central model's models.
         If new rules were found, save the updated model to `ifra.central_server.CentralServer`'s 
         *central_configs.central_model_path*.
         
@@ -67,9 +66,19 @@ class CentralServer(Actor):
         aggregated_model = RuleSet()
         aggregated_model.load(self.central_configs.aggregated_model_path)
         self.last_fetch = datetime.now()
+        if self.model is None:
+            self.model = aggregated_model
+        else:
+            for r in aggregated_model:
+                if r in self.model:
+                    logger.warning(
+                        f"Rule '{r}' was aggregated despite being already in the central server. It is ignored, its"
+                        " prediction is discarded."
+                    )
+                else:
+                    self.model.append(r, update_activation=False)
         logger.info(f"Fetched new model from aggregator at {self.last_fetch}")
-        if central_model_update(self.model, aggregated_model):
-            self.model_to_file()
+        self.model_to_file()
 
     @emit
     def model_to_file(self) -> None:

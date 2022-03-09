@@ -64,6 +64,7 @@ class AdaBoostNodeModelUpdater(NodeModelUpdater):
     @staticmethod
     def make_update(x: pd.DataFrame, y: pd.Series, model: RuleSet) -> Tuple[pd.DataFrame, pd.Series]:
         model.calc_activation(x.values)
-        x = x.loc[model.activation == 0]
-        y = y[model.activation == 0]
+        if model.activation is not None:
+            x = x.loc[model.activation == 0]
+            y = y[model.activation == 0]
         return x, y

@@ -240,7 +240,13 @@ class Node(Actor):
             y_test = y
 
         logger.info(f"Fitting node {self.learning_configs.id} using {self.learning_configs.fitter}...")
+        if len(x) == 0:
+            logger.warning(f"No data in node {self.learning_configs.id}'s features")
+            return
         self.model = self.fitter.fit(x=x, y=y)
+        if self.model is None:
+            logger.warning(f"Fitter could not produce a model in node {self.learning_configs.id}")
+            return
         central_model_path = self.learning_configs.central_model_path
         if central_model_path.isfile():
             central_model = RuleSet()

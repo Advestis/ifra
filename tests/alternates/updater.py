@@ -8,6 +8,7 @@ class AlternateUpdater(NodeModelUpdater):
     @staticmethod
     def make_update(x: pd.DataFrame, y: pd.DataFrame, ruleset: RuleSet) -> Tuple[pd.DataFrame, pd.DataFrame]:
         ruleset.calc_activation(x.values)
-        x = x[ruleset.activation == 1]
-        y = y[ruleset.activation == 1]
+        if ruleset.activation is not None:
+            x = x[ruleset.activation == 1]
+            y = y[ruleset.activation == 1]
         return x, y
