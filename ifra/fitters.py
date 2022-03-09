@@ -236,13 +236,12 @@ class DecisionTreeClassificationFitter(DecisionTreeFitter):
             features_names=features_names,
             classes_names=classes_names,
             get_leaf=get_leaf,
-            remember_activation=True,
             stack_activation=True,
         )
 
         if len(self.model) > 0:
-            # Compute each rule's activation vector, and the model's if its remember_activation flag is True, and will
-            # stack the rules' activation vectors if stack_activation is True
+            # Compute each rule's activation vector and the model's, and will stack the rules' activation vectors if
+            # stack_activation is True
             self.model.fit(y=y, xs=x)
             # self.model.check_duplicated_rules(self.model.rules, name_or_index="name")
 
@@ -325,12 +324,11 @@ class DecisionTreeRegressionFitter(DecisionTreeFitter):
             features_names=features_names,
             classes_names=classes_names,
             get_leaf=get_leaf,
-            remember_activation=True,
             stack_activation=True,
         )
 
         if len(self.model) > 0:
-            # Compute each rule's activation vector, and the model's if its remember_activation flag is True, and will
+            # Compute each rule's activation vector, and the model's and will
             # stack the rules' activation vectors if stack_activation is True
             self.model.fit(y=y, xs=x)
             # self.model.check_duplicated_rules(self.model.rules, name_or_index="name")

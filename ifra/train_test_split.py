@@ -37,11 +37,12 @@ class TrainTestSplit:
         if hasattr(self.data, "x_datapreped_path"):
             x_train, x_test, y_train, y_test = self.split_method(
                 self.data.x_datapreped_path.read(**self.data.x_read_kwargs),
-                self.data.y_datapreped_path.read(**self.data.y_read_kwargs)
+                self.data.y_datapreped_path.read(**self.data.y_read_kwargs).squeeze()
             )
         else:
             x_train, x_test, y_train, y_test = self.split_method(
-                self.data.x_path.read(**self.data.x_read_kwargs), self.data.y_path.read(**self.data.y_read_kwargs)
+                self.data.x_path.read(**self.data.x_read_kwargs),
+                self.data.y_path.read(**self.data.y_read_kwargs).squeeze()
             )
         x_suffix = self.data.x_path.suffix
         y_suffix = self.data.y_path.suffix

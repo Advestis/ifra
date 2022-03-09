@@ -81,7 +81,6 @@ def update_classif_preds(model: RuleSet):
             model[i]._prediction = good_pred
 
     model._rules = [model[i] for i in range(len(model)) if i not in to_remove]
-    model.remember_activation = False
     model.stack_activation = False
     model._activation = None
     model.stacked_activations = None
