@@ -115,6 +115,13 @@ class Config:
             lockfile.rm(absent="ignore")
             raise e
 
+    def __getstate__(self):
+        return self.__dict__
+
+    def __setstate__(self, d: dict):
+        for item in d:
+            setattr(self, item, d[item])
+
     def __getattr__(self, item):
         if item == "configs":
             raise ValueError("Config object's 'configs' not set")

@@ -95,7 +95,6 @@ Example of step 1: you could create nodes learning configuration json files cont
 >>>     "x_mins": "",
 >>>     "x_maxs": "",
 >>>     "max_depth": 3,
->>>     "remember_activation": false,
 >>>     "stack_activation": false,
 >>>     "plot_data": true,
 >>>     "get_leaf": false,

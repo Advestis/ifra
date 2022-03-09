@@ -31,19 +31,19 @@ class NodeModelUpdater:
         """Reads x and y train data, calls `ifra.updaters.make_update` and writes the updated data back to where they
         were read."""
         x = self.data.x_train_path.read(**self.data.x_read_kwargs)
-        y = self.data.y_train_path.read(**self.data.y_read_kwargs)
-        self.make_update(x, y, model)
+        y = self.data.y_train_path.read(**self.data.y_read_kwargs).squeeze()
+        x, y = self.make_update(x, y, model)
         self.data.x_train_path.write(x)
         self.data.y_train_path.write(y)
 
     @staticmethod
-    def make_update(x: pd.DataFrame, y: pd.DataFrame, model: RuleSet) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    def make_update(x: pd.DataFrame, y: pd.Series, model: RuleSet) -> Tuple[pd.DataFrame, pd.Series]:
         """Implement in daughter class
 
         Parameters
         ----------
         x: pd.DataFrame
-        y: pd.DataFrame
+        y: pd.Series
         model: RuleSet
 
         Returns
@@ -51,7 +51,7 @@ class NodeModelUpdater:
         Tuple[pd.DataFrame, pd.DataFrame]
             Modified x and y
         """
-        pass
+        return x, y
 
 
 class AdaBoostNodeModelUpdater(NodeModelUpdater):
@@ -62,9 +62,8 @@ class AdaBoostNodeModelUpdater(NodeModelUpdater):
     """
 
     @staticmethod
-    def make_update(x: pd.DataFrame, y: pd.DataFrame, model: RuleSet) -> Tuple[pd.DataFrame, pd.DataFrame]:
-        model.remember_activation = True
+    def make_update(x: pd.DataFrame, y: pd.Series, model: RuleSet) -> Tuple[pd.DataFrame, pd.Series]:
         model.calc_activation(x.values)
-        x = x[model.activation == 0]
+        x = x.loc[model.activation == 0]
         y = y[model.activation == 0]
         return x, y

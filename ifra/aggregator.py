@@ -211,6 +211,8 @@ class Aggregator(Actor):
             path = self.aggregator_configs.aggregated_model_path.parent / f"{name}_{iteration}.csv"
 
         path = path.with_suffix(".csv")
+        if not path.parent.isdir():
+            path.parent.mkdir(parents=True)
         model.save(path)
         model.save(self.aggregator_configs.aggregated_model_path)
         logger.info(f"Saved aggregated model in '{self.aggregator_configs.aggregated_model_path}'")
@@ -237,7 +239,6 @@ class Aggregator(Actor):
         sleeptime: Union[int, float]
             How many seconds between each checks for new nodes models. Default value = 5.
         """
-        t = time()
         updated_nodes = []
         iterations = 0
 
@@ -249,10 +250,13 @@ class Aggregator(Actor):
         )
         started = False  # To force at least one loop of the while to trigger
 
+        t = time()
         while time() - t < timeout or timeout <= 0 or started is False:
             started = True
             new_models = False
             new_nodes = 0
+            if not self.aggregator_configs.node_models_path.isdir():
+                self.aggregator_configs.node_models_path.mkdir(parents=True)
             for path in self.aggregator_configs.node_models_path.glob("model_main_*.csv"):
                 if path in NodeGate.paths:
                     # Already found this node in a previous check

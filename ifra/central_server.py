@@ -88,6 +88,8 @@ class CentralServer(Actor):
             path = self.central_configs.central_model_path.parent / f"{name}_{iteration}.csv"
 
         path = path.with_suffix(".csv")
+        if not path.parent.isdir():
+            path.parent.mkdir(parents=True)
         model.save(path)
         model.save(self.central_configs.central_model_path)
         logger.info(f"Saved central model in '{self.central_configs.central_model_path}'")
@@ -115,7 +117,6 @@ class CentralServer(Actor):
             How many seconds between each checks for new nodes models. Default value = 5.
         """
 
-        t = time()
         iterations = 0
         started = False  # To force at least one loop of the while to trigger
 
@@ -123,6 +124,7 @@ class CentralServer(Actor):
             logger.warning("You did not specify a timeout for your run. It will last until manually stopped.")
         logger.info(f"Starting central server. Monitoring changes in {self.central_configs.aggregated_model_path}.")
 
+        t = time()
         while time() - t < timeout or timeout <= 0 or started is False:
             started = True
             if len(self.model) == 0:

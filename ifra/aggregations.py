@@ -59,7 +59,7 @@ class AdaBoostAggregation(Aggregation):
 
         max_occurences = max(list(occurences.values()))
 
-        new_rules = RuleSet(remember_activation=False)
+        new_rules = RuleSet()
 
         for r in occurences:
             if occurences[r] == max_occurences:

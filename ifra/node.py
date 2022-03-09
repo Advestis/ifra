@@ -229,90 +229,45 @@ class Node(Actor):
         self.plot_dataprep_and_split()
 
         x = self.data.x_train_path.read(**self.data.x_read_kwargs).values
-        y = self.data.y_train_path.read(**self.data.y_read_kwargs).values
+        y = self.data.y_train_path.read(**self.data.y_read_kwargs).squeeze().values
         if self.data.x_test_path != self.data.x_train_path:
             x_test = self.data.x_test_path.read(**self.data.x_read_kwargs).values
         else:
             x_test = None
         if self.data.y_test_path != self.data.y_train_path:
-            y_test = self.data.y_test_path.read(**self.data.y_read_kwargs).values
+            y_test = self.data.y_test_path.read(**self.data.y_read_kwargs).squeeze().values
         else:
             y_test = y
 
         logger.info(f"Fitting node {self.learning_configs.id} using {self.learning_configs.fitter}...")
-        model = self.fitter.fit(x=x, y=y)
+        self.model = self.fitter.fit(x=x, y=y)
         central_model_path = self.learning_configs.central_model_path
         if central_model_path.isfile():
             central_model = RuleSet()
             central_model.load(central_model_path)
-            # Reset those values, they will be udpated by eval
-            central_model._coverage = None
-            central_model.criterion = None
-            rules = [r for r in model if r not in central_model]
-            if len(rules) > 0:
-                self.model = central_model
-                if x_test is None:
-                    self.model.stack_activation = True
-                    self.model.remember_activation = True
-                    self.model.calc_activation(xs=x)
-                for r in rules:
-                    self.model.append(r, update_activation=False)  # Rules loaded from file have no activations
-                self.model.stack_activation = True
-                self.model.remember_activation = True
-                self.model.eval(
-                    xs=x_test,
-                    y=y_test,
-                    keep_new_activations=x_test is not None
-                )
-                self.model.calc_criterion(
-                    y=self.data.y_test_path.read(**self.data.y_read_kwargs).values
-                )
-                self.coverage = self.model.ruleset_coverage
-                self.model.stack_activation = False
-                self.model.remember_activation = False
-                self.model.del_stacked_activations()
-                # noinspection PyProtectedMember
-                self.model._activation.clear()
-                logger.info(
-                    f"Found {len(self.model)} new good rules in node {self.learning_configs.id}."
-                    f" Criterion is {self.model.criterion}, coverage is {self.coverage}"
-                )
-                self.model_to_file()
-                self.fitter.save(
-                    self.learning_configs.node_models_path / f"model_{self.filenumber}_{self.iteration}"
-                )
-            else:
-                logger.info(f"Did not find new rules in node {self.learning_configs.id}")
+            rules = [r for r in self.model if r not in central_model]
+            self.model = RuleSet(rules)
+
+        if len(self.model) > 0:
+            self.coverage = self.model.ruleset_coverage
+            self.model.eval(
+                xs=x_test,
+                y=y_test,
+                keep_new_activations=x_test is not None
+            )
+            # noinspection PyProtectedMember
+            logger.info(
+                f"Found {len(self.model)} new good rules in node {self.learning_configs.id}."
+                f" Criterion is {round(self.model.criterion, 3)}, coverage is {round(self.coverage, 3)}"
+            )
+            self.model_to_file()
+            self.fitter.save(
+                self.learning_configs.node_models_path / f"model_{self.filenumber}_{self.iteration}"
+            )
         else:
-            self.model = model
-            if len(self.model) == 0:
-                logger.info(f"No good rules found in node {self.learning_configs.id}")
-            else:
-                self.model.stack_activation = True
-                self.model.remember_activation = True
-                self.model.eval(
-                    xs=x_test,
-                    y=y_test,
-                    keep_new_activations=x_test is not None
-                )
-                self.model.calc_criterion(
-                    y=self.data.y_test_path.read(**self.data.y_read_kwargs).squeeze().values
-                )
-                self.coverage = self.model.ruleset_coverage
-                self.model.stack_activation = False
-                self.model.remember_activation = False
-                self.model.del_stacked_activations()
-                # noinspection PyProtectedMember
-                self.model._activation.clear()
-                logger.info(
-                    f"Found {len(self.model)} rules in node {self.learning_configs.id}."
-                    f" Criterion is {self.model.criterion}, coverage is {self.coverage}"
-                )
-                self.model_to_file()
-                self.fitter.save(
-                    self.learning_configs.node_models_path / f"model_{self.filenumber}_{self.iteration}"
-                )
-        apply_diff_privacy(ruleset=self.model, y=y)
+            logger.info(f"Did not find rules in node {self.learning_configs.id}")
+        if self.model is not None:
+            apply_diff_privacy(ruleset=self.model, y=y)
 
     @emit
     def update_from_central(self, model: RuleSet) -> None:
@@ -343,6 +298,8 @@ class Node(Actor):
         if model is None:
             return
 
+        if not self.learning_configs.node_models_path.isdir():
+            self.learning_configs.node_models_path.mkdir(parents=True)
         existing_files = list(self.learning_configs.node_models_path.glob('model_main_*.csv'))
         if self.filenumber is None:
             self.filenumber = random.randint(0, int(1e6))
@@ -357,6 +314,8 @@ class Node(Actor):
         path_iteration = self.learning_configs.node_models_path / f"model_{self.filenumber}_{self.iteration}.csv"
         self.iteration += 1
 
+        if not path_main.parent.isdir():
+            path_main.parent.mkdir(parents=True)
         model.save(path_main)
         model.save(path_iteration)
 
@@ -397,7 +356,7 @@ class Node(Actor):
                 path_x = path_x.parent / f"{name}_{iteration}.pdf"
             fig.savefig(path_x)
 
-        y = self.data.y_path.read(**self.data.y_read_kwargs)
+        y = self.data.y_path.read(**self.data.y_read_kwargs).squeeze()
         fig = plot_histogram(data=y.squeeze(), xlabel="Class", figsize=(10, 7))
 
         iteration = 0
@@ -435,7 +394,6 @@ class Node(Actor):
             self.update_from_central(central_model)
             logger.info(f"Fetched central model in node {self.learning_configs.id} at {self.last_fetch}")
 
-        t = time()
         do_fit = True  # start at true to trigger fit even if no central model is here at first iteration
         self.plot_dataprep_and_split()  # make dataprep at run start
         started = False  # To force at least one loop of the while to trigger
@@ -449,6 +407,7 @@ class Node(Actor):
             f"{self.learning_configs.central_model_path}, {self.data.x_path} and {self.data.y_path}."
         )
 
+        t = time()
         while time() - t < timeout or timeout <= 0 or started is False:
             started = True
             if (

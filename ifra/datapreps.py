@@ -30,7 +30,7 @@ class DataPrep:
         """
         x, y = self.dataprep_method(
             self.data.x_path.read(**self.data.x_read_kwargs),
-            self.data.y_path.read(**self.data.y_read_kwargs)
+            self.data.y_path.read(**self.data.y_read_kwargs).squeeze()
         )
         x_suffix = self.data.x_path.suffix
         y_suffix = self.data.y_path.suffix
