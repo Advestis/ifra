@@ -261,6 +261,9 @@ class NodeLearningConfig(Config):
     central_model_path_fs: str
         File system of central model path. Can be 'gcs', 'local' or "". If not specified, the json
         file should still contain the key *central_model_path_fs*, but with value "".
+    eval_kwargs: dict
+        Keyword arguments for ruleskit's eval method. If not specified, the json
+        file should still contain the key *eval_kwargs*, but with value "".
     """
 
     EXPECTED_CONFIGS = [
@@ -287,6 +290,7 @@ class NodeLearningConfig(Config):
         "emitter_path_fs",
         "central_model_path",
         "central_model_path_fs",
+        "eval_kwargs"
     ]
 
     def __eq__(self, other):

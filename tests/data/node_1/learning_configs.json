@@ -21,5 +21,6 @@
     "thresholds_path": "tests/data/thresholds.json",
     "thresholds_path_fs": "local",
     "emitter_path": "tests/outputs/node_1/node_chat_messages.json",
-    "emitter_path_fs": "local"
+    "emitter_path_fs": "local",
+    "eval_kwargs": {"criterion_method": "mse_norm"}
 }

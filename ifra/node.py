@@ -261,7 +261,8 @@ class Node(Actor):
             self.model.eval(
                 xs=x_test,
                 y=y_test,
-                keep_new_activations=x_test is not None
+                keep_new_activations=x_test is not None,
+                **self.learning_configs.eval_kwargs
             )
             # noinspection PyProtectedMember
             logger.info(
