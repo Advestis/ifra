@@ -3,6 +3,7 @@ import pandas as pd
 from ruleskit import RuleSet
 
 from .configs import NodeDataConfig
+from .loader import load_y
 
 
 class NodeModelUpdater:
@@ -31,7 +32,7 @@ class NodeModelUpdater:
         """Reads x and y train data, calls `ifra.updaters.make_update` and writes the updated data back to where they
         were read."""
         x = self.data.x_train_path.read(**self.data.x_read_kwargs)
-        y = self.data.y_train_path.read(**self.data.y_read_kwargs).squeeze()
+        y = load_y(self.data.y_train_path, **self.data.y_read_kwargs)
         x, y = self.make_update(x, y, model)
         self.data.x_train_path.write(x)
         self.data.y_train_path.write(y)

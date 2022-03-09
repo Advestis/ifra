@@ -4,6 +4,7 @@ from time import time, sleep
 
 from typing import Union
 
+import numpy as np
 import pandas as pd
 from ruleskit import RuleSet
 from tablewriter import TableWriter
@@ -14,6 +15,7 @@ from .actor import Actor
 from .configs import NodeLearningConfig, NodeDataConfig
 from .diff_privacy import apply_diff_privacy
 from .fitters import DecisionTreeClassificationFitter, Fitter, DecisionTreeRegressionFitter
+from .loader import load_y
 from .node_model_updaters import AdaBoostNodeModelUpdater, NodeModelUpdater
 from .datapreps import BinFeaturesDataPrep, DataPrep
 from .train_test_split import TrainTestSplit
@@ -229,13 +231,13 @@ class Node(Actor):
         self.plot_dataprep_and_split()
 
         x = self.data.x_train_path.read(**self.data.x_read_kwargs).values
-        y = self.data.y_train_path.read(**self.data.y_read_kwargs).squeeze().values
+        y = load_y(self.data.y_train_path, **self.data.y_read_kwargs).values
         if self.data.x_test_path != self.data.x_train_path:
             x_test = self.data.x_test_path.read(**self.data.x_read_kwargs).values
         else:
             x_test = None
         if self.data.y_test_path != self.data.y_train_path:
-            y_test = self.data.y_test_path.read(**self.data.y_read_kwargs).squeeze().values
+            y_test = load_y(self.data.y_test_path, **self.data.y_read_kwargs).values
         else:
             y_test = y
 
@@ -362,7 +364,7 @@ class Node(Actor):
                 path_x = path_x.parent / f"{name}_{iteration}.pdf"
             fig.savefig(path_x)
 
-        y = self.data.y_path.read(**self.data.y_read_kwargs).squeeze()
+        y = load_y(self.data.y_path, **self.data.y_read_kwargs)
         fig = plot_histogram(data=y.squeeze(), xlabel="Class", figsize=(10, 7))
 
         iteration = 0

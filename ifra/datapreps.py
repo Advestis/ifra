@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 
 from .configs import NodeDataConfig
+from .loader import load_y
 
 
 class DataPrep:
@@ -30,7 +31,7 @@ class DataPrep:
         """
         x, y = self.dataprep_method(
             self.data.x_path.read(**self.data.x_read_kwargs),
-            self.data.y_path.read(**self.data.y_read_kwargs).squeeze()
+            load_y(self.data.y_path, **self.data.y_read_kwargs)
         )
         x_suffix = self.data.x_path.suffix
         y_suffix = self.data.y_path.suffix
@@ -40,7 +41,7 @@ class DataPrep:
         self.data.x_datapreped_path.write(x)
         self.data.y_datapreped_path.write(y)
 
-    def dataprep_method(self, x: pd.DataFrame, y: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    def dataprep_method(self, x: pd.DataFrame, y: pd.Series) -> Tuple[pd.DataFrame, pd.Series]:
         """To be implemented in daughter class.
 
         Returns
