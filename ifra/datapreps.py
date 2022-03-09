@@ -84,6 +84,7 @@ class BinFeaturesDataPrep(DataPrep):
 
         def dicretize(x_series):
             # noinspection PyUnresolvedReferences
+            # noinspection PyUnresolvedReferences
             bins = get_bins(x_series, self.nbins)
             mask = np.isnan(x_series)
             discrete_x = x_series.apply(lambda var: bisect(bins, var))
