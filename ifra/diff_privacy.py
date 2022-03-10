@@ -6,8 +6,8 @@ from ruleskit import RuleSet, ClassificationRule, RegressionRule
 logger = logging.getLogger(__name__)
 
 
-def lambda_function(delta_p, delta_v, n, cov):
-    return (delta_p ** 2 / delta_v) * np.log((n - 1) * cov / (1 - cov))
+def lambda_function(delta_p, delta_v, n, p):
+    return (delta_p ** 2 / delta_v) * np.log((n - 1) * p / (1 - p))
 
 
 # noinspection PyProtectedMember
@@ -16,7 +16,7 @@ def apply_diff_privacy_classif(ruleset: RuleSet, y: np.ndarray, c_min: Optional[
 
 
 # noinspection PyProtectedMember
-def apply_diff_privacy_regression(ruleset: RuleSet, y: np.ndarray, c_min: Optional[float] = None):
+def apply_diff_privacy_regression(ruleset: RuleSet, y: np.ndarray, p: float, c_min: Optional[float] = None):
     n = len(y)
 
     for r in ruleset:
@@ -31,9 +31,9 @@ def apply_diff_privacy_regression(ruleset: RuleSet, y: np.ndarray, c_min: Option
         delta_pred_max = max(y) - min(y)
         delta_activated_min = 1  # max variation of number of activated points when changing one point is... well... 1 !
         delta_activated_max = n
-        lambda_value_pred = lambda_function(delta_p=delta_pred_min, delta_v=delta_pred_max, n=n, cov=r.coverage)
+        lambda_value_pred = lambda_function(delta_p=delta_pred_min, delta_v=delta_pred_max, n=n, p=p)
         lambda_value_activated = lambda_function(
-            delta_p=delta_activated_min, delta_v=delta_activated_max, n=n, cov=r.coverage
+            delta_p=delta_activated_min, delta_v=delta_activated_max, n=n, p=r.coverage
         )
         # Can happen if only one point is activated, in which case lambda_value_pred should be equal to 0 but the
         # rounding can give something like -5e-16
@@ -58,27 +58,21 @@ def apply_diff_privacy_regression(ruleset: RuleSet, y: np.ndarray, c_min: Option
 
 
 # noinspection PyProtectedMember
-def apply_diff_privacy(ruleset: RuleSet, y: np.ndarray, c_min: Optional[float] = None):
+def apply_diff_privacy(ruleset: RuleSet, y: np.ndarray, p: float, c_min: Optional[float] = None):
     """
-    Modifies rules predictions to make the learning private.
-
-    The amount the prediction if modified respects :
-
-    P(pred(Y1) in S) <= exp(epsilon * P(pred(Y2) in S))
-
-    with Y1 and Y2 being two sets of targets different of only one point, pred(Y) the prediction of the rule when fitted
-    using Y and P(pred is S) the probability of the prediction to be in a set S.
+    Modifies rules predictions and train set size to make the learning private up to a probability 'p' of identifying
+    their real values.
 
     Parameters
     ----------
     ruleset: RuleSet
     y: np.ndarray
     c_min: Optional[float]
-
+    p: float
 
     Returns
     -------
-
+    None
     """
     if len(ruleset) == 0:
         return
@@ -89,6 +83,6 @@ def apply_diff_privacy(ruleset: RuleSet, y: np.ndarray, c_min: Optional[float] =
     if issubclass(ruleset.rule_type, ClassificationRule):
         apply_diff_privacy_classif(ruleset=ruleset, y=y, c_min=c_min)
     elif issubclass(ruleset.rule_type, RegressionRule):
-        apply_diff_privacy_regression(ruleset=ruleset, y=y, c_min=c_min)
+        apply_diff_privacy_regression(ruleset=ruleset, y=y, c_min=c_min, p=p)
     else:
         raise TypeError(f"Invalid rule type {ruleset.rule_type}. Must derive from ClassificationRule or RegressionRule")

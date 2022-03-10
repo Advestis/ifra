@@ -4,9 +4,8 @@ from time import time, sleep
 
 from typing import Union
 
-import numpy as np
 import pandas as pd
-from ruleskit import RuleSet
+from ruleskit import RuleSet, RegressionRule, ClassificationRule
 from tablewriter import TableWriter
 from transparentpath import TransparentPath
 import logging
@@ -101,6 +100,8 @@ class Node(Actor):
         self.last_y = None
         self.filenumber = None
         self.iteration = 0
+        RegressionRule.rule_index += ["train_test_size"]
+        ClassificationRule.rule_index += ["train_test_size"]
         super().__init__(learning_configs=learning_configs, data=data)
 
     @emit
@@ -276,7 +277,7 @@ class Node(Actor):
         else:
             logger.info(f"Did not find rules in node {self.learning_configs.id}")
         if self.model is not None:
-            apply_diff_privacy(ruleset=self.model, y=y)
+            apply_diff_privacy(ruleset=self.model, y=y, p=self.learning_configs.privacy_proba)
 
     @emit
     def update_from_central(self, model: RuleSet) -> None:

@@ -264,6 +264,10 @@ class NodeLearningConfig(Config):
     eval_kwargs: dict
         Keyword arguments for ruleskit's eval method. If not specified, the json
         file should still contain the key *eval_kwargs*, but with value "".
+    privacy_proba: float
+        Probability to use in differential privacy. Higher privacy_proba means worse privay.  If not specified, the json
+        file should still contain the key *privacy_proba*, but with value "", in which case differential privacy is not
+        used.
     """
 
     EXPECTED_CONFIGS = [
@@ -290,8 +294,14 @@ class NodeLearningConfig(Config):
         "emitter_path_fs",
         "central_model_path",
         "central_model_path_fs",
-        "eval_kwargs"
+        "eval_kwargs",
+        "privacy_proba"
     ]
+
+    def __init__(self, path: Optional[Union[str, Path, TransparentPath]] = None):
+        super().__init__(path)
+        if self.privacy_proba is not None and not 0 < self.privacy_proba < 1:
+            raise ValueError("privacy_proba should be between 0 and 1")
 
     def __eq__(self, other):
         if not isinstance(other, NodeLearningConfig):

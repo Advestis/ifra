@@ -22,5 +22,6 @@
     "thresholds_path_fs": "local",
     "emitter_path": "tests/outputs/node_0/node_chien_messages.json",
     "emitter_path_fs": "local",
-    "eval_kwargs": {"criterion_method": "success_rate"}
+    "eval_kwargs": {"criterion_method": "success_rate"},
+    "privacy_proba": 0.3
 }
