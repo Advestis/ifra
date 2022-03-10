@@ -19,6 +19,8 @@ def apply_diff_privacy_classif(ruleset: RuleSet, y: np.ndarray, c_min: Optional[
 def apply_diff_privacy_regression(ruleset: RuleSet, y: np.ndarray, p: float, c_min: Optional[float] = None):
     n = len(y)
 
+    good_rules = []
+
     for r in ruleset:
         if r.prediction is None or np.isnan(r.prediction):
             continue
@@ -35,26 +37,20 @@ def apply_diff_privacy_regression(ruleset: RuleSet, y: np.ndarray, p: float, c_m
         lambda_value_activated = lambda_function(
             delta_p=delta_activated_min, delta_v=delta_activated_max, n=n, p=r.coverage
         )
-        # Can happen if only one point is activated, in which case lambda_value_pred should be equal to 0 but the
-        # rounding can give something like -5e-16
         if lambda_value_pred < 0:
-            if abs(lambda_value_pred) < 1e-10:
-                lambda_value_pred = 0
-            else:
-                raise ValueError(f"lambda_value_pred is negative : '{lambda_value_pred}'. How is that possible ??")
+            logging.warning("Got a negative lambda : not enough points to ensure privacy. Discarding rule.")
+            continue
         if lambda_value_activated < 0:
-            if abs(lambda_value_activated) < 1e-10:
-                lambda_value_activated = 0
-            else:
-                raise ValueError(
-                    f"lambda_value_activated is negative : '{lambda_value_activated}'. How is that possible ??"
-                )
+            logging.warning("got a negative lambda : not enough points to ensure privacy. Discarding rule.")
+            continue
         privacy_pred = r.prediction + np.random.laplace(0, lambda_value_pred)
         privacy_set_size = r.train_set_size + int(np.random.laplace(0, lambda_value_activated))
         logger.info(f"Privatised prediction : {r.prediction} -> {privacy_pred}")
         logger.info(f"Privatised train set size : {r.train_set_size} -> {privacy_set_size}")
         r._prediction = privacy_pred
         r._train_set_size = privacy_set_size
+        good_rules.append(r)
+    ruleset.rules = good_rules
 
 
 # noinspection PyProtectedMember

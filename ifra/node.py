@@ -278,6 +278,9 @@ class Node(Actor):
             logger.info(f"Did not find rules in node {self.learning_configs.id}")
         if self.model is not None:
             apply_diff_privacy(ruleset=self.model, y=y, p=self.learning_configs.privacy_proba)
+            if len(self.model) == 0:
+                logger.warning("No good rule left in model after applying differential privacy")
+                self.model = None
 
     @emit
     def update_from_central(self, model: RuleSet) -> None:
