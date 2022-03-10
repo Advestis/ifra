@@ -18,6 +18,9 @@ def get_weight(w: Union[None, str], rule: Rule):
             if "rule." not in w:
                 break
             if f"rule.{attr}" in w:
+                value = getattr(rule, attr)
+                if value is None or np.isnan(value):
+                    return None
                 w = w.replace(f"rule.{attr}", str(getattr(rule, attr)))
         if "rule." in w:
             raise ValueError(f"Could not interprete all attributes specified in weight str : '{w}'")
