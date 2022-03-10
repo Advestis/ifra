@@ -29,7 +29,7 @@ def apply_diff_privacy_regression(ruleset: RuleSet, y: np.ndarray, c_min: Option
             abs(max(y) - (max(y) * (min_pts - 1) + min(y)) / min_pts)
         )
         delta_pred_max = max(y) - min(y)
-        delta_activated_min = 1  # max vairation of number of activated points when changing one point is... well... 1 !
+        delta_activated_min = 1  # max variation of number of activated points when changing one point is... well... 1 !
         delta_activated_max = n
         lambda_value_pred = lambda_function(delta_p=delta_pred_min, delta_v=delta_pred_max, n=n, cov=r.coverage)
         lambda_value_activated = lambda_function(
