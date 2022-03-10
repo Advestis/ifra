@@ -50,7 +50,7 @@ def apply_diff_privacy_regression(ruleset: RuleSet, y: np.ndarray, c_min: Option
                     f"lambda_value_activated is negative : '{lambda_value_activated}'. How is that possible ??"
                 )
         privacy_pred = r.prediction + np.random.laplace(0, lambda_value_pred)
-        privacy_set_size = r.prediction + np.random.laplace(0, lambda_value_activated)
+        privacy_set_size = r.train_set_size + int(np.random.laplace(0, lambda_value_activated))
         logger.info(f"Privatised prediction : {r.prediction} -> {privacy_pred}")
         logger.info(f"Privatised train set size : {r.train_set_size} -> {privacy_set_size}")
         r._prediction = privacy_pred
