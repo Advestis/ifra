@@ -28,6 +28,13 @@ def apply_diff_privacy_regression(ruleset: RuleSet, y: np.ndarray, c_min: Option
         )
         delta_v = max(y) - min(y)
         lambda_value = lambda_function(delta_p=delta_p, delta_v=delta_v, n=n, cov=r.coverage)
+        # Can happen if only one point is activated, in which case lambda_value should be equal to 0 but the rounding
+        # can give something like -5e-16
+        if lambda_value < 0:
+            if abs(lambda_value) < 1e-10:
+                lambda_value = 0
+            else:
+                raise ValueError(f"lambda_value is negative : '{lambda_value}'. How is that possible ??")
         privacy_pred = r.prediction + np.random.laplace(0, lambda_value)
         r._prediction = privacy_pred
 
