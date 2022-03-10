@@ -215,6 +215,8 @@ def test_simple_init_and_watch():
         (regress_ruleset, regress_expected_ruleset, "equi", "max"),
         (regress_ruleset, regress_expected_ruleset_weighted, "criterion", "max"),
         (regress_ruleset, regress_expected_ruleset_weighted_reversed, "criterion", "min"),
+        (regress_ruleset, regress_expected_ruleset_weighted_reversed, "1 * rule.criterion", "min"),
+        (regress_ruleset, regress_expected_ruleset_weighted_reversed, "1 * (rule.criterion)", "min"),
     ),
 )
 def test_classif_pred_aggr(ruleset, expected_ruleset, weight, best):

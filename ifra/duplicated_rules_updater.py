@@ -1,10 +1,29 @@
+import numexpr as ne
 from collections import Counter
-from typing import Optional
+from typing import Optional, Union
 import numpy as np
-from ruleskit import RuleSet, ClassificationRule, RegressionRule
+from ruleskit import RuleSet, ClassificationRule, RegressionRule, Rule
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+def get_weight(w: Union[None, str], rule: Rule):
+    if w is None:
+        return None
+    if hasattr(rule, w):
+        return getattr(rule, w)
+    elif "rule." in w:
+        for attr in dir(rule):
+            if "rule." not in w:
+                break
+            if f"rule.{attr}" in w:
+                w = w.replace(f"rule.{attr}", str(getattr(rule, attr)))
+        if "rule." in w:
+            raise ValueError(f"Could not interprete all attributes specified in weight str : '{w}'")
+        return ne.evaluate(w).reshape(1)[0]
+    else:
+        raise ValueError(f"I do not undersand the weight string '{w}'")
 
 
 def update_duplicated_rules(
@@ -110,7 +129,7 @@ def update_regr_preds(model: RuleSet, weight: str = "equi", best: str = "max"):
         for i in duplicated_conditions[condition]:
             w = 1
             if weight != "equi":
-                w = getattr(model[i], weight)
+                w = get_weight(weight, model[i])
             if w is None or np.isnan(w):
                 continue
             preds.append(model[i].prediction)
