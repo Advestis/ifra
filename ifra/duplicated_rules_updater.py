@@ -54,11 +54,13 @@ def update_duplicated_rules(
         return False
 
     if aggregated_model.rule_type == ClassificationRule:
-        update_classif_preds(aggregated_model)
+        success = update_classif_preds(aggregated_model)
     elif aggregated_model.rule_type == RegressionRule:
-        update_regr_preds(aggregated_model, weight, best)
+        success = update_regr_preds(aggregated_model, weight, best)
     else:
         raise TypeError(f"Unexpected model's rule type {aggregated_model.rule_type}")
+    if not success:
+        return False
 
     for attr in aggregated_model.rule_type.rule_index:
         if attr in attributes_to_keep:
@@ -68,13 +70,13 @@ def update_duplicated_rules(
     return True
 
 
-def update_classif_preds(model: RuleSet):
+def update_classif_preds(model: RuleSet) -> bool:
     duplicated_conditions = {}
     to_remove = []
     conditions = [r.condition for r in model]
 
     if list(set(conditions)) == conditions:  # No duplicated conds -> no contradictory predictions -> do nothing
-        return
+        return True
 
     for i in range(len(model)):
         if conditions.count(conditions[i]) > 1:
@@ -111,15 +113,16 @@ def update_classif_preds(model: RuleSet):
     model._activation = None
     model.stacked_activations = None
     model._coverage = None
+    return True
 
 
-def update_regr_preds(model: RuleSet, weight: str = "equi", best: str = "max"):
+def update_regr_preds(model: RuleSet, weight: str = "equi", best: str = "max") -> bool:
     duplicated_conditions = {}
     to_remove = []
     conditions = [r.condition for r in model]
 
     if list(set(conditions)) == conditions:  # No duplicated conds -> no contradictory predictions -> do nothing
-        return
+        return True
 
     for i in range(len(model)):
         if conditions.count(conditions[i]) > 1:
@@ -144,6 +147,9 @@ def update_regr_preds(model: RuleSet, weight: str = "equi", best: str = "max"):
         if best == "min":
             weights = 1 - weights  # smaller weights become the best
             weights = weights / weights.sum()
+        if weights.sum() == 0:
+            logger.warning("Sum of weights is null. Discarding ruleset.")
+            return False
         pred = np.average(np.array(preds), weights=weights)
         first = True
         for i in duplicated_conditions[condition]:
@@ -160,3 +166,4 @@ def update_regr_preds(model: RuleSet, weight: str = "equi", best: str = "max"):
     model._activation = None
     model.stacked_activations = None
     model._coverage = None
+    return True

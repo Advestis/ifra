@@ -58,12 +58,16 @@ class Aggregation:
         """
         aggregated = self._aggregate(rulesets)
         if aggregated == "updated":
-            update_duplicated_rules(
+            success = update_duplicated_rules(
                 self.aggregator.model,
                 self.aggregator.aggregator_configs.weight,
                 self.aggregator.aggregator_configs.best
             )
-        logger.info(f"Aggregated {len(self.aggregator.model)} new rules")
+            if not success:
+                self.aggregator.model = None
+                aggregated = "Nein!"
+            else:
+                logger.info(f"Aggregated {len(self.aggregator.model)} new rules")
         return aggregated
 
 
