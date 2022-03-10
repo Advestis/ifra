@@ -1,7 +1,9 @@
 from typing import Optional
-
+import logging
 import numpy as np
 from ruleskit import RuleSet, ClassificationRule, RegressionRule
+
+logger = logging.getLogger(__name__)
 
 
 def lambda_function(delta_p, delta_v, n, cov):
@@ -22,21 +24,37 @@ def apply_diff_privacy_regression(ruleset: RuleSet, y: np.ndarray, c_min: Option
             continue
         c = r.coverage if c_min is None else c_min
         min_pts = int(n * c)
-        delta_p = max(
+        delta_pred_min = max(
             abs(min(y) - (min(y) * (min_pts - 1) + max(y)) / min_pts),
             abs(max(y) - (max(y) * (min_pts - 1) + min(y)) / min_pts)
         )
-        delta_v = max(y) - min(y)
-        lambda_value = lambda_function(delta_p=delta_p, delta_v=delta_v, n=n, cov=r.coverage)
-        # Can happen if only one point is activated, in which case lambda_value should be equal to 0 but the rounding
-        # can give something like -5e-16
-        if lambda_value < 0:
-            if abs(lambda_value) < 1e-10:
-                lambda_value = 0
+        delta_pred_max = max(y) - min(y)
+        delta_activated_min = 1  # max vairation of number of activated points when changing one point is... well... 1 !
+        delta_activated_max = n
+        lambda_value_pred = lambda_function(delta_p=delta_pred_min, delta_v=delta_pred_max, n=n, cov=r.coverage)
+        lambda_value_activated = lambda_function(
+            delta_p=delta_activated_min, delta_v=delta_activated_max, n=n, cov=r.coverage
+        )
+        # Can happen if only one point is activated, in which case lambda_value_pred should be equal to 0 but the
+        # rounding can give something like -5e-16
+        if lambda_value_pred < 0:
+            if abs(lambda_value_pred) < 1e-10:
+                lambda_value_pred = 0
             else:
-                raise ValueError(f"lambda_value is negative : '{lambda_value}'. How is that possible ??")
-        privacy_pred = r.prediction + np.random.laplace(0, lambda_value)
+                raise ValueError(f"lambda_value_pred is negative : '{lambda_value_pred}'. How is that possible ??")
+        if lambda_value_activated < 0:
+            if abs(lambda_value_activated) < 1e-10:
+                lambda_value_activated = 0
+            else:
+                raise ValueError(
+                    f"lambda_value_activated is negative : '{lambda_value_activated}'. How is that possible ??"
+                )
+        privacy_pred = r.prediction + np.random.laplace(0, lambda_value_pred)
+        privacy_set_size = r.prediction + np.random.laplace(0, lambda_value_activated)
+        logger.info(f"Privatised prediction : {r.prediction} -> {privacy_pred}")
+        logger.info(f"Privatised train set size : {r.train_set_size} -> {privacy_set_size}")
         r._prediction = privacy_pred
+        r._train_set_size = privacy_set_size
 
 
 # noinspection PyProtectedMember
