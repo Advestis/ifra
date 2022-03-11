@@ -236,7 +236,6 @@ class DecisionTreeClassificationFitter(DecisionTreeFitter):
             features_names=features_names,
             classes_names=classes_names,
             get_leaf=get_leaf,
-            stack_activation=True,
         )
 
         if len(self.model) > 0:
