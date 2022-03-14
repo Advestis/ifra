@@ -12,7 +12,7 @@
     "central_model_path_fs": "local",
     "id": "chien",
     "dataprep": "binfeatures",
-    "dataprep_kwargs": {"nbins": 5},
+    "dataprep_kwargs": {"nbins": 5, "bins": {}},
     "fitter": "decisiontreeclassification",
     "fitter_kwargs": {},
     "updater": "adaboost",

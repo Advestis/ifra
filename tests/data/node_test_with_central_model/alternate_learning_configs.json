@@ -14,7 +14,7 @@
     "central_model_path_fs": "local",
     "id": "cheval",
     "dataprep": "tests.alternates.dataprep.AlternateDataPrep",
-    "dataprep_kwargs": {"nbins": 5},
+    "dataprep_kwargs": {"nbins": 5, "bins": {}},
     "fitter": "tests.alternates.fitter.AlternateFitter",
     "fitter_kwargs": {},
     "updater": "tests.alternates.updater.AlternateUpdater",
