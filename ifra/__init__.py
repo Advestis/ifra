@@ -8,12 +8,12 @@ those steps:\n
   2. Having each node training its own model\n
   3. Aggregate the models into a single one and share it with the nodes\n
   4. Nodes produce a new model taking the central model into account for their next learning phase. In addition, in IFRA
-  the node will also produce a new model if its data are uptdated.\n
+  the node will also produce a new model if its data is uptdated.\n
 Steps 2 to 4 are an 'iteration' of the learning and are repeated until either the user stops the algorithm or some
 threshold is reached. In IFRA, no thresholds exist, and the learning stops when the user(s) decide so.
 
-Differential privacy is automatically applied in each node by slightly changing the prediction of the rules.
-(Only working for regression rule for now)
+Differential privacy is automatically applied in each node by slightly changing the prediction of the rules
+(Only working for regression rule for now).
 
 IFRA consists of 3 independent and asynchronous actors, represented by the abstract class `ifra.actor.Actor`.
 Each can be run individually and monitors changes in its inputs. The three actors are :
@@ -23,13 +23,14 @@ Each can be run individually and monitors changes in its inputs. The three actor
 
 This architecture is bug resilient, since if a node is down it can just be restarted without impacting the other actors.
 The difference between 'aggregated model' and 'central model' is that the central model will remember all the rules
-learned from the previous iterations, while the aggregated model only know the rules of the current iteration.
+learned from all previous iterations, while the aggregated model only know the rules of the current iteration.
 
 In IFRA, nodes are anonymous : they all write their model to the same directory that is monitored by the aggregator, and
 the aggregator does not have access to any information about the node. It does not know which node produced which model.
 
-In IFRA, one node produces one ruleset using the `ruleskit` package. Each user is free to define its own model by
-overloading the `ifra.fitters.Fitter` class. The available models currently are:\n
+In IFRA, one node produces one ruleskit.RuleSet object. Each user is free to define its own model by
+overloading the `ifra.fitters.Fitter` class, as long as it produces a ruleskit.RuleSet object.
+The available models currently are:\n
   * decisiontreeregression (see `ifra.fitters.DecisionTreeRegressionFitter` for details)\n
   * decisiontreeclassification (see `ifra.fitters.DecisionTreeClassificationFitter` for details)\n
 The user also has the liberty to define its own aggregation method, by overloading `ifra.aggregation.Aggregation`.
@@ -65,8 +66,8 @@ I/O rights for each actors.
   * The central server should have read access to the aggregated model, and write access to the place where the central
     model is read by the nodes.
 
-GCS paths are handeled by the `transparentpath` package. For testing purposes, those paths can be local if no global
-filesystem is set by transparentpath.
+GCS paths are handeled by transparentpath.TransparentPath objects. For testing purposes, those paths can be local if no
+global filesystem is set by transparentpath.TransparentPath.
 
 To use IFRA, you need to do 5 things:\n
   1. Define the nodes learning configurations in json files. It should be stored on GCS with read access by the node
@@ -91,29 +92,33 @@ Step 5, 6 and 7 can be done in any order.
 Example of step 1: you could create nodes learning configuration json files contaning:
 >>> {
 >>>     "features_names": ["sepal length in cm", "sepal width in cm", "petal length in cm", "petal width in cm"],
->>>     "classes_names": ["Iris-setosa", "Iris-versicolor", "Iris-virginica"],
+>>>     "classes_names": ["Iris-setosa", "Iris-versicolor", "Iris-virginica"],  # Use an empty list if using regression
 >>>     "x_mins": "",
 >>>     "x_maxs": "",
 >>>     "max_depth": 3,
->>>     "stack_activation": false,
 >>>     "plot_data": true,
 >>>     "get_leaf": false,
 >>>     "node_models_path": "gs://bucket_node_models",
 >>>     "node_models_path_fs": "gcs",
 >>>     "central_model_path": "gs://bucket_central_server/ruleset.csv",
 >>>     "central_model_path_fs": "gcs",
->>>     "id": "chien",
+>>>     "id": "node_name",
 >>>     "dataprep": "binfeatures",
->>>     "dataprep_kwargs": {"nbins": 5},
->>>     "fitter": "decisiontree",
+>>>     "dataprep_kwargs": {"nbins": 5, "bins": {}, "save_bins": "gs://bucket_node_0/bins.json"},
+>>>     "fitter": "decisiontreeclassification",
 >>>     "fitter_kwargs": {},
 >>>     "updater": "adaboost",
 >>>     "updater_kwargs": {},
+>>>     "train_test_split": "",
 >>>     "thresholds_path": "gs://bucket_node_0/thresholds.json",
 >>>     "thresholds_path_fs": "gcs",
 >>>     "emitter_path": "gs://bucket_node_0_messages/node_chien_messages.json",
->>>     "emitter_path_fs": "gcs"
+>>>     "emitter_path_fs": "gcs",
+>>>     "eval_kwargs": {"criterion_method": "success_rate"},
+>>>     "privacy_proba": 0.3
 >>> }
+
+See `ifra.configs.NodeLearningConfig` for information about those configurations.
 
 
 Example of step 2: you could create nodes data configuration json files contaning:
@@ -126,6 +131,8 @@ Example of step 2: you could create nodes data configuration json files contanin
 >>>   "y_path_fs": "gcs"
 >>> }
 
+See `ifra.configs.NodeDataConfig` for information about those configurations.
+
 Example of step 3: you could create a aggragator configuration json file contaning:
 >>> {
 >>>     "node_models_path": "gs://bucket_node_models",
@@ -136,8 +143,12 @@ Example of step 3: you could create a aggragator configuration json file contani
 >>>     "emitter_path_fs": "gcs",
 >>>     "min_number_of_new_models": 2,
 >>>     "aggregation": "adaboost",
->>>     "aggregation_kwargs": {}
+>>>     "aggregation_kwargs": {},
+>>>     "weight": "",
+>>>     "best": ""
 >>> }
+
+See `ifra.configs.AggretatorConfig` for information about those configurations.
 
 Example of step 4: you could create a central server configuration json file contaning:
 >>> {
@@ -148,6 +159,8 @@ Example of step 4: you could create a central server configuration json file con
 >>>     "emitter_path": "gs://bucket_central_messages/central_messages.json",
 >>>     "emitter_path_fs": "local"
 >>> }
+
+See `ifra.configs.CentralConfig` for information about those configurations.
 
 Example of step 5:
 >>> from ifra import Node, NodeLearningConfig, NodeDataConfig
