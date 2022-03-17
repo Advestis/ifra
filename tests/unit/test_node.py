@@ -53,6 +53,7 @@ def test_init_and_run_simple(clean):
     assert node.data.x_train_path == node.data.x_test_path
     assert node.data.y_train_path == node.data.y_test_path
     assert (node.data.x_path.parent / "plots").is_dir()
+    assert (node.data.x_path.parent / "bins.json").is_file()
     assert (node.data.x_path.parent / "plots_datapreped").is_dir()
     assert (node.data.x_path.parent / "plots_train").is_dir()
     assert (node.learning_configs.node_models_path / f"model_main_{node.filenumber}.csv").is_file()

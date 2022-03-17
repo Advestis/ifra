@@ -99,7 +99,6 @@ class Node(Actor):
         self.last_x = None
         self.last_y = None
         self.filenumber = None
-        self.iteration = 0
         RegressionRule.rule_index += ["train_test_size"]
         ClassificationRule.rule_index += ["train_test_size"]
         super().__init__(learning_configs=learning_configs, data=data)
@@ -272,7 +271,7 @@ class Node(Actor):
             )
             self.model_to_file()
             self.fitter.save(
-                self.learning_configs.node_models_path / f"model_{self.filenumber}_{self.iteration}"
+                self.learning_configs.node_models_path / f"model_{self.filenumber}_{self.iterations}"
             )
         else:
             logger.info(f"Did not find rules in node {self.learning_configs.id}")
@@ -324,8 +323,8 @@ class Node(Actor):
         else:
             path_main = self.learning_configs.node_models_path / f"model_main_{self.filenumber}.csv"
 
-        path_iteration = self.learning_configs.node_models_path / f"model_{self.filenumber}_{self.iteration}.csv"
-        self.iteration += 1
+        path_iteration = self.learning_configs.node_models_path / f"model_{self.filenumber}_{self.iterations}.csv"
+        self.iterations += 1
 
         if not path_main.parent.isdir():
             path_main.parent.mkdir(parents=True)
@@ -407,7 +406,8 @@ class Node(Actor):
             self.update_from_central(central_model)
             logger.info(f"Fetched central model in node {self.learning_configs.id} at {self.last_fetch}")
 
-        do_fit = True  # start at true to trigger fit even if no central model is here at first iteration
+        # start at true to trigger fit even if no central model is here at first iteration
+        do_fit = self.iterations == 0
         self.plot_dataprep_and_split()  # make dataprep at run start
         started = False  # To force at least one loop of the while to trigger
 

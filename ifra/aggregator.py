@@ -240,7 +240,6 @@ class Aggregator(Actor):
             How many seconds between each checks for new nodes models. Default value = 5.
         """
         updated_nodes = []
-        iterations = 0
 
         if timeout <= 0:
             logger.warning("You did not specify a timeout for your run. It will last until manually stopped.")
@@ -248,7 +247,7 @@ class Aggregator(Actor):
             "Starting aggregator. Monitoring changes in nodes' models directories"
             f" {self.aggregator_configs.node_models_path}."
         )
-        started = False  # To force at least one loop of the while to trigger
+        started = self.iterations != 0  # To force at least one loop of the while to trigger
 
         t = time()
         while time() - t < timeout or timeout <= 0 or started is False:
@@ -290,7 +289,7 @@ class Aggregator(Actor):
 
                     if self.model is None:
                         raise ValueError("Should never happen !")
-                    iterations += 1
+                    self.iterations += 1
                     self.model_to_file()
                 else:
                     logger.info("New models did not produce anything new yet.")
@@ -300,5 +299,5 @@ class Aggregator(Actor):
         logger.info(f"Timeout of {timeout} seconds reached, stopping aggregator.")
         if self.model is None:
             logger.warning("Learning failed to produce an aggregatored model. No output generated.")
-        logger.info(f"Made {iterations} complete iterations between aggregator and nodes.")
+        logger.info(f"Made {self.iterations} complete iterations between aggregator and nodes.")
         logger.info(f"Results saved in {self.aggregator_configs.aggregated_model_path}")

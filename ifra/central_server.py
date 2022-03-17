@@ -126,8 +126,7 @@ class CentralServer(Actor):
             How many seconds between each checks for new nodes models. Default value = 5.
         """
 
-        iterations = 0
-        started = False  # To force at least one loop of the while to trigger
+        started = self.iterations != 0  # To force at least one loop of the while to trigger
 
         if timeout <= 0:
             logger.warning("You did not specify a timeout for your run. It will last until manually stopped.")
@@ -139,19 +138,19 @@ class CentralServer(Actor):
             if len(self.model) == 0:
                 if self.central_configs.aggregated_model_path.is_file():
                     self.update()
-                    iterations += 1
+                    self.iterations += 1
             else:
                 if (
                         self.central_configs.aggregated_model_path.is_file()
                         and self.central_configs.aggregated_model_path.info()["mtime"] > self.last_fetch.timestamp()
                 ):
                     self.update()
-                    iterations += 1
+                    self.iterations += 1
 
             sleep(sleeptime)
 
         logger.info(f"Timeout of {timeout} seconds reached, stopping central server.")
         if self.model is None:
             logger.warning("Learning failed to produce a central model. No output generated.")
-        logger.info(f"Made {iterations} complete iterations between central server and aggregator.")
+        logger.info(f"Made {self.iterations} complete iterations between central server and aggregator.")
         logger.info(f"Results saved in {self.central_configs.central_model_path}")
