@@ -412,7 +412,8 @@ class Node(Actor):
 
         if timeout <= 0:
             logger.warning(
-                f"{self.learning_configs.id} - You did not specify a timeout for your run. It will last until manually stopped."
+                f"{self.learning_configs.id} -"
+                " You did not specify a timeout for your run. It will last until manually stopped."
             )
 
         logger.info(f"{self.learning_configs.id} - Starting run")
