@@ -61,13 +61,14 @@ class Aggregation:
             success = update_duplicated_rules(
                 self.aggregator.model,
                 self.aggregator.aggregator_configs.weight,
-                self.aggregator.aggregator_configs.best
+                self.aggregator.aggregator_configs.best,
+                name="Aggregation"
             )
             if not success:
                 self.aggregator.model = None
                 aggregated = "Nein!"
             else:
-                logger.info(f"Aggregated {len(self.aggregator.model)} new rules")
+                logger.info(f"Aggrgation - Aggregated {len(self.aggregator.model)} new rules")
         return aggregated
 
 
@@ -80,7 +81,7 @@ class AdaBoostAggregation(Aggregation):
     def _aggregate(self, rulesets: List[RuleSet]) -> str:
         """In AdaBoostAggregation, 'aggregate' only returns "updated", for bad and already known rules should have been
         filtered out by the nodes already."""
-        logger.info("Aggregating fit results using AdaBoost method...")
+        logger.info("Aggrgation - Aggregating fit results using AdaBoost method...")
         all_rules = []
 
         for rs in rulesets:

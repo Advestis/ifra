@@ -1,3 +1,5 @@
+import pandas as pd
+
 from ifra import Node
 from ifra.configs import Config, NodeLearningConfig, NodeDataConfig
 from ifra.fitters import Fitter, DecisionTreeClassificationFitter
@@ -27,13 +29,13 @@ def test_init_and_run_simple(clean):
 
     assert not (node.data.x_path.parent / "x_datapreped.csv").is_file()
     assert not (node.data.y_path.parent / "y_datapreped.csv").is_file()
-    assert not (node.data.x_path.parent / "x_train.csv").is_file()
-    assert not (node.data.y_path.parent / "y_train.csv").is_file()
+    assert not (node.data.x_path.parent / "x_train_0.csv").is_file()
+    assert not (node.data.y_path.parent / "y_train_0.csv").is_file()
     assert not (node.data.x_path.parent / "x_test.csv").is_file()
     assert not (node.data.y_path.parent / "y_test.csv").is_file()
     assert not (node.data.x_path.parent / "plots").is_dir()
     assert not (node.data.x_path.parent / "plots_datapreped").is_dir()
-    assert not (node.data.x_path.parent / "plots_train").is_dir()
+    assert not (node.data.x_path.parent / "plots_train_0").is_dir()
 
     assert node.emitter.doing is None
     assert node.emitter.error is None
@@ -47,16 +49,26 @@ def test_init_and_run_simple(clean):
     assert node.data.y_datapreped_path.is_file()
     assert node.data.y_datapreped_path == node.data.y_path.parent / "y_datapreped.csv"
     assert node.data.x_train_path.is_file()
-    assert node.data.x_train_path == node.data.x_path.parent / "x_train.csv"
+    assert node.data.x_train_path == node.data.x_path.parent / "x_train_0.csv"
     assert node.data.y_train_path.is_file()
-    assert node.data.y_train_path == node.data.y_path.parent / "y_train.csv"
+    assert node.data.y_train_path == node.data.y_path.parent / "y_train_0.csv"
     assert node.data.x_train_path == node.data.x_test_path
     assert node.data.y_train_path == node.data.y_test_path
     assert (node.data.x_path.parent / "plots").is_dir()
+    assert (node.data.x_path.parent / "bins.json").is_file()
     assert (node.data.x_path.parent / "plots_datapreped").is_dir()
-    assert (node.data.x_path.parent / "plots_train").is_dir()
+    assert (node.data.x_path.parent / "plots_train_0").is_dir()
     assert (node.learning_configs.node_models_path / f"model_main_{node.filenumber}.csv").is_file()
     assert (node.learning_configs.node_models_path / f"model_{node.filenumber}_0.csv").is_file()
+
+    try:
+        pd.testing.assert_frame_equal(node.data.x_path.read(), node.data.x_datapreped_path.read())
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError("x and x_datapreped DataFrames should be different")
+
+    pd.testing.assert_frame_equal(node.data.y_path.read(), node.data.y_datapreped_path.read())
 
     assert node.data.x_datapreped_path.read().values.dtype == int
     assert node.data.x_train_path.read().values.dtype == int
@@ -88,3 +100,7 @@ def test_init_and_run_central_model_present(clean):
         data=NodeDataConfig("tests/data/node_test_with_central_model/data_configs.json"),
     )
     node.run(timeout=1, sleeptime=0.1)
+
+    x = node.data.x_path.read()
+    x_train = node.data.x_train_path.read()
+    assert len(x.index) > len(x_train.index)

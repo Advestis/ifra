@@ -37,7 +37,6 @@ class Fitter:
         """
         self.learning_configs = learning_configs
         self.model = None
-        Rule.SET_THRESHOLDS(self.learning_configs.thresholds_path)
         for arg in kwargs:
             setattr(self, arg, kwargs[arg])
 
@@ -79,6 +78,9 @@ class DecisionTreeFitter(Fitter):
         RuleSet
             `ifra.fitters.DecisionTreeFitter` *model*
         """
+        # This needs to be done here in case we are using multiprocessing : spawned processes re-import everything
+        # from scrach, so Rule.THRESHOLDS are reset
+        Rule.SET_THRESHOLDS(self.learning_configs.thresholds_path)
         self.make_fit(
             x=x,
             y=y,

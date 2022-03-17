@@ -49,8 +49,6 @@ class CentralServer(Actor):
     @emit
     def create(self):
         self.model = RuleSet()
-        # s = "\n".join([f"{key}: {self.central_configs.configs[key]}" for key in self.central_configs.configs])
-        # logger.info(f"Central Server configuration:\n{s}")
 
     @emit
     def update(self):
@@ -72,12 +70,12 @@ class CentralServer(Actor):
             for r in aggregated_model:
                 if r in self.model:
                     logger.warning(
-                        f"Rule '{r}' was aggregated despite being already in the central server. It is ignored, its"
-                        " prediction is discarded."
+                        f"Central Server - Rule '{r}' was aggregated despite being already in the central server. "
+                        "It is ignored, its prediction is discarded."
                     )
                 else:
                     self.model.append(r, update_activation=False)
-        logger.info(f"Fetched new model from aggregator at {self.last_fetch}")
+        logger.info(f"Central Server - Fetched new model from aggregator at {self.last_fetch}")
         self.model_to_file()
 
     @emit
@@ -101,7 +99,7 @@ class CentralServer(Actor):
             path.parent.mkdir(parents=True)
         model.save(path)
         model.save(self.central_configs.central_model_path)
-        logger.info(f"Saved central model in '{self.central_configs.central_model_path}'")
+        logger.info(f"Central Server - Saved central model in '{self.central_configs.central_model_path}'")
 
         try:
             path_table = path.with_suffix(".pdf")
@@ -109,7 +107,7 @@ class CentralServer(Actor):
                 path_table, path.read(index_col=0).apply(lambda x: x.round(3) if x.dtype == float else x), paperwidth=30
             ).compile(clean_tex=True)
         except ValueError:
-            logger.warning("Failed to produce tablewriter. Is LaTeX installed ?")
+            logger.warning("Central Server - Failed to produce tablewriter. Is LaTeX installed ?")
 
     @emit
     def run(self, timeout: Union[int, float] = 0, sleeptime: Union[int, float] = 5):
@@ -126,12 +124,16 @@ class CentralServer(Actor):
             How many seconds between each checks for new nodes models. Default value = 5.
         """
 
-        iterations = 0
-        started = False  # To force at least one loop of the while to trigger
+        started = self.iterations != 0  # To force at least one loop of the while to trigger
 
         if timeout <= 0:
-            logger.warning("You did not specify a timeout for your run. It will last until manually stopped.")
-        logger.info(f"Starting central server. Monitoring changes in {self.central_configs.aggregated_model_path}.")
+            logger.warning(
+                "Central Server - You did not specify a timeout for your run. It will last until manually stopped."
+            )
+        logger.info(
+            "Central Server - Starting central server. Monitoring changes in"
+            f" {self.central_configs.aggregated_model_path}."
+        )
 
         t = time()
         while time() - t < timeout or timeout <= 0 or started is False:
@@ -139,19 +141,21 @@ class CentralServer(Actor):
             if len(self.model) == 0:
                 if self.central_configs.aggregated_model_path.is_file():
                     self.update()
-                    iterations += 1
+                    self.iterations += 1
             else:
                 if (
                         self.central_configs.aggregated_model_path.is_file()
                         and self.central_configs.aggregated_model_path.info()["mtime"] > self.last_fetch.timestamp()
                 ):
                     self.update()
-                    iterations += 1
+                    self.iterations += 1
 
             sleep(sleeptime)
 
-        logger.info(f"Timeout of {timeout} seconds reached, stopping central server.")
+        logger.info(f"Central Server - Timeout of {timeout} seconds reached, stopping central server.")
         if self.model is None:
             logger.warning("Learning failed to produce a central model. No output generated.")
-        logger.info(f"Made {iterations} complete iterations between central server and aggregator.")
-        logger.info(f"Results saved in {self.central_configs.central_model_path}")
+        logger.info(
+            f"Central Server - Made {self.iterations} complete iterations between central server and aggregator."
+        )
+        logger.info(f"Central Server - Results saved in {self.central_configs.central_model_path}")

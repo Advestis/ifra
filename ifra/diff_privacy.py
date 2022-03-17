@@ -11,12 +11,16 @@ def lambda_function(delta_p, delta_v, n, p):
 
 
 # noinspection PyProtectedMember
-def apply_diff_privacy_classif(ruleset: RuleSet, y: np.ndarray, c_min: Optional[float] = None):
+def apply_diff_privacy_classif(
+    ruleset: RuleSet, y: np.ndarray, c_min: Optional[float] = None, name: Optional[str] = None
+):
     pass
 
 
 # noinspection PyProtectedMember
-def apply_diff_privacy_regression(ruleset: RuleSet, y: np.ndarray, p: float, c_min: Optional[float] = None):
+def apply_diff_privacy_regression(
+    ruleset: RuleSet, y: np.ndarray, p: float, c_min: Optional[float] = None, name: Optional[str] = None
+):
     n = len(y)
 
     good_rules = []
@@ -28,7 +32,7 @@ def apply_diff_privacy_regression(ruleset: RuleSet, y: np.ndarray, p: float, c_m
         min_pts = int(n * c)
         delta_pred_min = max(
             abs(min(y) - (min(y) * (min_pts - 1) + max(y)) / min_pts),
-            abs(max(y) - (max(y) * (min_pts - 1) + min(y)) / min_pts)
+            abs(max(y) - (max(y) * (min_pts - 1) + min(y)) / min_pts),
         )
         delta_pred_max = max(y) - min(y)
         delta_activated_min = 1  # max variation of number of activated points when changing one point is... well... 1 !
@@ -38,15 +42,15 @@ def apply_diff_privacy_regression(ruleset: RuleSet, y: np.ndarray, p: float, c_m
             delta_p=delta_activated_min, delta_v=delta_activated_max, n=n, p=r.coverage
         )
         if lambda_value_pred < 0:
-            logging.warning("Got a negative lambda : not enough points to ensure privacy. Discarding rule.")
+            logging.warning(f"{name} - Got a negative lambda : not enough points to ensure privacy. Discarding rule.")
             continue
         if lambda_value_activated < 0:
-            logging.warning("got a negative lambda : not enough points to ensure privacy. Discarding rule.")
+            logging.warning(f"{name} - got a negative lambda : not enough points to ensure privacy. Discarding rule.")
             continue
         privacy_pred = r.prediction + np.random.laplace(0, lambda_value_pred)
         privacy_set_size = r.train_set_size + int(np.random.laplace(0, lambda_value_activated))
-        logger.info(f"Privatised prediction : {r.prediction} -> {privacy_pred}")
-        logger.info(f"Privatised train set size : {r.train_set_size} -> {privacy_set_size}")
+        # logger.info(f"{name} - Privatised prediction : {r.prediction} -> {privacy_pred}")
+        # logger.info(f"{name} - Privatised train set size : {r.train_set_size} -> {privacy_set_size}")
         r._prediction = privacy_pred
         r._train_set_size = privacy_set_size
         good_rules.append(r)
@@ -54,7 +58,9 @@ def apply_diff_privacy_regression(ruleset: RuleSet, y: np.ndarray, p: float, c_m
 
 
 # noinspection PyProtectedMember
-def apply_diff_privacy(ruleset: RuleSet, y: np.ndarray, p: float, c_min: Optional[float] = None):
+def apply_diff_privacy(
+    ruleset: RuleSet, y: np.ndarray, p: float, c_min: Optional[float] = None, name: Optional[str] = None
+):
     """
     Modifies rules predictions and train set size to make the learning private up to a probability 'p' of identifying
     their real values.
@@ -63,8 +69,9 @@ def apply_diff_privacy(ruleset: RuleSet, y: np.ndarray, p: float, c_min: Optiona
     ----------
     ruleset: RuleSet
     y: np.ndarray
-    c_min: Optional[float]
     p: float
+    c_min: Optional[float]
+    name: Optional[str]
 
     Returns
     -------
@@ -77,8 +84,8 @@ def apply_diff_privacy(ruleset: RuleSet, y: np.ndarray, p: float, c_min: Optiona
     if ruleset.rule_type is None:
         return
     if issubclass(ruleset.rule_type, ClassificationRule):
-        apply_diff_privacy_classif(ruleset=ruleset, y=y, c_min=c_min)
+        apply_diff_privacy_classif(ruleset=ruleset, y=y, c_min=c_min, name=name)
     elif issubclass(ruleset.rule_type, RegressionRule):
-        apply_diff_privacy_regression(ruleset=ruleset, y=y, c_min=c_min, p=p)
+        apply_diff_privacy_regression(ruleset=ruleset, y=y, c_min=c_min, p=p, name=name)
     else:
         raise TypeError(f"Invalid rule type {ruleset.rule_type}. Must derive from ClassificationRule or RegressionRule")

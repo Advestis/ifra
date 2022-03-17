@@ -12,6 +12,7 @@ class Actor:
 
     def __init__(self, **configs: Union[Config, List[Config]]):
         self.emitter_path = None
+        self.iterations = 0
 
         for config in configs:
             if isinstance(configs[config], list):
