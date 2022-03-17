@@ -34,7 +34,8 @@ def get_weight(w: Union[None, str], rule: Rule):
 def update_duplicated_rules(
         aggregated_model: RuleSet,
         weight: Optional[str] = None,
-        best: str = "max"
+        best: str = "max",
+        name: Optional[str] = None
 ) -> bool:
     """Used by `ifra.aggragations.Aggregation.aggregate` to take into account the new aggregated model.
 
@@ -50,15 +51,15 @@ def update_duplicated_rules(
     attributes_to_keep = ["prediction"]
 
     if len(aggregated_model) == 0:
-        logger.warning("No new rules in aggregated model")
+        logger.warning(f"{name} - No new rules in aggregated model")
         return False
 
     if aggregated_model.rule_type == ClassificationRule:
-        success = update_classif_preds(aggregated_model)
+        success = update_classif_preds(aggregated_model, name=name)
     elif aggregated_model.rule_type == RegressionRule:
-        success = update_regr_preds(aggregated_model, weight, best)
+        success = update_regr_preds(aggregated_model, weight, best, name=name)
     else:
-        raise TypeError(f"Unexpected model's rule type {aggregated_model.rule_type}")
+        raise TypeError(f"{name} - Unexpected model's rule type {aggregated_model.rule_type}")
     if not success:
         return False
 
@@ -70,7 +71,7 @@ def update_duplicated_rules(
     return True
 
 
-def update_classif_preds(model: RuleSet) -> bool:
+def update_classif_preds(model: RuleSet, name: Optional[str] = None) -> bool:
     duplicated_conditions = {}
     to_remove = []
     conditions = [r.condition for r in model]
@@ -116,7 +117,7 @@ def update_classif_preds(model: RuleSet) -> bool:
     return True
 
 
-def update_regr_preds(model: RuleSet, weight: str = "equi", best: str = "max") -> bool:
+def update_regr_preds(model: RuleSet, weight: str = "equi", best: str = "max", name: Optional[str] = None) -> bool:
     duplicated_conditions = {}
     to_remove = []
     conditions = [r.condition for r in model]
@@ -148,7 +149,7 @@ def update_regr_preds(model: RuleSet, weight: str = "equi", best: str = "max") -
             weights = 1 - weights  # smaller weights become the best
             weights = weights / weights.sum()
         if weights.sum() == 0:
-            logger.warning("Sum of weights is null. Discarding ruleset.")
+            logger.warning(f"{name} - Sum of weights is null. Discarding ruleset.")
             return False
         pred = np.average(np.array(preds), weights=weights)
         first = True

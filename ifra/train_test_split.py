@@ -27,7 +27,7 @@ class TrainTestSplit:
         """
         self.data = data
 
-    def split(self, iteration: Optional[int] = None):
+    def split(self, iteration: Optional[int] = None, name: Optional[str] = None):
         """Splits x and y into train and test sets by calling `ifra.train_test_split.TrainTestSplit.split_method`.
         Will write the train datasets in ifra.node.Node`'s *data.x_path* and `ifra.node.Node`'s *data.y_path*
         parent directories by appending *_train* to the files names.
@@ -39,12 +39,14 @@ class TrainTestSplit:
         if hasattr(self.data, "x_datapreped_path"):
             x_train, x_test, y_train, y_test = self.split_method(
                 self.data.x_datapreped_path.read(**self.data.x_read_kwargs),
-                load_y(self.data.y_datapreped_path, **self.data.y_read_kwargs)
+                load_y(self.data.y_datapreped_path, **self.data.y_read_kwargs),
+                name=name
             )
         else:
             x_train, x_test, y_train, y_test = self.split_method(
                 self.data.x_path.read(**self.data.x_read_kwargs),
-                load_y(self.data.y_path, **self.data.y_read_kwargs)
+                load_y(self.data.y_path, **self.data.y_read_kwargs),
+                name=name
             )
         x_suffix = self.data.x_path.suffix
         y_suffix = self.data.y_path.suffix
@@ -77,7 +79,7 @@ class TrainTestSplit:
 
     # noinspection PyMethodMayBeStatic
     def split_method(
-        self, x: pd.DataFrame, y: pd.Series
+        self, x: pd.DataFrame, y: pd.Series, name: Optional[str] = None
     ) -> Tuple[
         Union[pd.DataFrame, np.ndarray],
         Union[pd.DataFrame, np.ndarray, None],
@@ -92,5 +94,5 @@ class TrainTestSplit:
               Union[pd.DataFrame, pd.Series, np.ndarray], Union[pd.DataFrame, pd.Series, np.ndarray, None]]:
             x_train, x_test, y_train, y_test. Tests dataset can be None.
         """
-        logger.info("No splitting required")
+        logger.info(f"{name} - No splitting required")
         return x, None, y, None
