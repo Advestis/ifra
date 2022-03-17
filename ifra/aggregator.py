@@ -84,7 +84,7 @@ class NodeGate:
             self.model.load(self.model_path)
             self.last_fetch = datetime.now()
             self.new_model_found = True
-            logger.info(f"Fetched new model from node {self.id} at {self.last_fetch}")
+            logger.info(f"Aggregator - Fetched new model from node {self.id} at {self.last_fetch}")
 
         if self.model is None:
             # The node has not produced any model yet if self.model is None. No need to bother with self.last_fetch
@@ -93,7 +93,7 @@ class NodeGate:
                 get_model()
                 return True
             else:
-                logger.warning(f"model located at {self.model_path} disapeared.")
+                logger.warning(f"Aggregator - model located at {self.model_path} disapeared.")
                 return False
         else:
             # The node has already produced a model. So we only get its model if it is new. We know that by
@@ -103,10 +103,10 @@ class NodeGate:
                     get_model()
                     return True
                 else:
-                    logger.debug(f"Node {self.id} has no new model. Skipping for now.")
+                    logger.debug(f"Aggregator - Node {self.id} has no new model. Skipping for now.")
                     return False
             else:
-                logger.warning(f"Model located at {self.model_path} disapeared.")
+                logger.warning(f"Aggregator - Model located at {self.model_path} disapeared.")
                 return False
 
 
@@ -215,7 +215,7 @@ class Aggregator(Actor):
             path.parent.mkdir(parents=True)
         model.save(path)
         model.save(self.aggregator_configs.aggregated_model_path)
-        logger.info(f"Saved aggregated model in '{self.aggregator_configs.aggregated_model_path}'")
+        logger.info(f"Aggregator - Saved aggregated model in '{self.aggregator_configs.aggregated_model_path}'")
 
         try:
             path_table = path.with_suffix(".pdf")
@@ -223,7 +223,7 @@ class Aggregator(Actor):
                 path_table, path.read(index_col=0).apply(lambda x: x.round(3) if x.dtype == float else x), paperwidth=30
             ).compile(clean_tex=True)
         except ValueError:
-            logger.warning("Failed to produce tablewriter. Is LaTeX installed ?")
+            logger.warning("Aggregator - Failed to produce tablewriter. Is LaTeX installed ?")
 
     @emit
     def run(self, timeout: Union[int, float] = 0, sleeptime: Union[int, float] = 5):
@@ -242,7 +242,9 @@ class Aggregator(Actor):
         updated_nodes = []
 
         if timeout <= 0:
-            logger.warning("You did not specify a timeout for your run. It will last until manually stopped.")
+            logger.warning(
+                "Aggregator - You did not specify a timeout for your run. It will last until manually stopped."
+            )
         logger.info(
             "Starting aggregator. Monitoring changes in nodes' models directories"
             f" {self.aggregator_configs.node_models_path}."
@@ -265,10 +267,10 @@ class Aggregator(Actor):
                     self.nodes.append(node)
                     new_nodes += 1
                 else:
-                    logger.warning("One node could not be instantiated. Ignoring it.")
+                    logger.warning("Aggregator - One node could not be instantiated. Ignoring it.")
 
             if new_nodes > 0:
-                logger.info(f"Found {new_nodes} new nodes. Aggregator now knows {len(self.nodes)} nodes.")
+                logger.info(f"Aggregator - Found {new_nodes} new nodes. Aggregator now knows {len(self.nodes)} nodes.")
 
             for node in self.nodes:
                 # Node fetches its latest model from GCP. Returns True if a new model was found.
@@ -281,7 +283,7 @@ class Aggregator(Actor):
                     new_models = True
 
             if new_models:
-                logger.info(f"Found enough ({len(updated_nodes)}) new nodes models.")
+                logger.info(f"Aggregator - Found enough ({len(updated_nodes)}) new nodes models.")
                 what_now = self.aggregate([node.model for node in set(updated_nodes)])
                 if what_now == "updated":
                     # Aggregation successfully updated aggregated model: clean the list of updated nodes.
@@ -292,12 +294,12 @@ class Aggregator(Actor):
                     self.iterations += 1
                     self.model_to_file()
                 else:
-                    logger.info("New models did not produce anything new yet.")
+                    logger.info("Aggregator - New models did not produce anything new yet.")
 
             sleep(sleeptime)
 
-        logger.info(f"Timeout of {timeout} seconds reached, stopping aggregator.")
+        logger.info(f"Aggregator - Timeout of {timeout} seconds reached, stopping aggregator.")
         if self.model is None:
             logger.warning("Learning failed to produce an aggregatored model. No output generated.")
-        logger.info(f"Made {self.iterations} complete iterations between aggregator and nodes.")
-        logger.info(f"Results saved in {self.aggregator_configs.aggregated_model_path}")
+        logger.info(f"Aggregator - Made {self.iterations} complete iterations between aggregator and nodes.")
+        logger.info(f"Aggregator - Results saved in {self.aggregator_configs.aggregated_model_path}")

@@ -69,7 +69,7 @@ class Node(Actor):
 
     possible_fitters = {
         "decisiontreeclassification": DecisionTreeClassificationFitter,
-        "decisiontreeregression": DecisionTreeRegressionFitter
+        "decisiontreeregression": DecisionTreeRegressionFitter,
     }
     """Possible string values and corresponding fitter object for *fitter* attribute of
     `ifra.configs.NodeLearningConfig`"""
@@ -197,11 +197,11 @@ class Node(Actor):
         self.last_x = self.last_y = datetime.now()
 
         if self.dataprep is not None and not self.datapreped:
-            logger.info(f"Datapreping data of node {self.learning_configs.id}...")
+            logger.info(f"{self.learning_configs.id} - Datapreping...")
             self.dataprep.dataprep()
             self.datapreped = True
             self._plot(self.data.x_path, "plots_datapreped")
-            logger.info(f"...datapreping done for node {self.learning_configs.id}")
+            logger.info(f"{self.learning_configs.id} - ...datapreping done")
 
     @emit
     def _split(self):
@@ -210,13 +210,13 @@ class Node(Actor):
         sets `ifra.node.Node` splitted to True, plots the distributions of the splitted data.
         """
         if not self.splitted:
-            logger.info(f"Splitting data of node {self.learning_configs.id} in train/test...")
-            self.train_test_split.split()
+            logger.info(f"{self.learning_configs.id} - Splitting data in train/test...")
+            self.train_test_split.split(self.iterations)
             self.splitted = True
-            self._plot(self.data.x_train_path, "plots_train")
+            self._plot(self.data.x_train_path, f"plots_train_{self.iterations}")
             if self.data.x_train_path != self.data.x_test_path:
                 self._plot(self.data.x_test_path, "plots_test")
-            logger.info(f"...splitting done for node {self.learning_configs.id}")
+            logger.info(f"{self.learning_configs.id} - ...splitting done")
 
     @emit
     def fit(self) -> None:
@@ -241,13 +241,13 @@ class Node(Actor):
         else:
             y_test = y
 
-        logger.info(f"Fitting node {self.learning_configs.id} using {self.learning_configs.fitter}...")
+        logger.info(f"{self.learning_configs.id} - Fitting with {self.learning_configs.fitter}...")
         if len(x) == 0:
-            logger.warning(f"No data in node {self.learning_configs.id}'s features")
+            logger.warning(f"{self.learning_configs.id} - No data in node's features")
             return
         self.model = self.fitter.fit(x=x, y=y)
         if self.model is None:
-            logger.warning(f"Fitter could not produce a model in node {self.learning_configs.id}")
+            logger.warning(f"{self.learning_configs.id} - Fitter could not produce a model")
             return
         central_model_path = self.learning_configs.central_model_path
         if central_model_path.isfile():
@@ -259,26 +259,25 @@ class Node(Actor):
         if len(self.model) > 0:
             self.coverage = self.model.ruleset_coverage
             self.model.eval(
-                xs=x_test,
-                y=y_test,
-                keep_new_activations=x_test is not None,
-                **self.learning_configs.eval_kwargs
+                xs=x_test, y=y_test, keep_new_activations=x_test is not None, **self.learning_configs.eval_kwargs
             )
             # noinspection PyProtectedMember
             logger.info(
-                f"Found {len(self.model)} new good rules in node {self.learning_configs.id}."
+                f"{self.learning_configs.id} - Found {len(self.model)} new good rules."
                 f" Criterion is {round(self.model.criterion, 3)}, coverage is {round(self.coverage, 3)}"
             )
             self.model_to_file()
-            self.fitter.save(
-                self.learning_configs.node_models_path / f"model_{self.filenumber}_{self.iterations}"
-            )
+            self.fitter.save(self.learning_configs.node_models_path / f"model_{self.filenumber}_{self.iterations}")
         else:
-            logger.info(f"Did not find rules in node {self.learning_configs.id}")
+            logger.info(f"{self.learning_configs.id} - Did not find rules")
         if self.model is not None and self.learning_configs.privacy_proba is not None:
-            apply_diff_privacy(ruleset=self.model, y=y, p=self.learning_configs.privacy_proba)
+            apply_diff_privacy(
+                ruleset=self.model, y=y, p=self.learning_configs.privacy_proba, name=self.learning_configs.id
+            )
             if len(self.model) == 0:
-                logger.warning("No good rule left in model after applying differential privacy")
+                logger.warning(
+                    f"{self.learning_configs.id} - No good rule left in model after applying differential privacy"
+                )
                 self.model = None
 
     @emit
@@ -291,10 +290,10 @@ class Node(Actor):
         model: RuleSet
             The central model
         """
-        logger.info(f"Updating node {self.learning_configs.id}...")
+        logger.info(f"{self.learning_configs.id} - Updating node...")
         # Compute activation of the selected rules
         self.updater.update(model)
-        logger.info(f"... node {self.learning_configs.id} updated.")
+        logger.info(f"{self.learning_configs.id} - ... node updated.")
 
     @emit
     def model_to_file(self) -> None:
@@ -312,7 +311,7 @@ class Node(Actor):
 
         if not self.learning_configs.node_models_path.isdir():
             self.learning_configs.node_models_path.mkdir(parents=True)
-        existing_files = list(self.learning_configs.node_models_path.glob('model_main_*.csv'))
+        existing_files = list(self.learning_configs.node_models_path.glob("model_main_*.csv"))
         if self.filenumber is None:
             self.filenumber = random.randint(0, int(1e6))
             path_main = self.learning_configs.node_models_path / f"model_main_{self.filenumber}.csv"
@@ -331,7 +330,7 @@ class Node(Actor):
         model.save(path_main)
         model.save(path_iteration)
 
-        logger.info(f"Node {self.learning_configs.id}'s model saved in {path_iteration} and {path_main}.")
+        logger.info(f"{self.learning_configs.id} - Node's model saved in {path_iteration} and {path_main}.")
 
         try:
             path_table = path_main.with_suffix(".pdf")
@@ -342,7 +341,7 @@ class Node(Actor):
                 df = pd.DataFrame(data=[["empty"]])
             TableWriter(path_table, df, paperwidth=30).compile(clean_tex=True)
         except ValueError:
-            logger.warning("Failed to produce tablewriter. Is LaTeX installed ?")
+            logger.warning(f"{self.learning_configs.id} - Failed to produce tablewriter. Is LaTeX installed ?")
 
     @emit
     def plot_data_histogram(self, x_path: TransparentPath, output_path: TransparentPath) -> None:
@@ -404,7 +403,7 @@ class Node(Actor):
             central_model.load(self.learning_configs.central_model_path)
             self.last_fetch = datetime.now()
             self.update_from_central(central_model)
-            logger.info(f"Fetched central model in node {self.learning_configs.id} at {self.last_fetch}")
+            logger.info(f"{self.learning_configs.id} - Fetched central model at {self.last_fetch}")
 
         # start at true to trigger fit even if no central model is here at first iteration
         do_fit = self.iterations == 0
@@ -412,9 +411,11 @@ class Node(Actor):
         started = False  # To force at least one loop of the while to trigger
 
         if timeout <= 0:
-            logger.warning("You did not specify a timeout for your run. It will last until manually stopped.")
+            logger.warning(
+                f"{self.learning_configs.id} - You did not specify a timeout for your run. It will last until manually stopped."
+            )
 
-        logger.info(f"Starting node {self.learning_configs.id}")
+        logger.info(f"{self.learning_configs.id} - Starting run")
         logger.info(
             f"Starting node {self.learning_configs.id}. Monitoring changes in "
             f"{self.learning_configs.central_model_path}, {self.data.x_path} and {self.data.y_path}."
@@ -432,7 +433,7 @@ class Node(Actor):
                 )
             ):
                 # New data arrived for the node to use : redo dataprep and copy and force update from the central model
-                logger.info(f"New data available for node {self.learning_configs.id}")
+                logger.info(f"{self.learning_configs.id} - New data available")
                 self.datapreped = False
                 self.splitted = False
                 self.last_fetch = None
@@ -457,4 +458,4 @@ class Node(Actor):
                 do_fit = False
             sleep(sleeptime)
 
-        logger.info(f"Timeout of {timeout} seconds reached, stopping learning in node {self.learning_configs.id}.")
+        logger.info(f"{self.learning_configs.id} - Timeout of {timeout} seconds reached, stopping learning.")

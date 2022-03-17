@@ -29,13 +29,13 @@ def test_init_and_run_simple(clean):
 
     assert not (node.data.x_path.parent / "x_datapreped.csv").is_file()
     assert not (node.data.y_path.parent / "y_datapreped.csv").is_file()
-    assert not (node.data.x_path.parent / "x_train.csv").is_file()
-    assert not (node.data.y_path.parent / "y_train.csv").is_file()
+    assert not (node.data.x_path.parent / "x_train_0.csv").is_file()
+    assert not (node.data.y_path.parent / "y_train_0.csv").is_file()
     assert not (node.data.x_path.parent / "x_test.csv").is_file()
     assert not (node.data.y_path.parent / "y_test.csv").is_file()
     assert not (node.data.x_path.parent / "plots").is_dir()
     assert not (node.data.x_path.parent / "plots_datapreped").is_dir()
-    assert not (node.data.x_path.parent / "plots_train").is_dir()
+    assert not (node.data.x_path.parent / "plots_train_0").is_dir()
 
     assert node.emitter.doing is None
     assert node.emitter.error is None
@@ -49,15 +49,15 @@ def test_init_and_run_simple(clean):
     assert node.data.y_datapreped_path.is_file()
     assert node.data.y_datapreped_path == node.data.y_path.parent / "y_datapreped.csv"
     assert node.data.x_train_path.is_file()
-    assert node.data.x_train_path == node.data.x_path.parent / "x_train.csv"
+    assert node.data.x_train_path == node.data.x_path.parent / "x_train_0.csv"
     assert node.data.y_train_path.is_file()
-    assert node.data.y_train_path == node.data.y_path.parent / "y_train.csv"
+    assert node.data.y_train_path == node.data.y_path.parent / "y_train_0.csv"
     assert node.data.x_train_path == node.data.x_test_path
     assert node.data.y_train_path == node.data.y_test_path
     assert (node.data.x_path.parent / "plots").is_dir()
     assert (node.data.x_path.parent / "bins.json").is_file()
     assert (node.data.x_path.parent / "plots_datapreped").is_dir()
-    assert (node.data.x_path.parent / "plots_train").is_dir()
+    assert (node.data.x_path.parent / "plots_train_0").is_dir()
     assert (node.learning_configs.node_models_path / f"model_main_{node.filenumber}.csv").is_file()
     assert (node.learning_configs.node_models_path / f"model_{node.filenumber}_0.csv").is_file()
 

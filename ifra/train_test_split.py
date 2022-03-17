@@ -1,4 +1,4 @@
-from typing import Tuple, Union
+from typing import Tuple, Union, Optional
 
 import numpy as np
 import pandas as pd
@@ -27,7 +27,7 @@ class TrainTestSplit:
         """
         self.data = data
 
-    def split(self):
+    def split(self, iteration: Optional[int] = None):
         """Splits x and y into train and test sets by calling `ifra.train_test_split.TrainTestSplit.split_method`.
         Will write the train datasets in ifra.node.Node`'s *data.x_path* and `ifra.node.Node`'s *data.y_path*
         parent directories by appending *_train* to the files names.
@@ -48,8 +48,12 @@ class TrainTestSplit:
             )
         x_suffix = self.data.x_path.suffix
         y_suffix = self.data.y_path.suffix
-        x_train_path = self.data.x_path.with_suffix("").append("_train").with_suffix(x_suffix)
-        y_train_path = self.data.y_path.with_suffix("").append("_train").with_suffix(y_suffix)
+        if iteration is not None:
+            x_train_path = self.data.x_path.with_suffix("").append(f"_train_{iteration}").with_suffix(x_suffix)
+            y_train_path = self.data.y_path.with_suffix("").append(f"_train_{iteration}").with_suffix(y_suffix)
+        else:
+            x_train_path = self.data.x_path.with_suffix("").append("_train").with_suffix(x_suffix)
+            y_train_path = self.data.y_path.with_suffix("").append("_train").with_suffix(y_suffix)
 
         x_train_path.write(x_train)
         y_train_path.write(y_train)
@@ -57,8 +61,12 @@ class TrainTestSplit:
         self.data.y_train_path = y_train_path
 
         if x_test is not None and y_test is not None:
-            x_test_path = self.data.x_path.with_suffix("").append("_test").with_suffix(x_suffix)
-            y_test_path = self.data.y_path.with_suffix("").append("_test").with_suffix(y_suffix)
+            if iteration is not None:
+                x_test_path = self.data.x_path.with_suffix("").append(f"_test{iteration}").with_suffix(x_suffix)
+                y_test_path = self.data.y_path.with_suffix("").append(f"_test{iteration}").with_suffix(y_suffix)
+            else:
+                x_test_path = self.data.x_path.with_suffix("").append("_test").with_suffix(x_suffix)
+                y_test_path = self.data.y_path.with_suffix("").append("_test").with_suffix(y_suffix)
             x_test_path.write(x_test)
             y_test_path.write(y_test)
             self.data.x_test_path = x_test_path
