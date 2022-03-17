@@ -1,5 +1,6 @@
 from bisect import bisect
-from typing import Tuple, Union, List
+from typing import Tuple, Union, List, Optional
+from transparentpath import TransparentPath
 
 import numpy as np
 import pandas as pd
@@ -65,12 +66,33 @@ class BinFeaturesDataPrep(DataPrep):
         Number of bins to use
     """
 
-    def __init__(self, data: NodeDataConfig, nbins: int, bins: dict):
-        super().__init__(data, nbins=nbins, bins=bins)
+    def __init__(self, data: NodeDataConfig, nbins: int, bins: dict, save_bins: Optional[TransparentPath]):
+        if save_bins is not None:
+            save_bins = TransparentPath(save_bins)
+        super().__init__(data, nbins=nbins, bins=bins, save_bins=save_bins)
 
     def dataprep_method(self, x, y):
 
-        def find_bins(xx, nbins: int) -> np.ndarray:
+        # noinspection PyUnresolvedReferences
+        def to_apply(xx: pd.Series):
+            if xx.name in self.bins:
+                bins = self.bins[xx.name]
+            else:
+                bins = get_bins(xx, self.nbins)
+                self.bins[xx.name] = bins
+
+            to_ret = discretize(xx, bins)
+
+            if self.save_bins is not None:
+                if not self.save_bins.isfile():
+                    self.save_bins.write({xx.name: bins})
+                else:
+                    allbins = self.save_bins.read()
+                    allbins[xx.name] = bins
+                    self.save_bins.write(allbins)
+            return to_ret
+
+        def find_bins(xx: pd.Series, nbins: int) -> np.ndarray:
             """
             Function used to find the bins to discretize xcol in nbins modalities
 
@@ -138,5 +160,5 @@ class BinFeaturesDataPrep(DataPrep):
             return discrete_x
 
         # noinspection PyUnresolvedReferences
-        x = x.apply(lambda xx: discretize(xx, self.bins.get(xx.name, get_bins(xx, self.nbins))), axis=0)
+        x = x.apply(lambda xx: to_apply(xx), axis=0)
         return x, y

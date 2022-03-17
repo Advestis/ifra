@@ -147,3 +147,4 @@ cython_debug/
 **/messages.json
 **/ruleset*
 tests/outputs/
+**/bins.json
