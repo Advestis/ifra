@@ -6,6 +6,8 @@ import pandas as pd
 from .configs import NodeDataConfig
 import logging
 
+from .loader import load_y
+
 logger = logging.getLogger(__name__)
 
 
@@ -37,12 +39,12 @@ class TrainTestSplit:
         if hasattr(self.data, "x_datapreped_path"):
             x_train, x_test, y_train, y_test = self.split_method(
                 self.data.x_datapreped_path.read(**self.data.x_read_kwargs),
-                self.data.y_datapreped_path.read(**self.data.y_read_kwargs).squeeze()
+                load_y(self.data.y_datapreped_path, **self.data.y_read_kwargs)
             )
         else:
             x_train, x_test, y_train, y_test = self.split_method(
                 self.data.x_path.read(**self.data.x_read_kwargs),
-                self.data.y_path.read(**self.data.y_read_kwargs).squeeze()
+                load_y(self.data.y_path, **self.data.y_read_kwargs)
             )
         x_suffix = self.data.x_path.suffix
         y_suffix = self.data.y_path.suffix
@@ -67,12 +69,12 @@ class TrainTestSplit:
 
     # noinspection PyMethodMayBeStatic
     def split_method(
-        self, x: pd.DataFrame, y: pd.DataFrame
+        self, x: pd.DataFrame, y: pd.Series
     ) -> Tuple[
-        Union[pd.DataFrame, pd.Series, np.ndarray],
-        Union[pd.DataFrame, pd.Series, np.ndarray, None],
-        Union[pd.DataFrame, pd.Series, np.ndarray],
-        Union[pd.DataFrame, pd.Series, np.ndarray, None],
+        Union[pd.DataFrame, np.ndarray],
+        Union[pd.DataFrame, np.ndarray, None],
+        Union[pd.Series, np.ndarray],
+        Union[pd.Series, np.ndarray, None],
     ]:
         """To be implemented in daughter class. If not, will return x, None, y, None.
 

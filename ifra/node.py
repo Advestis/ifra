@@ -5,7 +5,7 @@ from time import time, sleep
 from typing import Union
 
 import pandas as pd
-from ruleskit import RuleSet
+from ruleskit import RuleSet, RegressionRule, ClassificationRule
 from tablewriter import TableWriter
 from transparentpath import TransparentPath
 import logging
@@ -14,6 +14,7 @@ from .actor import Actor
 from .configs import NodeLearningConfig, NodeDataConfig
 from .diff_privacy import apply_diff_privacy
 from .fitters import DecisionTreeClassificationFitter, Fitter, DecisionTreeRegressionFitter
+from .loader import load_y
 from .node_model_updaters import AdaBoostNodeModelUpdater, NodeModelUpdater
 from .datapreps import BinFeaturesDataPrep, DataPrep
 from .train_test_split import TrainTestSplit
@@ -99,6 +100,8 @@ class Node(Actor):
         self.last_y = None
         self.filenumber = None
         self.iteration = 0
+        RegressionRule.rule_index += ["train_test_size"]
+        ClassificationRule.rule_index += ["train_test_size"]
         super().__init__(learning_configs=learning_configs, data=data)
 
     @emit
@@ -229,18 +232,24 @@ class Node(Actor):
         self.plot_dataprep_and_split()
 
         x = self.data.x_train_path.read(**self.data.x_read_kwargs).values
-        y = self.data.y_train_path.read(**self.data.y_read_kwargs).squeeze().values
+        y = load_y(self.data.y_train_path, **self.data.y_read_kwargs).values
         if self.data.x_test_path != self.data.x_train_path:
             x_test = self.data.x_test_path.read(**self.data.x_read_kwargs).values
         else:
             x_test = None
         if self.data.y_test_path != self.data.y_train_path:
-            y_test = self.data.y_test_path.read(**self.data.y_read_kwargs).squeeze().values
+            y_test = load_y(self.data.y_test_path, **self.data.y_read_kwargs).values
         else:
             y_test = y
 
         logger.info(f"Fitting node {self.learning_configs.id} using {self.learning_configs.fitter}...")
+        if len(x) == 0:
+            logger.warning(f"No data in node {self.learning_configs.id}'s features")
+            return
         self.model = self.fitter.fit(x=x, y=y)
+        if self.model is None:
+            logger.warning(f"Fitter could not produce a model in node {self.learning_configs.id}")
+            return
         central_model_path = self.learning_configs.central_model_path
         if central_model_path.isfile():
             central_model = RuleSet()
@@ -253,7 +262,8 @@ class Node(Actor):
             self.model.eval(
                 xs=x_test,
                 y=y_test,
-                keep_new_activations=x_test is not None
+                keep_new_activations=x_test is not None,
+                **self.learning_configs.eval_kwargs
             )
             # noinspection PyProtectedMember
             logger.info(
@@ -266,8 +276,11 @@ class Node(Actor):
             )
         else:
             logger.info(f"Did not find rules in node {self.learning_configs.id}")
-        if self.model is not None:
-            apply_diff_privacy(ruleset=self.model, y=y)
+        if self.model is not None and self.learning_configs.privacy_proba is not None:
+            apply_diff_privacy(ruleset=self.model, y=y, p=self.learning_configs.privacy_proba)
+            if len(self.model) == 0:
+                logger.warning("No good rule left in model after applying differential privacy")
+                self.model = None
 
     @emit
     def update_from_central(self, model: RuleSet) -> None:
@@ -356,7 +369,7 @@ class Node(Actor):
                 path_x = path_x.parent / f"{name}_{iteration}.pdf"
             fig.savefig(path_x)
 
-        y = self.data.y_path.read(**self.data.y_read_kwargs).squeeze()
+        y = load_y(self.data.y_path, **self.data.y_read_kwargs)
         fig = plot_histogram(data=y.squeeze(), xlabel="Class", figsize=(10, 7))
 
         iteration = 0
