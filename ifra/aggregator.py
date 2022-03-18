@@ -10,7 +10,7 @@ import logging
 from .configs import AggregatorConfig
 from .actor import Actor
 from .decorator import emit
-from .aggregations import AdaBoostAggregation, Aggregation
+from .aggregations import AdaBoostAggregation, Aggregation, ReverseAdaBoostAggregation, AggregateAll
 
 logger = logging.getLogger(__name__)
 
@@ -132,7 +132,9 @@ class Aggregator(Actor):
         Instance of one of the `ifra.aggregations.Aggregation` daughter classes.
     """
 
-    possible_aggregations = {"adaboost": AdaBoostAggregation}
+    possible_aggregations = {
+        "adaboost": AdaBoostAggregation, "reverseadaboost": ReverseAdaBoostAggregation, "keepall": AggregateAll
+    }
     """Possible string values and corresponding aggregation methods for *aggregation* attribute of
     `ifra.aggregator.Aggregator`"""
 

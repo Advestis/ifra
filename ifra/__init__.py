@@ -36,9 +36,12 @@ The available models currently are:\n
 The user also has the liberty to define its own aggregation method, by overloading `ifra.aggregation.Aggregation`.
 The available aggregation methods currently are:\n
   * adaboost (see `ifra.aggregations.AdaBoostAggregation` for details)\n
+  * reverseadaboost (see `ifra.aggregations.ReverseAdaBoostAggregation` for details)\n
+  * keepall (see `ifra.aggregations.AggregateAll`)\n
 The user can implement the update method to be used by the node to take the central model into account by overloading
 the `ifra.node_model_updaters.NodeModelUpdater`. The available node updaters currently are:\n
-  * adaboost (see `ifra.node_model_updaters.AdaBoostNodeModelUpdater`)\n
+  * adaboost (adapted for adaboost, reverseadaboost and keepall aggregations)
+  (see `ifra.node_model_updaters.AdaBoostNodeModelUpdater`)\n
 Each node has the possbility to execute a dataprep before the first learning. The user has the liberty to define its
 dataprep method by overloading the `ifra.datapreps.DataPrep` class. The available datapreps currently are:\n
   * binfeatures (see `ifra.datapreps.BinFeaturesDataPrep`)\n

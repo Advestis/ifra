@@ -4,6 +4,7 @@ from time import time, sleep
 
 from typing import Union
 
+import numpy as np
 import pandas as pd
 from ruleskit import RuleSet, RegressionRule, ClassificationRule
 from tablewriter import TableWriter
@@ -262,6 +263,8 @@ class Node(Actor):
                 xs=x_test, y=y_test, keep_new_activations=x_test is not None, **self.learning_configs.eval_kwargs
             )
             # noinspection PyProtectedMember
+            if self.model.criterion is None:
+                self.model.criterion = np.nan
             logger.info(
                 f"{self.learning_configs.id} - Found {len(self.model)} new good rules."
                 f" Criterion is {round(self.model.criterion, 3)}, coverage is {round(self.coverage, 3)}"
