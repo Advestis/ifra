@@ -2,7 +2,7 @@ import random
 from datetime import datetime
 from time import time, sleep
 
-from typing import Union
+from typing import Union, Tuple
 
 import numpy as np
 import pandas as pd
@@ -382,7 +382,7 @@ class Node(Actor):
         fig.savefig(path_y)
 
     @emit
-    def run(self, timeout: Union[int, float] = 0, sleeptime: Union[int, float] = 5):
+    def run(self, timeout: Union[int, float] = 0, sleeptime: Union[int, float] = 5) -> Tuple[int, int]:
         """Monitors new changes in the central server, every *sleeptime* seconds for *timeout* seconds, triggering
         node fit when a new model is found, if new data are available or if the function just started. Sets
         `ifra.configs.NodeLearningConfig` *id* and *central_server_path* by re-reading the configuration file.
@@ -396,6 +396,11 @@ class Node(Actor):
             How many seconds the run last. If <= 0>, will last until killed by the user. Default value = 0
         sleeptime: Union[int, float]
             How many seconds between each checks for new central model. Default value = 5
+
+        Returns
+        -------
+        Tuple[int, int]
+            Random number used to name the node's model file, and the number of iterations done
         """
         # noinspection PyUnusedLocal
         @emit  # Let self_ here for proper use of 'emit'
@@ -463,3 +468,6 @@ class Node(Actor):
             sleep(sleeptime)
 
         logger.info(f"{self.learning_configs.id} - Timeout of {timeout} seconds reached, stopping learning.")
+
+        # Returned values can be used to test the code locally
+        return self.filenumber, self.iterations
