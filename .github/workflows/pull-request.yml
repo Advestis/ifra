@@ -4,7 +4,7 @@ on:
       - master
       - main
 
-name: master
+name: pytests
 jobs:
   pytest:
     runs-on: ubuntu-latest
