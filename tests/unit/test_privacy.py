@@ -7,6 +7,9 @@ c_min = 0.10
 
 np.random.seed(42)
 
+def test_dummy():
+  assert True
+
 
 # @pytest.mark.parametrize(
 #     "ruleset, y, exp_preds",
