@@ -181,7 +181,7 @@ class NodeLearningConfig(Config):
 
     Used by `ifra.node.Node` and `ifra.central_server.NodeGate`
 
-    Overloads \_\_eq\_\_ to allow for node configuration comparison. Two configurations are equal if all their
+    Overloads '==' to allow for node configuration comparison. Two configurations are equal if all their
     configuration values are equal, except *node_models_path* and *central_model_path* that can be different.
 
     Attributes
