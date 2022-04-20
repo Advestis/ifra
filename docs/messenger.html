@@ -1,0 +1,975 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.10.0" />
+<title>ifra.messenger API documentation</title>
+<meta name="description" content="" />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>ifra.messenger</code></h1>
+</header>
+<section id="section-intro">
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">from copy import deepcopy, copy
+from pathlib import Path
+from time import time, sleep
+from typing import Union
+from json import load
+from transparentpath import TransparentPath
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+def get_lock(path: TransparentPath, timeout: int = 5, exists: str = &#34;wait&#34;) -&gt; TransparentPath:
+    lockfile = path.append(&#34;.lock&#34;)
+    if not lockfile.parent.is_dir():
+        lockfile.parent.mkdir(parents=True)
+        lockfile.touch()
+        return lockfile
+
+    t = time()
+    while lockfile.is_file():
+        if exists != &#34;wait&#34;:
+            raise ValueError(
+                f&#34;Lock file &#39;{lockfile}&#39; exists. &#34;
+                &#34;This can indicate a crash of a previous execution, or the fact that two&#34;
+                &#34;sessions are running at the same time. Delete this file and restart.&#34;
+            )
+        sleep(0.5)
+        if time() - t &gt; timeout:
+            raise FileExistsError(f&#34;File &#39;{lockfile}&#39; exists : could not lock on corresponding file.&#34;)
+    lockfile.touch()
+    return lockfile
+
+
+class Emitter:
+    &#34;&#34;&#34;Instance to send messages to a receiver. It uses a json file to write messages.
+
+     Uses the same logic than `ifra.configs.Config` to handle the json file that is read or written by
+     `ifra.node.Node` and `ifra.central_server.NodeGate`.
+
+     Only messages which names are in `ifra.messenger.Emitter.DEFAULT_MESSAGES` are allowed.
+
+     Attributes
+     ----------
+     path: TransparentPath
+        The path to the json file containing the messages. Will be casted into a transparentpath if a str is
+        given, so make sure that if you pass a string that should be local, you did not set a global file system.
+        If it does not exist, it is created with the default messages present in
+        `ifra.messenger.Emitter.DEFAULT_MESSAGES`. If it exists and it indicates that the corresponding object is
+        doint something, will raise an error. It it exists and says taht the corresponding object is doing nothing,
+        overwrites the file.
+     messages: dict
+        A dictionnary of messages
+
+    Messages
+    --------
+    error: str
+        Set by the emitting object error occures. Will contain any error message raised.
+    doing: str
+        Name of the function currently being run by the emitting object
+    &#34;&#34;&#34;
+    DEFAULT_MESSAGES = {&#34;error&#34;: None, &#34;doing&#34;: None}
+    &#34;&#34;&#34;Overload in daughter classes.&#34;&#34;&#34;
+
+    def __init__(self, path: Union[str, Path, TransparentPath]):
+        &#34;&#34;&#34;
+        Parameters
+        ----------
+        path: Union[str, Path, TransparentPath]
+            The path to the json file containing the messages. Will be casted into a transparentpath if a str is
+            given, so make sure that if you pass a str that should be local, you did not set a global file system.
+        &#34;&#34;&#34;
+
+        if type(path) == str:
+            path = TransparentPath(path)
+
+        if not path.suffix == &#34;.json&#34;:
+            raise ValueError(&#34;Emitter path must be a json&#34;)
+
+        lockfile = get_lock(path, exists=&#34;raise&#34;)
+
+        self.path = path
+        if self.path.is_file():
+            try:
+
+                if hasattr(self.path, &#34;read&#34;):
+                    self.messages = self.path.read()
+                else:
+                    with open(self.path) as opath:
+                        self.messages = load(opath)
+
+                for key in self.messages:
+                    if self.messages[key] == &#34;&#34;:
+                        self.messages[key] = None
+
+                lockfile.rm(absent=&#34;ignore&#34;)
+            except Exception as e:
+                lockfile.rm(absent=&#34;ignore&#34;)
+                raise e
+        else:
+            self.messages = {&#34;doing&#34;: None, &#34;error&#34;: None}
+
+        if self.doing is not None:
+            raise ValueError(
+                f&#34;Message file &#39;{path}&#39; existed at Emitter creation and had &#39;doing={self.doing}&#39;. &#34;
+                f&#34;This can indicate a crash of a previous execution, or the fact that two&#34;
+                f&#34;sessions are running at the same time. Delete this file and restart.&#34;
+            )
+
+        lockfile.rm(absent=&#34;ignore&#34;)
+        self.reset_messages()
+
+    def __getstate__(self):
+        return self.__dict__
+
+    def __setstate__(self, d: dict):
+        for item in d:
+            setattr(self, item, d[item])
+
+    def __getattr__(self, item):
+        if item == &#34;messages&#34;:
+            raise ValueError(&#34;NodeMessenger object&#39;s &#39;messages&#39; not set&#34;)
+        if item == &#34;path&#34;:
+            raise ValueError(&#34;NodeMessenger object&#39;s &#39;path&#39; not set&#34;)
+        if item not in self.messages:
+            raise ValueError(f&#34;No messages named &#39;{item}&#39; was found&#34;)
+        return self.messages[item]
+
+    def __setattr__(self, item, value):
+        if item == &#34;messages&#34; or item == &#34;path&#34;:
+            super().__setattr__(item, value)
+            return
+        if item not in self.messages and item not in self.__class__.DEFAULT_MESSAGES:
+            raise ValueError(f&#34;Message named &#39;{item}&#39; is not allowed&#34;)
+        self.messages[item] = value
+        self.save()
+
+    def __deepcopy__(self, memo):
+        cls = self.__class__
+        result = cls.__new__(cls)
+        memo[id(self)] = result
+        setattr(result, &#34;messages&#34;, deepcopy(self.messages, memo))
+        return result
+
+    def send(self, **kwargs):
+        &#34;&#34;&#34;Sends several messages at once. Keys in kwargs must be present in `ifra.messenger.Emitter.DEFAULT_MESSAGES`
+        &#34;&#34;&#34;
+        for key in kwargs:
+            if key not in self.messages and key not in self.__class__.DEFAULT_MESSAGES:
+                raise ValueError(f&#34;Message named &#39;{key}&#39; is not allowed&#34;)
+            self.messages[key] = kwargs[key]
+        self.save()
+
+    def save(self) -&gt; None:
+        &#34;&#34;&#34;Saves the current messages into the file it used to load.&#34;&#34;&#34;
+        to_save = copy(self.messages)
+
+        lockfile = get_lock(self.path)
+
+        try:
+            for key in to_save:
+                if key not in self.__class__.DEFAULT_MESSAGES:
+                    raise ValueError(f&#34;Forbidden message &#39;{key}&#39;&#34;)
+                if to_save[key] is None:
+                    # noinspection PyTypeChecker
+                    to_save[key] = &#34;&#34;
+
+            self.path.write(to_save)
+
+            lockfile.rm(absent=&#34;ignore&#34;)
+        except Exception as e:
+            lockfile.rm(absent=&#34;ignore&#34;)
+            raise e
+
+    def reset_messages(self):
+        &#34;&#34;&#34;Reset messages to their default values specified in `ifra.messenger.Emitter.DEFAULT_MESSAGES`&#34;&#34;&#34;
+        self.messages = copy(self.__class__.DEFAULT_MESSAGES)
+        self.save()
+
+    def rm(self):
+        &#34;&#34;&#34;Removes the Emitter&#39;s json file.&#34;&#34;&#34;
+        lockfile = get_lock(self.path)
+        self.path.rm(absent=&#34;ignore&#34;)
+        lockfile.rm()
+
+
+class Receiver:
+    &#34;&#34;&#34;Instance to read messages from an emitter. It uses a json file to read messages.
+
+     Uses the same logic than `ifra.configs.Config` to handle the json file.
+
+     Only messages which names are in `ifra.messenger.Receiver.DEFAULT_MESSAGES` are allowed.
+
+     Attributes
+     ----------
+     path: TransparentPath
+        The path to the json file containing the messages. Will be casted into a transparentpath if a str is
+        given, so make sure that if you pass a string that should be local, you did not set a global file system.
+        If it does not exist, Receiver waits until the file exists, or raises TimeoutError if it waited more than
+        `ifra.messenger.Receiver.timeout_when_missing` seconds (default is 600s).
+     messages: dict
+        A dictionnary of messages
+     &#34;&#34;&#34;
+    DEFAULT_MESSAGES = {}
+    &#34;&#34;&#34;Overload in daughter classes. Must match the `ifra.messenger.Emitter.DEFAULT_MESSAGES` of the emitter that
+    will write to the file the receiver will read.&#34;&#34;&#34;
+
+    timeout_when_missing = 600
+    &#34;&#34;&#34;How long the messenger is supposed to wait for its file to come back when using
+    `ifra.messenger.NodeMessenger.get_latest_messages`&#34;&#34;&#34;
+
+    def __init__(self, path: Union[str, Path, TransparentPath], wait: bool = True):
+        &#34;&#34;&#34;
+        Parameters
+        ----------
+        path: Union[str, Path, TransparentPath]
+            The path to the json file containing the messages. Will be casted into a transparentpath if a str is
+            given, so make sure that if you pass a str that should be local, you did not set a global file system.
+        wait: bool
+            If True, will wait for &#39;path&#39; to point to an existing file for `ifra.messenger.Emitter.DEFAULT_MESSAGES`
+            seconds at Receiver creation if it does not exist. Else, messages will be those in
+            `ifra.messenger.Emitter.DEFAULT_MESSAGES`
+        &#34;&#34;&#34;
+
+        if type(path) == str:
+            path = TransparentPath(path)
+
+        if not path.suffix == &#34;.json&#34;:
+            raise ValueError(&#34;Messenger path must be a json&#34;)
+        self.path = path
+        self.messages = {}
+        self.new = True
+        self.get_latest_messages(wait)
+
+    def __getstate__(self):
+        return self.__dict__
+
+    def __setstate__(self, d: dict):
+        for item in d:
+            setattr(self, item, d[item])
+
+    def __getattr__(self, item):
+        if item == &#34;messages&#34;:
+            raise ValueError(&#34;Messenger object&#39;s &#39;messages&#39; not set&#34;)
+        if item == &#34;path&#34;:
+            raise ValueError(&#34;Messenger object&#39;s &#39;path&#39; not set&#34;)
+        if item not in self.messages:
+            raise ValueError(f&#34;No messages named &#39;{item}&#39; was found&#34;)
+        return self.messages[item]
+
+    def __deepcopy__(self, memo):
+        cls = self.__class__
+        result = cls.__new__(cls)
+        memo[id(self)] = result
+        setattr(result, &#34;messages&#34;, deepcopy(self.messages, memo))
+        return result
+
+    def get_latest_messages(self, wait: bool = False) -&gt; bool:
+        &#34;&#34;&#34;Gets latest messages by reading the messages json file. If file does not exist and it is the first time we
+        read it (object init), wait for it for at most `ifra.messenger.Receiver.timeout_when_missing` seconds then
+        raises TimeoutError. If file does not exist and it is not the first time we read it, returns False. If
+        messages are read, returns True&#34;&#34;&#34;
+        first_message = True
+
+        if self.__class__.timeout_when_missing is None:
+            raise ValueError(&#34;&#39;timeout_when_missing&#39; can not be None&#34;)
+
+        t = time()
+        while not self.path.is_file() and time() - t &lt; self.timeout_when_missing:
+            if not self.new:
+                logger.warning(f&#34;Message file {self.path} disapread. No message received.&#34;)
+                return False
+            if not wait:
+                logger.warning(
+                    f&#34;Message file {self.path} does not exist. No message received, using defaults messages.&#34;
+                )
+                self.messages = copy(self.DEFAULT_MESSAGES)
+                return False
+            if first_message:
+                first_message = False
+                logger.info(f&#34;Message file {self.path} not here yet. Waiting for it to arrive...&#34;)
+            sleep(1)
+        if not self.path.is_file():
+            raise TimeoutError(f&#34;Could not find message file &#39;{self.path}&#39; in less that &#34;
+                               f&#34;{self.__class__.timeout_when_missing} seconds. Aborting.&#34;)
+        if first_message is False:
+            logger.info(&#34;...message file found. Resuming.&#34;)
+
+        self.new = False
+
+        lockfile = get_lock(self.path)
+
+        try:
+
+            if hasattr(self.path, &#34;read&#34;):
+                self.messages = self.path.read()
+            else:
+                with open(self.path) as opath:
+                    self.messages = load(opath)
+
+            for key in self.messages:
+                if self.messages[key] == &#34;&#34;:
+                    self.messages[key] = None
+
+            lockfile.rm(absent=&#34;ignore&#34;)
+        except Exception as e:
+            lockfile.rm(absent=&#34;ignore&#34;)
+            raise e
+        return True
+
+    def reset_messages(self):
+        &#34;&#34;&#34;Reset messages to their default values specified in `ifra.messenger.Receiver.DEFAULT_MESSAGES`&#34;&#34;&#34;
+        self.messages = copy(self.DEFAULT_MESSAGES)
+        self.save()</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="ifra.messenger.get_lock"><code class="name flex">
+<span>def <span class="ident">get_lock</span></span>(<span>path: transparentpath.gcsutils.transparentpath.TransparentPath, timeout: int = 5, exists: str = 'wait') ‑> transparentpath.gcsutils.transparentpath.TransparentPath</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_lock(path: TransparentPath, timeout: int = 5, exists: str = &#34;wait&#34;) -&gt; TransparentPath:
+    lockfile = path.append(&#34;.lock&#34;)
+    if not lockfile.parent.is_dir():
+        lockfile.parent.mkdir(parents=True)
+        lockfile.touch()
+        return lockfile
+
+    t = time()
+    while lockfile.is_file():
+        if exists != &#34;wait&#34;:
+            raise ValueError(
+                f&#34;Lock file &#39;{lockfile}&#39; exists. &#34;
+                &#34;This can indicate a crash of a previous execution, or the fact that two&#34;
+                &#34;sessions are running at the same time. Delete this file and restart.&#34;
+            )
+        sleep(0.5)
+        if time() - t &gt; timeout:
+            raise FileExistsError(f&#34;File &#39;{lockfile}&#39; exists : could not lock on corresponding file.&#34;)
+    lockfile.touch()
+    return lockfile</code></pre>
+</details>
+</dd>
+</dl>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="ifra.messenger.Emitter"><code class="flex name class">
+<span>class <span class="ident">Emitter</span></span>
+<span>(</span><span>path: Union[str, pathlib.Path, transparentpath.gcsutils.transparentpath.TransparentPath])</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Instance to send messages to a receiver. It uses a json file to write messages.</p>
+<p>Uses the same logic than <code><a title="ifra.configs.Config" href="configs.html#ifra.configs.Config">Config</a></code> to handle the json file that is read or written by
+<code><a title="ifra.node.Node" href="node.html#ifra.node.Node">Node</a></code> and <code>ifra.central_server.NodeGate</code>.</p>
+<p>Only messages which names are in <code><a title="ifra.messenger.Emitter.DEFAULT_MESSAGES" href="#ifra.messenger.Emitter.DEFAULT_MESSAGES">Emitter.DEFAULT_MESSAGES</a></code> are allowed.</p>
+<p>Attributes</p>
+<hr>
+<p>path: TransparentPath
+The path to the json file containing the messages. Will be casted into a transparentpath if a str is
+given, so make sure that if you pass a string that should be local, you did not set a global file system.
+If it does not exist, it is created with the default messages present in
+<code><a title="ifra.messenger.Emitter.DEFAULT_MESSAGES" href="#ifra.messenger.Emitter.DEFAULT_MESSAGES">Emitter.DEFAULT_MESSAGES</a></code>. If it exists and it indicates that the corresponding object is
+doint something, will raise an error. It it exists and says taht the corresponding object is doing nothing,
+overwrites the file.
+messages: dict
+A dictionnary of messages</p>
+<h2 id="messages">Messages</h2>
+<p>error: str
+Set by the emitting object error occures. Will contain any error message raised.
+doing: str
+Name of the function currently being run by the emitting object</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>path</code></strong> :&ensp;<code>Union[str, Path, TransparentPath]</code></dt>
+<dd>The path to the json file containing the messages. Will be casted into a transparentpath if a str is
+given, so make sure that if you pass a str that should be local, you did not set a global file system.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class Emitter:
+    &#34;&#34;&#34;Instance to send messages to a receiver. It uses a json file to write messages.
+
+     Uses the same logic than `ifra.configs.Config` to handle the json file that is read or written by
+     `ifra.node.Node` and `ifra.central_server.NodeGate`.
+
+     Only messages which names are in `ifra.messenger.Emitter.DEFAULT_MESSAGES` are allowed.
+
+     Attributes
+     ----------
+     path: TransparentPath
+        The path to the json file containing the messages. Will be casted into a transparentpath if a str is
+        given, so make sure that if you pass a string that should be local, you did not set a global file system.
+        If it does not exist, it is created with the default messages present in
+        `ifra.messenger.Emitter.DEFAULT_MESSAGES`. If it exists and it indicates that the corresponding object is
+        doint something, will raise an error. It it exists and says taht the corresponding object is doing nothing,
+        overwrites the file.
+     messages: dict
+        A dictionnary of messages
+
+    Messages
+    --------
+    error: str
+        Set by the emitting object error occures. Will contain any error message raised.
+    doing: str
+        Name of the function currently being run by the emitting object
+    &#34;&#34;&#34;
+    DEFAULT_MESSAGES = {&#34;error&#34;: None, &#34;doing&#34;: None}
+    &#34;&#34;&#34;Overload in daughter classes.&#34;&#34;&#34;
+
+    def __init__(self, path: Union[str, Path, TransparentPath]):
+        &#34;&#34;&#34;
+        Parameters
+        ----------
+        path: Union[str, Path, TransparentPath]
+            The path to the json file containing the messages. Will be casted into a transparentpath if a str is
+            given, so make sure that if you pass a str that should be local, you did not set a global file system.
+        &#34;&#34;&#34;
+
+        if type(path) == str:
+            path = TransparentPath(path)
+
+        if not path.suffix == &#34;.json&#34;:
+            raise ValueError(&#34;Emitter path must be a json&#34;)
+
+        lockfile = get_lock(path, exists=&#34;raise&#34;)
+
+        self.path = path
+        if self.path.is_file():
+            try:
+
+                if hasattr(self.path, &#34;read&#34;):
+                    self.messages = self.path.read()
+                else:
+                    with open(self.path) as opath:
+                        self.messages = load(opath)
+
+                for key in self.messages:
+                    if self.messages[key] == &#34;&#34;:
+                        self.messages[key] = None
+
+                lockfile.rm(absent=&#34;ignore&#34;)
+            except Exception as e:
+                lockfile.rm(absent=&#34;ignore&#34;)
+                raise e
+        else:
+            self.messages = {&#34;doing&#34;: None, &#34;error&#34;: None}
+
+        if self.doing is not None:
+            raise ValueError(
+                f&#34;Message file &#39;{path}&#39; existed at Emitter creation and had &#39;doing={self.doing}&#39;. &#34;
+                f&#34;This can indicate a crash of a previous execution, or the fact that two&#34;
+                f&#34;sessions are running at the same time. Delete this file and restart.&#34;
+            )
+
+        lockfile.rm(absent=&#34;ignore&#34;)
+        self.reset_messages()
+
+    def __getstate__(self):
+        return self.__dict__
+
+    def __setstate__(self, d: dict):
+        for item in d:
+            setattr(self, item, d[item])
+
+    def __getattr__(self, item):
+        if item == &#34;messages&#34;:
+            raise ValueError(&#34;NodeMessenger object&#39;s &#39;messages&#39; not set&#34;)
+        if item == &#34;path&#34;:
+            raise ValueError(&#34;NodeMessenger object&#39;s &#39;path&#39; not set&#34;)
+        if item not in self.messages:
+            raise ValueError(f&#34;No messages named &#39;{item}&#39; was found&#34;)
+        return self.messages[item]
+
+    def __setattr__(self, item, value):
+        if item == &#34;messages&#34; or item == &#34;path&#34;:
+            super().__setattr__(item, value)
+            return
+        if item not in self.messages and item not in self.__class__.DEFAULT_MESSAGES:
+            raise ValueError(f&#34;Message named &#39;{item}&#39; is not allowed&#34;)
+        self.messages[item] = value
+        self.save()
+
+    def __deepcopy__(self, memo):
+        cls = self.__class__
+        result = cls.__new__(cls)
+        memo[id(self)] = result
+        setattr(result, &#34;messages&#34;, deepcopy(self.messages, memo))
+        return result
+
+    def send(self, **kwargs):
+        &#34;&#34;&#34;Sends several messages at once. Keys in kwargs must be present in `ifra.messenger.Emitter.DEFAULT_MESSAGES`
+        &#34;&#34;&#34;
+        for key in kwargs:
+            if key not in self.messages and key not in self.__class__.DEFAULT_MESSAGES:
+                raise ValueError(f&#34;Message named &#39;{key}&#39; is not allowed&#34;)
+            self.messages[key] = kwargs[key]
+        self.save()
+
+    def save(self) -&gt; None:
+        &#34;&#34;&#34;Saves the current messages into the file it used to load.&#34;&#34;&#34;
+        to_save = copy(self.messages)
+
+        lockfile = get_lock(self.path)
+
+        try:
+            for key in to_save:
+                if key not in self.__class__.DEFAULT_MESSAGES:
+                    raise ValueError(f&#34;Forbidden message &#39;{key}&#39;&#34;)
+                if to_save[key] is None:
+                    # noinspection PyTypeChecker
+                    to_save[key] = &#34;&#34;
+
+            self.path.write(to_save)
+
+            lockfile.rm(absent=&#34;ignore&#34;)
+        except Exception as e:
+            lockfile.rm(absent=&#34;ignore&#34;)
+            raise e
+
+    def reset_messages(self):
+        &#34;&#34;&#34;Reset messages to their default values specified in `ifra.messenger.Emitter.DEFAULT_MESSAGES`&#34;&#34;&#34;
+        self.messages = copy(self.__class__.DEFAULT_MESSAGES)
+        self.save()
+
+    def rm(self):
+        &#34;&#34;&#34;Removes the Emitter&#39;s json file.&#34;&#34;&#34;
+        lockfile = get_lock(self.path)
+        self.path.rm(absent=&#34;ignore&#34;)
+        lockfile.rm()</code></pre>
+</details>
+<h3>Class variables</h3>
+<dl>
+<dt id="ifra.messenger.Emitter.DEFAULT_MESSAGES"><code class="name">var <span class="ident">DEFAULT_MESSAGES</span></code></dt>
+<dd>
+<div class="desc"><p>Overload in daughter classes.</p></div>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="ifra.messenger.Emitter.reset_messages"><code class="name flex">
+<span>def <span class="ident">reset_messages</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Reset messages to their default values specified in <code><a title="ifra.messenger.Emitter.DEFAULT_MESSAGES" href="#ifra.messenger.Emitter.DEFAULT_MESSAGES">Emitter.DEFAULT_MESSAGES</a></code></p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def reset_messages(self):
+    &#34;&#34;&#34;Reset messages to their default values specified in `ifra.messenger.Emitter.DEFAULT_MESSAGES`&#34;&#34;&#34;
+    self.messages = copy(self.__class__.DEFAULT_MESSAGES)
+    self.save()</code></pre>
+</details>
+</dd>
+<dt id="ifra.messenger.Emitter.rm"><code class="name flex">
+<span>def <span class="ident">rm</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Removes the Emitter's json file.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def rm(self):
+    &#34;&#34;&#34;Removes the Emitter&#39;s json file.&#34;&#34;&#34;
+    lockfile = get_lock(self.path)
+    self.path.rm(absent=&#34;ignore&#34;)
+    lockfile.rm()</code></pre>
+</details>
+</dd>
+<dt id="ifra.messenger.Emitter.save"><code class="name flex">
+<span>def <span class="ident">save</span></span>(<span>self) ‑> None</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Saves the current messages into the file it used to load.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def save(self) -&gt; None:
+    &#34;&#34;&#34;Saves the current messages into the file it used to load.&#34;&#34;&#34;
+    to_save = copy(self.messages)
+
+    lockfile = get_lock(self.path)
+
+    try:
+        for key in to_save:
+            if key not in self.__class__.DEFAULT_MESSAGES:
+                raise ValueError(f&#34;Forbidden message &#39;{key}&#39;&#34;)
+            if to_save[key] is None:
+                # noinspection PyTypeChecker
+                to_save[key] = &#34;&#34;
+
+        self.path.write(to_save)
+
+        lockfile.rm(absent=&#34;ignore&#34;)
+    except Exception as e:
+        lockfile.rm(absent=&#34;ignore&#34;)
+        raise e</code></pre>
+</details>
+</dd>
+<dt id="ifra.messenger.Emitter.send"><code class="name flex">
+<span>def <span class="ident">send</span></span>(<span>self, **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Sends several messages at once. Keys in kwargs must be present in <code><a title="ifra.messenger.Emitter.DEFAULT_MESSAGES" href="#ifra.messenger.Emitter.DEFAULT_MESSAGES">Emitter.DEFAULT_MESSAGES</a></code></p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def send(self, **kwargs):
+    &#34;&#34;&#34;Sends several messages at once. Keys in kwargs must be present in `ifra.messenger.Emitter.DEFAULT_MESSAGES`
+    &#34;&#34;&#34;
+    for key in kwargs:
+        if key not in self.messages and key not in self.__class__.DEFAULT_MESSAGES:
+            raise ValueError(f&#34;Message named &#39;{key}&#39; is not allowed&#34;)
+        self.messages[key] = kwargs[key]
+    self.save()</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+<dt id="ifra.messenger.Receiver"><code class="flex name class">
+<span>class <span class="ident">Receiver</span></span>
+<span>(</span><span>path: Union[str, pathlib.Path, transparentpath.gcsutils.transparentpath.TransparentPath], wait: bool = True)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Instance to read messages from an emitter. It uses a json file to read messages.</p>
+<p>Uses the same logic than <code><a title="ifra.configs.Config" href="configs.html#ifra.configs.Config">Config</a></code> to handle the json file.</p>
+<p>Only messages which names are in <code><a title="ifra.messenger.Receiver.DEFAULT_MESSAGES" href="#ifra.messenger.Receiver.DEFAULT_MESSAGES">Receiver.DEFAULT_MESSAGES</a></code> are allowed.</p>
+<h2 id="attributes">Attributes</h2>
+<dl>
+<dt><strong><code>path</code></strong> :&ensp;<code>TransparentPath</code></dt>
+<dd>&nbsp;</dd>
+<dt>The path to the json file containing the messages. Will be casted into a transparentpath if a str is</dt>
+<dt>given, so make sure that if you pass a string that should be local, you did not set a global file system.</dt>
+<dt>If it does not exist, Receiver waits until the file exists, or raises TimeoutError if it waited more than</dt>
+<dt><code><a title="ifra.messenger.Receiver.timeout_when_missing" href="#ifra.messenger.Receiver.timeout_when_missing">Receiver.timeout_when_missing</a></code> seconds (default is 600s).</dt>
+<dt><strong><code>messages</code></strong> :&ensp;<code>dict</code></dt>
+<dd>&nbsp;</dd>
+</dl>
+<p>A dictionnary of messages</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>path</code></strong> :&ensp;<code>Union[str, Path, TransparentPath]</code></dt>
+<dd>The path to the json file containing the messages. Will be casted into a transparentpath if a str is
+given, so make sure that if you pass a str that should be local, you did not set a global file system.</dd>
+<dt><strong><code>wait</code></strong> :&ensp;<code>bool</code></dt>
+<dd>If True, will wait for 'path' to point to an existing file for <code><a title="ifra.messenger.Emitter.DEFAULT_MESSAGES" href="#ifra.messenger.Emitter.DEFAULT_MESSAGES">Emitter.DEFAULT_MESSAGES</a></code>
+seconds at Receiver creation if it does not exist. Else, messages will be those in
+<code><a title="ifra.messenger.Emitter.DEFAULT_MESSAGES" href="#ifra.messenger.Emitter.DEFAULT_MESSAGES">Emitter.DEFAULT_MESSAGES</a></code></dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class Receiver:
+    &#34;&#34;&#34;Instance to read messages from an emitter. It uses a json file to read messages.
+
+     Uses the same logic than `ifra.configs.Config` to handle the json file.
+
+     Only messages which names are in `ifra.messenger.Receiver.DEFAULT_MESSAGES` are allowed.
+
+     Attributes
+     ----------
+     path: TransparentPath
+        The path to the json file containing the messages. Will be casted into a transparentpath if a str is
+        given, so make sure that if you pass a string that should be local, you did not set a global file system.
+        If it does not exist, Receiver waits until the file exists, or raises TimeoutError if it waited more than
+        `ifra.messenger.Receiver.timeout_when_missing` seconds (default is 600s).
+     messages: dict
+        A dictionnary of messages
+     &#34;&#34;&#34;
+    DEFAULT_MESSAGES = {}
+    &#34;&#34;&#34;Overload in daughter classes. Must match the `ifra.messenger.Emitter.DEFAULT_MESSAGES` of the emitter that
+    will write to the file the receiver will read.&#34;&#34;&#34;
+
+    timeout_when_missing = 600
+    &#34;&#34;&#34;How long the messenger is supposed to wait for its file to come back when using
+    `ifra.messenger.NodeMessenger.get_latest_messages`&#34;&#34;&#34;
+
+    def __init__(self, path: Union[str, Path, TransparentPath], wait: bool = True):
+        &#34;&#34;&#34;
+        Parameters
+        ----------
+        path: Union[str, Path, TransparentPath]
+            The path to the json file containing the messages. Will be casted into a transparentpath if a str is
+            given, so make sure that if you pass a str that should be local, you did not set a global file system.
+        wait: bool
+            If True, will wait for &#39;path&#39; to point to an existing file for `ifra.messenger.Emitter.DEFAULT_MESSAGES`
+            seconds at Receiver creation if it does not exist. Else, messages will be those in
+            `ifra.messenger.Emitter.DEFAULT_MESSAGES`
+        &#34;&#34;&#34;
+
+        if type(path) == str:
+            path = TransparentPath(path)
+
+        if not path.suffix == &#34;.json&#34;:
+            raise ValueError(&#34;Messenger path must be a json&#34;)
+        self.path = path
+        self.messages = {}
+        self.new = True
+        self.get_latest_messages(wait)
+
+    def __getstate__(self):
+        return self.__dict__
+
+    def __setstate__(self, d: dict):
+        for item in d:
+            setattr(self, item, d[item])
+
+    def __getattr__(self, item):
+        if item == &#34;messages&#34;:
+            raise ValueError(&#34;Messenger object&#39;s &#39;messages&#39; not set&#34;)
+        if item == &#34;path&#34;:
+            raise ValueError(&#34;Messenger object&#39;s &#39;path&#39; not set&#34;)
+        if item not in self.messages:
+            raise ValueError(f&#34;No messages named &#39;{item}&#39; was found&#34;)
+        return self.messages[item]
+
+    def __deepcopy__(self, memo):
+        cls = self.__class__
+        result = cls.__new__(cls)
+        memo[id(self)] = result
+        setattr(result, &#34;messages&#34;, deepcopy(self.messages, memo))
+        return result
+
+    def get_latest_messages(self, wait: bool = False) -&gt; bool:
+        &#34;&#34;&#34;Gets latest messages by reading the messages json file. If file does not exist and it is the first time we
+        read it (object init), wait for it for at most `ifra.messenger.Receiver.timeout_when_missing` seconds then
+        raises TimeoutError. If file does not exist and it is not the first time we read it, returns False. If
+        messages are read, returns True&#34;&#34;&#34;
+        first_message = True
+
+        if self.__class__.timeout_when_missing is None:
+            raise ValueError(&#34;&#39;timeout_when_missing&#39; can not be None&#34;)
+
+        t = time()
+        while not self.path.is_file() and time() - t &lt; self.timeout_when_missing:
+            if not self.new:
+                logger.warning(f&#34;Message file {self.path} disapread. No message received.&#34;)
+                return False
+            if not wait:
+                logger.warning(
+                    f&#34;Message file {self.path} does not exist. No message received, using defaults messages.&#34;
+                )
+                self.messages = copy(self.DEFAULT_MESSAGES)
+                return False
+            if first_message:
+                first_message = False
+                logger.info(f&#34;Message file {self.path} not here yet. Waiting for it to arrive...&#34;)
+            sleep(1)
+        if not self.path.is_file():
+            raise TimeoutError(f&#34;Could not find message file &#39;{self.path}&#39; in less that &#34;
+                               f&#34;{self.__class__.timeout_when_missing} seconds. Aborting.&#34;)
+        if first_message is False:
+            logger.info(&#34;...message file found. Resuming.&#34;)
+
+        self.new = False
+
+        lockfile = get_lock(self.path)
+
+        try:
+
+            if hasattr(self.path, &#34;read&#34;):
+                self.messages = self.path.read()
+            else:
+                with open(self.path) as opath:
+                    self.messages = load(opath)
+
+            for key in self.messages:
+                if self.messages[key] == &#34;&#34;:
+                    self.messages[key] = None
+
+            lockfile.rm(absent=&#34;ignore&#34;)
+        except Exception as e:
+            lockfile.rm(absent=&#34;ignore&#34;)
+            raise e
+        return True
+
+    def reset_messages(self):
+        &#34;&#34;&#34;Reset messages to their default values specified in `ifra.messenger.Receiver.DEFAULT_MESSAGES`&#34;&#34;&#34;
+        self.messages = copy(self.DEFAULT_MESSAGES)
+        self.save()</code></pre>
+</details>
+<h3>Class variables</h3>
+<dl>
+<dt id="ifra.messenger.Receiver.DEFAULT_MESSAGES"><code class="name">var <span class="ident">DEFAULT_MESSAGES</span></code></dt>
+<dd>
+<div class="desc"><p>Overload in daughter classes. Must match the <code><a title="ifra.messenger.Emitter.DEFAULT_MESSAGES" href="#ifra.messenger.Emitter.DEFAULT_MESSAGES">Emitter.DEFAULT_MESSAGES</a></code> of the emitter that
+will write to the file the receiver will read.</p></div>
+</dd>
+<dt id="ifra.messenger.Receiver.timeout_when_missing"><code class="name">var <span class="ident">timeout_when_missing</span></code></dt>
+<dd>
+<div class="desc"><p>How long the messenger is supposed to wait for its file to come back when using
+<code>ifra.messenger.NodeMessenger.get_latest_messages</code></p></div>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="ifra.messenger.Receiver.get_latest_messages"><code class="name flex">
+<span>def <span class="ident">get_latest_messages</span></span>(<span>self, wait: bool = False) ‑> bool</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Gets latest messages by reading the messages json file. If file does not exist and it is the first time we
+read it (object init), wait for it for at most <code><a title="ifra.messenger.Receiver.timeout_when_missing" href="#ifra.messenger.Receiver.timeout_when_missing">Receiver.timeout_when_missing</a></code> seconds then
+raises TimeoutError. If file does not exist and it is not the first time we read it, returns False. If
+messages are read, returns True</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_latest_messages(self, wait: bool = False) -&gt; bool:
+    &#34;&#34;&#34;Gets latest messages by reading the messages json file. If file does not exist and it is the first time we
+    read it (object init), wait for it for at most `ifra.messenger.Receiver.timeout_when_missing` seconds then
+    raises TimeoutError. If file does not exist and it is not the first time we read it, returns False. If
+    messages are read, returns True&#34;&#34;&#34;
+    first_message = True
+
+    if self.__class__.timeout_when_missing is None:
+        raise ValueError(&#34;&#39;timeout_when_missing&#39; can not be None&#34;)
+
+    t = time()
+    while not self.path.is_file() and time() - t &lt; self.timeout_when_missing:
+        if not self.new:
+            logger.warning(f&#34;Message file {self.path} disapread. No message received.&#34;)
+            return False
+        if not wait:
+            logger.warning(
+                f&#34;Message file {self.path} does not exist. No message received, using defaults messages.&#34;
+            )
+            self.messages = copy(self.DEFAULT_MESSAGES)
+            return False
+        if first_message:
+            first_message = False
+            logger.info(f&#34;Message file {self.path} not here yet. Waiting for it to arrive...&#34;)
+        sleep(1)
+    if not self.path.is_file():
+        raise TimeoutError(f&#34;Could not find message file &#39;{self.path}&#39; in less that &#34;
+                           f&#34;{self.__class__.timeout_when_missing} seconds. Aborting.&#34;)
+    if first_message is False:
+        logger.info(&#34;...message file found. Resuming.&#34;)
+
+    self.new = False
+
+    lockfile = get_lock(self.path)
+
+    try:
+
+        if hasattr(self.path, &#34;read&#34;):
+            self.messages = self.path.read()
+        else:
+            with open(self.path) as opath:
+                self.messages = load(opath)
+
+        for key in self.messages:
+            if self.messages[key] == &#34;&#34;:
+                self.messages[key] = None
+
+        lockfile.rm(absent=&#34;ignore&#34;)
+    except Exception as e:
+        lockfile.rm(absent=&#34;ignore&#34;)
+        raise e
+    return True</code></pre>
+</details>
+</dd>
+<dt id="ifra.messenger.Receiver.reset_messages"><code class="name flex">
+<span>def <span class="ident">reset_messages</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Reset messages to their default values specified in <code><a title="ifra.messenger.Receiver.DEFAULT_MESSAGES" href="#ifra.messenger.Receiver.DEFAULT_MESSAGES">Receiver.DEFAULT_MESSAGES</a></code></p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def reset_messages(self):
+    &#34;&#34;&#34;Reset messages to their default values specified in `ifra.messenger.Receiver.DEFAULT_MESSAGES`&#34;&#34;&#34;
+    self.messages = copy(self.DEFAULT_MESSAGES)
+    self.save()</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="ifra" href="index.html">ifra</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="ifra.messenger.get_lock" href="#ifra.messenger.get_lock">get_lock</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="ifra.messenger.Emitter" href="#ifra.messenger.Emitter">Emitter</a></code></h4>
+<ul class="">
+<li><code><a title="ifra.messenger.Emitter.DEFAULT_MESSAGES" href="#ifra.messenger.Emitter.DEFAULT_MESSAGES">DEFAULT_MESSAGES</a></code></li>
+<li><code><a title="ifra.messenger.Emitter.reset_messages" href="#ifra.messenger.Emitter.reset_messages">reset_messages</a></code></li>
+<li><code><a title="ifra.messenger.Emitter.rm" href="#ifra.messenger.Emitter.rm">rm</a></code></li>
+<li><code><a title="ifra.messenger.Emitter.save" href="#ifra.messenger.Emitter.save">save</a></code></li>
+<li><code><a title="ifra.messenger.Emitter.send" href="#ifra.messenger.Emitter.send">send</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="ifra.messenger.Receiver" href="#ifra.messenger.Receiver">Receiver</a></code></h4>
+<ul class="">
+<li><code><a title="ifra.messenger.Receiver.DEFAULT_MESSAGES" href="#ifra.messenger.Receiver.DEFAULT_MESSAGES">DEFAULT_MESSAGES</a></code></li>
+<li><code><a title="ifra.messenger.Receiver.get_latest_messages" href="#ifra.messenger.Receiver.get_latest_messages">get_latest_messages</a></code></li>
+<li><code><a title="ifra.messenger.Receiver.reset_messages" href="#ifra.messenger.Receiver.reset_messages">reset_messages</a></code></li>
+<li><code><a title="ifra.messenger.Receiver.timeout_when_missing" href="#ifra.messenger.Receiver.timeout_when_missing">timeout_when_missing</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.10.0</a>.</p>
+</footer>
+</body>
+</html>
