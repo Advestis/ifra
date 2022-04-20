@@ -1,6 +1,0 @@
-sklearn
-tablewriter
-ruleskit
-matplotlib
-transparentpath[pandas]
-numexpr
