@@ -10,7 +10,7 @@ import logging
 from .configs import AggregatorConfig
 from .actor import Actor
 from .decorator import emit
-from .aggregations import AdaBoostAggregation, Aggregation
+from .aggregations import AdaBoostAggregation, Aggregation, ReverseAdaBoostAggregation, AggregateAll
 
 logger = logging.getLogger(__name__)
 
@@ -72,26 +72,32 @@ class NodeGate:
 
         Returns
         -------
-        True if successfully fetched new model, else False. Can be False if the model's file disapeared, or if has not
-        been modified since last check.
+        True if successfully fetched new model, else False. Can be False if the model's file disappeared, or if has not
+        been modified since last check, or if it contains no rules.
         """
 
-        def get_model() -> None:
+        def get_model() -> bool:
             """Fetch the node's model.
             `ifra.aggregator.NodeGate` *last_fetch* will be set to now.
             """
             self.model = RuleSet()
             self.model.load(self.model_path)
             self.last_fetch = datetime.now()
+            if len(self.model) == 0:
+                logger.info(
+                    f"Aggregator - Fetched new model from node {self.id} at {self.last_fetch},"
+                    f" but it was empty. Ignoring it."
+                )
+                return False
             self.new_model_found = True
             logger.info(f"Aggregator - Fetched new model from node {self.id} at {self.last_fetch}")
+            return True
 
         if self.model is None:
             # The node has not produced any model yet if self.model is None. No need to bother with self.last_fetch
             # then, just get the model.
             if self.model_path.is_file():
-                get_model()
-                return True
+                return get_model()
             else:
                 logger.warning(f"Aggregator - model located at {self.model_path} disapeared.")
                 return False
@@ -100,8 +106,7 @@ class NodeGate:
             # checking the modification time of the node's model file.
             if self.model_path.is_file():
                 if self.model_path.info()["mtime"] > self.last_fetch.timestamp():
-                    get_model()
-                    return True
+                    return get_model()
                 else:
                     logger.debug(f"Aggregator - Node {self.id} has no new model. Skipping for now.")
                     return False
@@ -132,7 +137,9 @@ class Aggregator(Actor):
         Instance of one of the `ifra.aggregations.Aggregation` daughter classes.
     """
 
-    possible_aggregations = {"adaboost": AdaBoostAggregation}
+    possible_aggregations = {
+        "adaboost": AdaBoostAggregation, "reverseadaboost": ReverseAdaBoostAggregation, "keepall": AggregateAll
+    }
     """Possible string values and corresponding aggregation methods for *aggregation* attribute of
     `ifra.aggregator.Aggregator`"""
 
@@ -273,7 +280,7 @@ class Aggregator(Actor):
                 logger.info(f"Aggregator - Found {new_nodes} new nodes. Aggregator now knows {len(self.nodes)} nodes.")
 
             for node in self.nodes:
-                # Node fetches its latest model from GCP. Returns True if a new model was found.
+                # Node fetches its latest model from GCP. Returns True if a new model was found and it has rules.
                 if node.interact() is False:
                     continue
 

@@ -1,0 +1,10 @@
+graft ./
+global-exclude *.pyc .gitignore
+prune ./.git
+prune ./.github
+prune ./.idea
+prune ./build
+prune ./distinclude
+include versioneer.py
+include complex/_version.py
+include ifra/_version.py
